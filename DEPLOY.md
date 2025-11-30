@@ -60,7 +60,7 @@ git commit -m "Initial commit - Senior Conversation Trainer"
    - Scroll down to "Environment Variables"
    - Click "Add" or "Add Environment Variable"
    - **Name:** `NEXT_PUBLIC_GROQ_API_KEY`
-   - **Value:** `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`
+   - **Value:** Your Groq API key (get it from https://console.groq.com/)
    - Make sure it's added for all environments (Production, Preview, Development)
    - Click "Add"
 
