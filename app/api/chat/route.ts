@@ -7,6 +7,8 @@ if (!apiKey) {
   console.error("NEXT_PUBLIC_GROQ_API_KEY is not set")
 }
 
+console.error(apiKey)
+
 const groq = apiKey ? new Groq({ apiKey }) : null
 
 // Persona definitions

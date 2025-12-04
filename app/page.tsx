@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MessageCircle, BarChart3 } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 export default function LandingPage() {
   const [isAuthOpen, setIsAuthOpen] = useState(false)
@@ -98,6 +99,58 @@ export default function LandingPage() {
 }
 
 function AuthScreen({ onBack }: { onBack: () => void }) {
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [registerName, setRegisterName] = useState("");
+  const [registerEmail, setRegisterEmail] = useState("");
+  const [registerPassword, setRegisterPassword] = useState("");
+
+  const router = useRouter();
+  async function login() {
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: loginEmail,
+          password: loginPassword,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        alert(result.error || "Registration failed");
+        return;
+      }
+      router.push("/personas");
+    } catch (error) {
+      alert("Login error: " + error);
+    }
+  }
+  async function register() {
+    try {
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: registerEmail,
+          password: registerPassword,
+          metadata: { full_name: registerName }
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        alert(result.error || "Registration failed");
+        return;
+      }
+      alert("Registration successful!");
+    } catch (error) {
+      alert("Registration error: " + error);
+    }
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -118,33 +171,59 @@ function AuthScreen({ onBack }: { onBack: () => void }) {
             <TabsContent value="login" className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="login-email">Email</Label>
-                <Input id="login-email" type="email" placeholder="you@example.com" />
+                <Input
+                  id="login-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={loginEmail}
+                  onChange={e => setLoginEmail(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="login-password">Password</Label>
-                <Input id="login-password" type="password" placeholder="••••••••" />
+                <Input
+                  id="login-password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={loginPassword}
+                  onChange={e => setLoginPassword(e.target.value)}
+                />
               </div>
-              <Link href="/personas">
-                <Button className="w-full">Sign In</Button>
-              </Link>
+              <Button className="w-full" onClick={login}>Sign In</Button>
             </TabsContent>
 
             <TabsContent value="register" className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="register-name">Full Name</Label>
-                <Input id="register-name" type="text" placeholder="John Doe" />
+                <Input
+                  id="register-name"
+                  type="text"
+                  placeholder="John Doe"
+                  value={registerName}
+                  onChange={e => setRegisterName(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
-                <Label htmlId="register-email">Email</Label>
-                <Input id="register-email" type="email" placeholder="you@example.com" />
+                <Label htmlFor="register-email">Email</Label>
+                <Input
+                  id="register-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={registerEmail}
+                  onChange={e => setRegisterEmail(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="register-password">Password</Label>
-                <Input id="register-password" type="password" placeholder="••••••••" />
+                <Input
+                  id="register-password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={registerPassword}
+                  onChange={e => setRegisterPassword(e.target.value)}
+                />
               </div>
-              <Link href="/personas">
-                <Button className="w-full">Create Account</Button>
-              </Link>
+              <Button className="w-full" onClick={register}>Sign In</Button>
             </TabsContent>
           </Tabs>
         </CardContent>
