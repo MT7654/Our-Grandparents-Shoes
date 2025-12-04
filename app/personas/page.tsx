@@ -28,8 +28,24 @@ const personas = [
 ]
 
 export default function PersonaSelection() {
+    // Placeholder logout function
+  // Import useRouter from next/navigation
+  const { useRouter } = require("next/navigation");
+  const router = useRouter();
+  async function logout() {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      router.push("/");
+    } catch (error) {
+      alert("Logout error: " + error);
+    }
+  }
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10">
+    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10 relative">
+      {/* Logout Button Top Right */}
+      <div className="absolute top-4 right-4">
+        <Button variant="outline" onClick={logout}>Logout</Button>
+      </div>
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-5xl mx-auto">
           {/* Header */}

@@ -147,6 +147,7 @@ function AuthScreen({ onBack }: { onBack: () => void }) {
         return;
       }
       alert("Registration successful!");
+      router.push("/personas");
     } catch (error) {
       alert("Registration error: " + error);
     }
@@ -223,7 +224,7 @@ function AuthScreen({ onBack }: { onBack: () => void }) {
                   onChange={e => setRegisterPassword(e.target.value)}
                 />
               </div>
-              <Button className="w-full" onClick={register}>Sign In</Button>
+              <Button className="w-full" onClick={register}>Register</Button>
             </TabsContent>
           </Tabs>
         </CardContent>
