@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MessageCircle, BarChart3 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { createClient } from '@/lib/supabase/client'
 
 export default function LandingPage() {
   // Import useRouter from next/navigation
@@ -20,24 +21,16 @@ export default function LandingPage() {
 
   // For client side redirection
   const verify = async (nextPath: string) => {
-    try {
-      const response = await fetch('/api/auth/session', {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        }
-      })
+    const supabase = createClient()
 
-      if (response.ok) {
-        router.push(`/${nextPath}`)
-      } else {
-        setIsAuthOpen(true)
-        setIsLoading(false)
-      }      
-    } catch {
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (user) {
+      router.push(`/${nextPath}`) 
+    } else {
       setIsAuthOpen(true)
       setIsLoading(false)
-    }
+    } 
   }
 
   const startTraining = () => {
