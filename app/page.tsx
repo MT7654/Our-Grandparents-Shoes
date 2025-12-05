@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,7 +11,46 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 
 export default function LandingPage() {
+  // Import useRouter from next/navigation
+  const { useRouter } = require("next/navigation");
+  const router = useRouter();
+
   const [isAuthOpen, setIsAuthOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // For client side redirection
+  const verify = async (nextPath: string) => {
+    try {
+      const response = await fetch('/api/auth/session', {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        }
+      })
+
+      if (response.ok) {
+        router.push(`/${nextPath}`)
+      } else {
+        setIsAuthOpen(true)
+        setIsLoading(false)
+      }      
+    } catch {
+      setIsAuthOpen(true)
+      setIsLoading(false)
+    }
+  }
+
+  const startTraining = () => {
+    setIsLoading(true)
+    verify('personas')
+  }
+
+  const startTracking = () => {
+    setIsLoading(true)
+    verify('dashboard')
+  }
+
+  if (isLoading) return null
 
   if (isAuthOpen) {
     return <AuthScreen onBack={() => setIsAuthOpen(false)} />
@@ -38,7 +77,7 @@ export default function LandingPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button size="lg" className="text-lg px-8 py-6 w-full sm:w-auto" onClick={() => setIsAuthOpen(true)}>
+            <Button size="lg" className="text-lg px-8 py-6 w-full sm:w-auto" onClick={() => startTraining()}>
               Start Training
             </Button>
 
@@ -46,7 +85,7 @@ export default function LandingPage() {
               size="lg"
               variant="outline"
               className="text-lg px-8 py-6 w-full sm:w-auto bg-transparent"
-              onClick={() => setIsAuthOpen(true)}
+              onClick={() => startTracking()}
             >
               <BarChart3 className="w-5 h-5 mr-2" />
               Track My Progress
@@ -128,6 +167,7 @@ function AuthScreen({ onBack }: { onBack: () => void }) {
       alert("Login error: " + error);
     }
   }
+
   async function register() {
     try {
       const response = await fetch("/api/auth/signup", {
@@ -152,6 +192,7 @@ function AuthScreen({ onBack }: { onBack: () => void }) {
       alert("Registration error: " + error);
     }
   }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
