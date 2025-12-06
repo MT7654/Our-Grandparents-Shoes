@@ -138,7 +138,7 @@ function AuthScreen({ onBack }: { onBack: () => void }) {
         body: JSON.stringify({
           email: registerEmail,
           password: registerPassword,
-          metadata: { full_name: registerName }
+          full_name: registerName
         }),
       });
       const result = await response.json();

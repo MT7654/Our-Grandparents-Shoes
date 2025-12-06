@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
   try {
-    const { email, password, metadata } = await request.json()
+    const { email, password, full_name } = await request.json()
 
     // Validate input
     if (!email || !password) {
@@ -15,11 +15,14 @@ export async function POST(request: Request) {
 
     const supabase = await createClient()
 
+    // Sign up with full_name in metadata (trigger will create profile automatically)
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: metadata, // Optional: additional user metadata
+        data: {
+          full_name: full_name || '',
+        },
       },
     })
 
@@ -30,6 +33,7 @@ export async function POST(request: Request) {
       )
     }
 
+    // Profile is created automatically by database trigger
     return NextResponse.json(
       {
         message: 'User created successfully',

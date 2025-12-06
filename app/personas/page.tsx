@@ -1,10 +1,13 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar } from "@/components/ui/avatar"
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Loader2 } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
 
 const personas = [
   {
@@ -28,18 +31,44 @@ const personas = [
 ]
 
 export default function PersonaSelection() {
-    // Placeholder logout function
-  // Import useRouter from next/navigation
-  const { useRouter } = require("next/navigation");
-  const router = useRouter();
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(true)
+  const [user, setUser] = useState<any>(null)
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        router.push("/")
+        return
+      }
+      
+      setUser(user)
+      setIsLoading(false)
+    }
+    
+    checkAuth()
+  }, [router])
+
   async function logout() {
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
-      router.push("/");
+      await fetch("/api/auth/logout", { method: "POST" })
+      router.push("/")
     } catch (error) {
-      alert("Logout error: " + error);
+      alert("Logout error: " + error)
     }
   }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10 relative">
       {/* Logout Button Top Right */}
@@ -131,3 +160,4 @@ export default function PersonaSelection() {
     </div>
   )
 }
+

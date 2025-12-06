@@ -1,13 +1,37 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import Link from "next/link"
-import { CheckCircle2, XCircle, Trophy, RotateCcw, Home } from "lucide-react"
+import { CheckCircle2, XCircle, Trophy, RotateCcw, Home, Loader2 } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
 
 export default function ConversationComplete() {
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(true)
+  const [user, setUser] = useState<any>(null)
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        router.push("/")
+        return
+      }
+      
+      setUser(user)
+      setIsLoading(false)
+    }
+    
+    checkAuth()
+  }, [router])
+
   // Mock data - in real app this would come from session state
   const sessionData = {
     success: true,
@@ -21,6 +45,14 @@ export default function ConversationComplete() {
     totalScore: 81,
     feedback:
       "Excellent work showing empathy and actively listening. Consider asking more follow-up questions to improve conversational flow.",
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    )
   }
 
   return (

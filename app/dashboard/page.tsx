@@ -1,11 +1,14 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import Link from "next/link"
-import { ArrowLeft, Award, TrendingUp, MessageCircle } from "lucide-react"
+import { ArrowLeft, Award, TrendingUp, MessageCircle, Loader2 } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
 
 const pastSessions = [
   {
@@ -51,6 +54,35 @@ const stats = {
 }
 
 export default function ProgressDashboard() {
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(true)
+  const [user, setUser] = useState<any>(null)
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        router.push("/")
+        return
+      }
+      
+      setUser(user)
+      setIsLoading(false)
+    }
+    
+    checkAuth()
+  }, [router])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10">
       <div className="container mx-auto px-4 py-8">

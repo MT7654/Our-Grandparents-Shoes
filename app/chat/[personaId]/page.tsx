@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
-import { ArrowLeft, Send, Lightbulb, Activity } from "lucide-react"
-import { useParams } from "next/navigation"
+import { ArrowLeft, Send, Lightbulb, Activity, Loader2 } from "lucide-react"
+import { useParams, useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
 
 interface Message {
   id: string
@@ -26,9 +27,12 @@ interface EvaluationResult {
 
 export default function ChatTraining() {
   const params = useParams()
+  const router = useRouter()
   const personaId = params.personaId as string
   const scrollRef = useRef<HTMLDivElement>(null)
 
+  const [isAuthLoading, setIsAuthLoading] = useState(true)
+  const [user, setUser] = useState<any>(null)
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -72,6 +76,24 @@ export default function ChatTraining() {
       setExpression("neutral")
     }
   }
+
+  // Check authentication
+  useEffect(() => {
+    const checkAuth = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        router.push("/")
+        return
+      }
+      
+      setUser(user)
+      setIsAuthLoading(false)
+    }
+    
+    checkAuth()
+  }, [router])
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -215,6 +237,14 @@ export default function ChatTraining() {
     if (sentiment === "positive") return "text-emerald-600"
     if (sentiment === "negative") return "text-rose-600"
     return "text-gray-600"
+  }
+
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-[#F5F6F8] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    )
   }
 
   return (
