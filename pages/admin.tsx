@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter } from "next/router"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -202,10 +202,10 @@ export default function AdminDashboard() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-10 h-10 animate-spin text-purple-400 mx-auto mb-4" />
-          <p className="text-purple-200">Verifying admin access...</p>
+          <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Verifying admin access...</p>
         </div>
       </div>
     )
@@ -214,21 +214,21 @@ export default function AdminDashboard() {
   // Admin Login Form (not logged in)
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-slate-800/50 border-purple-500/30 backdrop-blur-sm">
+      <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <div className="w-16 h-16 rounded-full bg-purple-500/20 flex items-center justify-center mx-auto mb-4">
-              <Lock className="w-8 h-8 text-purple-400" />
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+              <Lock className="w-8 h-8 text-primary" />
             </div>
-            <CardTitle className="text-2xl text-white">Admin Portal</CardTitle>
-            <CardDescription className="text-purple-300/70">
+            <CardTitle className="text-2xl">Admin Portal</CardTitle>
+            <CardDescription>
               Sign in with your admin credentials
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleAdminLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-purple-200">Email</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
@@ -236,11 +236,10 @@ export default function AdminDashboard() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="bg-slate-700/50 border-purple-500/30 text-white placeholder:text-purple-300/50 focus:border-purple-400"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-purple-200">Password</Label>
+                <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
                   type="password"
@@ -248,19 +247,18 @@ export default function AdminDashboard() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="bg-slate-700/50 border-purple-500/30 text-white placeholder:text-purple-300/50 focus:border-purple-400"
                 />
               </div>
               
               {loginError && (
-                <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-                  <p className="text-red-400 text-sm">{loginError}</p>
+                <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
+                  <p className="text-destructive text-sm">{loginError}</p>
                 </div>
               )}
               
               <Button 
                 type="submit" 
-                className="w-full bg-purple-600 hover:bg-purple-700"
+                className="w-full"
                 disabled={isLoggingIn}
               >
                 {isLoggingIn ? (
@@ -277,9 +275,9 @@ export default function AdminDashboard() {
               </Button>
             </form>
             
-            <div className="mt-6 pt-4 border-t border-purple-500/20">
+            <div className="mt-6 pt-4 border-t">
               <Link href="/">
-                <Button variant="ghost" className="w-full text-purple-300 hover:text-white hover:bg-purple-800/30">
+                <Button variant="ghost" className="w-full">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back to Home
                 </Button>
@@ -294,18 +292,18 @@ export default function AdminDashboard() {
   // Access Denied (logged in but not admin)
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-slate-800/50 border-red-500/30 backdrop-blur-sm">
+      <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">
-              <Shield className="w-8 h-8 text-red-400" />
+            <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+              <Shield className="w-8 h-8 text-destructive" />
             </div>
-            <CardTitle className="text-2xl text-white">Access Denied</CardTitle>
-            <CardDescription className="text-slate-400">
+            <CardTitle className="text-2xl">Access Denied</CardTitle>
+            <CardDescription>
               {error || "Your account doesn't have admin privileges."}
             </CardDescription>
             {currentUser && (
-              <p className="text-sm text-purple-300/50 mt-2">
+              <p className="text-sm text-muted-foreground mt-2">
                 Logged in as: {currentUser.email}
               </p>
             )}
@@ -314,13 +312,13 @@ export default function AdminDashboard() {
             <Button 
               onClick={handleLogout}
               variant="outline"
-              className="w-full border-purple-500/30 text-purple-300 hover:bg-purple-800/30"
+              className="w-full"
             >
               <LogOut className="w-4 h-4 mr-2" />
               Sign Out & Try Different Account
             </Button>
             <Link href="/">
-              <Button className="w-full bg-purple-600 hover:bg-purple-700">
+              <Button className="w-full">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Home
               </Button>
@@ -333,22 +331,21 @@ export default function AdminDashboard() {
 
   // Admin Dashboard
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
             <div className="flex justify-between items-center mb-4">
               <Link href="/">
-                <Button variant="ghost" className="text-purple-300 hover:text-white hover:bg-purple-800/30">
+                <Button variant="ghost">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back to Home
                 </Button>
               </Link>
               <Button 
                 onClick={handleLogout}
-                variant="ghost" 
-                className="text-purple-300 hover:text-white hover:bg-purple-800/30"
+                variant="ghost"
               >
                 <LogOut className="w-4 h-4 mr-2" />
                 Logout
@@ -358,23 +355,22 @@ export default function AdminDashboard() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-purple-500/20 rounded-lg">
-                    <Shield className="w-6 h-6 text-purple-400" />
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Shield className="w-6 h-6 text-primary" />
                   </div>
-                  <h1 className="text-4xl font-bold text-white">Admin Dashboard</h1>
+                  <h1 className="text-4xl font-bold">Admin Dashboard</h1>
                 </div>
-                <p className="text-lg text-purple-200/70">
+                <p className="text-lg text-muted-foreground">
                   Manage users and monitor training progress
                 </p>
                 {currentUser && (
-                  <p className="text-sm text-purple-300/50 mt-1">
+                  <p className="text-sm text-muted-foreground mt-1">
                     Logged in as: {currentUser.email}
                   </p>
                 )}
               </div>
               <Button 
                 onClick={() => { setIsLoading(true); fetchAdminData(); }}
-                className="bg-purple-600 hover:bg-purple-700"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Refresh
@@ -384,21 +380,21 @@ export default function AdminDashboard() {
 
           {/* Stats Cards */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <Card className="bg-slate-800/50 border-purple-500/20 backdrop-blur-sm">
+            <Card>
               <CardHeader className="pb-2">
-                <CardDescription className="text-purple-300">Total Users</CardDescription>
-                <CardTitle className="text-3xl text-white flex items-center gap-2">
-                  <Users className="w-6 h-6 text-purple-400" />
+                <CardDescription>Total Users</CardDescription>
+                <CardTitle className="text-3xl flex items-center gap-2">
+                  <Users className="w-6 h-6 text-primary" />
                   {users.length}
                 </CardTitle>
               </CardHeader>
             </Card>
 
-            <Card className="bg-slate-800/50 border-purple-500/20 backdrop-blur-sm">
+            <Card>
               <CardHeader className="pb-2">
-                <CardDescription className="text-purple-300">Active Today</CardDescription>
-                <CardTitle className="text-3xl text-white flex items-center gap-2">
-                  <Clock className="w-6 h-6 text-green-400" />
+                <CardDescription>Active Today</CardDescription>
+                <CardTitle className="text-3xl flex items-center gap-2">
+                  <Clock className="w-6 h-6 text-primary" />
                   {users.filter(u => u.last_sign_in_at && 
                     new Date(u.last_sign_in_at).toDateString() === new Date().toDateString()
                   ).length}
@@ -406,11 +402,11 @@ export default function AdminDashboard() {
               </CardHeader>
             </Card>
 
-            <Card className="bg-slate-800/50 border-purple-500/20 backdrop-blur-sm">
+            <Card>
               <CardHeader className="pb-2">
-                <CardDescription className="text-purple-300">New This Week</CardDescription>
-                <CardTitle className="text-3xl text-white flex items-center gap-2">
-                  <Calendar className="w-6 h-6 text-blue-400" />
+                <CardDescription>New This Week</CardDescription>
+                <CardTitle className="text-3xl flex items-center gap-2">
+                  <Calendar className="w-6 h-6 text-primary" />
                   {users.filter(u => {
                     const weekAgo = new Date()
                     weekAgo.setDate(weekAgo.getDate() - 7)
@@ -420,11 +416,11 @@ export default function AdminDashboard() {
               </CardHeader>
             </Card>
 
-            <Card className="bg-slate-800/50 border-purple-500/20 backdrop-blur-sm">
+            <Card>
               <CardHeader className="pb-2">
-                <CardDescription className="text-purple-300">Avg. Score</CardDescription>
-                <CardTitle className="text-3xl text-white flex items-center gap-2">
-                  <TrendingUp className="w-6 h-6 text-yellow-400" />
+                <CardDescription>Avg. Score</CardDescription>
+                <CardTitle className="text-3xl flex items-center gap-2">
+                  <TrendingUp className="w-6 h-6 text-primary" />
                   {users.length > 0 && users.some(u => u.average_score)
                     ? Math.round(users.reduce((acc, u) => acc + (u.average_score || 0), 0) / users.filter(u => u.average_score).length)
                     : "N/A"}
@@ -435,76 +431,75 @@ export default function AdminDashboard() {
 
           {/* Message Banner */}
           {message && (
-            <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-              <p className="text-yellow-200 text-sm">ℹ️ {message}</p>
+            <div className="mb-6 p-4 bg-accent/50 border border-accent rounded-lg">
+              <p className="text-sm">ℹ️ {message}</p>
             </div>
           )}
 
           {/* Users Table */}
-          <Card className="bg-slate-800/50 border-purple-500/20 backdrop-blur-sm">
+          <Card>
             <CardHeader>
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Users className="w-5 h-5 text-purple-400" />
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="w-5 h-5 text-primary" />
                     All Users
                   </CardTitle>
-                  <CardDescription className="text-purple-300/70">
+                  <CardDescription>
                     {filteredUsers.length} of {users.length} users shown
                   </CardDescription>
                 </div>
                 <div className="relative w-full sm:w-64">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-purple-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     placeholder="Search users..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 bg-slate-700/50 border-purple-500/30 text-white placeholder:text-purple-300/50 focus:border-purple-400"
+                    className="pl-10"
                   />
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="rounded-lg border border-purple-500/20 overflow-hidden">
+              <div className="rounded-lg border overflow-hidden">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-purple-500/20 hover:bg-purple-500/5">
-                      <TableHead className="text-purple-300">User</TableHead>
-                      <TableHead className="text-purple-300">Email</TableHead>
-                      <TableHead className="text-purple-300">Joined</TableHead>
-                      <TableHead className="text-purple-300">Last Active</TableHead>
-                      <TableHead className="text-purple-300">Progress</TableHead>
+                    <TableRow>
+                      <TableHead>User</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Joined</TableHead>
+                      <TableHead>Last Active</TableHead>
+                      <TableHead>Progress</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredUsers.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-8 text-purple-300/70">
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                           {searchQuery ? "No users match your search" : "No users found"}
                         </TableCell>
                       </TableRow>
                     ) : (
                       filteredUsers.map((user) => (
                         <TableRow 
-                          key={user.id} 
-                          className="border-purple-500/20 hover:bg-purple-500/10 transition-colors"
+                          key={user.id}
                         >
                           <TableCell>
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                                <UserCircle className="w-6 h-6 text-white" />
+                              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                <UserCircle className="w-6 h-6 text-primary" />
                               </div>
                               <div>
-                                <p className="font-medium text-white">{user.full_name}</p>
-                                <p className="text-xs text-purple-300/50 font-mono">{user.id.slice(0, 8)}...</p>
+                                <p className="font-medium">{user.full_name}</p>
+                                <p className="text-xs text-muted-foreground font-mono">{user.id.slice(0, 8)}...</p>
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell className="text-purple-200">{user.email}</TableCell>
+                          <TableCell>{user.email}</TableCell>
                           <TableCell>
                             <div>
-                              <p className="text-purple-200">{getTimeSince(user.created_at)}</p>
-                              <p className="text-xs text-purple-300/50">{formatDate(user.created_at)}</p>
+                              <p>{getTimeSince(user.created_at)}</p>
+                              <p className="text-xs text-muted-foreground">{formatDate(user.created_at)}</p>
                             </div>
                           </TableCell>
                           <TableCell>
@@ -514,15 +509,15 @@ export default function AdminDashboard() {
                                   variant="outline" 
                                   className={`${
                                     new Date(user.last_sign_in_at).toDateString() === new Date().toDateString()
-                                      ? "border-green-500/50 text-green-400"
-                                      : "border-purple-500/50 text-purple-300"
+                                      ? "border-green-500 text-green-600"
+                                      : ""
                                   }`}
                                 >
                                   {getTimeSince(user.last_sign_in_at)}
                                 </Badge>
                               </div>
                             ) : (
-                              <Badge variant="outline" className="border-slate-500/50 text-slate-400">
+                              <Badge variant="outline">
                                 Never
                               </Badge>
                             )}
@@ -530,15 +525,15 @@ export default function AdminDashboard() {
                           <TableCell>
                             {user.sessions_completed !== undefined && user.sessions_completed > 0 ? (
                               <div className="flex items-center gap-2">
-                                <span className="text-purple-200">{user.sessions_completed} sessions</span>
+                                <span>{user.sessions_completed} sessions</span>
                                 {user.average_score !== undefined && user.average_score > 0 && (
-                                  <Badge className="bg-purple-500/20 text-purple-300 border-0">
+                                  <Badge variant="secondary">
                                     Avg: {user.average_score}
                                   </Badge>
                                 )}
                               </div>
                             ) : (
-                              <span className="text-purple-300/50">No sessions yet</span>
+                              <span className="text-muted-foreground">No sessions yet</span>
                             )}
                           </TableCell>
                         </TableRow>
@@ -554,3 +549,4 @@ export default function AdminDashboard() {
     </div>
   )
 }
+

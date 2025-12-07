@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MessageCircle, BarChart3 } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter } from "next/router"
 
 export default function LandingPage() {
   const [isAuthOpen, setIsAuthOpen] = useState(false)
@@ -232,3 +232,4 @@ function AuthScreen({ onBack }: { onBack: () => void }) {
     </div>
   )
 }
+
