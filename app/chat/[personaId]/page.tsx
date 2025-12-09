@@ -8,11 +8,11 @@ import Link from "next/link"
 import { ArrowLeft, Send, Lightbulb, Activity } from "lucide-react"
 import { useParams } from "next/navigation"
 import type { Database } from '@/supabase/types'
+import LoadingOverlay from "@/components/loading-overlay"
 
 type Message = Database['public']['Tables']['messages']['Row']
 type Expression = Database['public']['Enums']['eval_expression']
 type Sentiment = Database['public']['Enums']['eval_sentiment']
-type Evaluation = Database['public']['Tables']['evaluations']['Row']
 
 export default function ChatTraining() {
     const params = useParams()
@@ -241,6 +241,9 @@ export default function ChatTraining() {
 
     return (
         <div className="min-h-screen bg-[#F5F6F8] pb-32">
+
+        <LoadingOverlay isLoading={loading} />
+
         {/* Header */}
         <div className="border-b border-gray-200 bg-white shadow-sm">
             <div className="container mx-auto px-4 py-3">
