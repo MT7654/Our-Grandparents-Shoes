@@ -119,13 +119,13 @@ export default function ProgressDashboard() {
                 <CardDescription>Average Score</CardDescription>
                 <CardTitle
                   className={`${
-                    statistics ? "text-3xl" : "text-lg text-muted-foreground"
+                    statistics && statistics.average_score ? "text-3xl" : "text-lg text-muted-foreground"
                   }`}
                 >
-                  {statistics ? statistics.average_score : "No average score yet"}
+                  {statistics && statistics.average_score ? Math.floor(statistics.average_score) : "No average score yet"}
                 </CardTitle>
               </CardHeader>
-              {statistics ? (
+              {statistics && statistics.average_score ? (
                 <CardContent>
                   <Progress value={statistics.average_score} className="h-2" />
                 </CardContent>
@@ -142,13 +142,13 @@ export default function ProgressDashboard() {
                 <CardDescription>Completion Rate</CardDescription>
                 <CardTitle
                   className={`${
-                    statistics ? "text-3xl" : "text-lg text-muted-foreground"
+                    statistics && statistics.completion_rate ? "text-3xl" : "text-lg text-muted-foreground"
                   }`}
                 >
-                  {statistics ? `${statistics.completion_rate}%` : "No completion yet"}
+                  {statistics && statistics.completion_rate ? `${Math.floor(statistics.completion_rate)}%` : "No completion yet"}
                 </CardTitle>
               </CardHeader>
-              {statistics ? (
+              {statistics && statistics.completion_rate ? (
                 <CardContent>
                   <Progress value={statistics.completion_rate} className="h-2" />
                 </CardContent>
@@ -212,7 +212,7 @@ export default function ProgressDashboard() {
                           </div>
                           <div className="flex items-center gap-3">
                             <div className="text-right">
-                              <div className="text-2xl font-bold text-primary">{session.score}</div>
+                              <div className="text-2xl font-bold text-primary">{session.score ? Math.floor(session.score) : 0}</div>
                               <div className="text-xs text-muted-foreground">Score</div>
                             </div>
                           </div>

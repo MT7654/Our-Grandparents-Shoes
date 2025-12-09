@@ -26,7 +26,7 @@ const systemPrompt = `
     - Focus on evaluating the conversation based on:
         1. User's participation and engagement (Did they attempt a structured conversation flow with multiple meaningful prompts and follow-ups?).
         2. Dialogue flow and success in achieving the conversation objective (Did they guide the conversation effectively toward the intended goal with empathy, clarity, and active listening?).
-    - "completed" should be true if the user attempted a structured conversation flow with at least 3 prompts and follow-ups.
+    - "completed" should be true if the user attempted a structured conversation flow with at least 3 follow-ups.
     - "objective_met" should be true if the user successfully achieved the intended conversation objective with proper engagement.
     - Do not include extra commentary outside the JSON.
 
@@ -36,12 +36,14 @@ const systemPrompt = `
     "objective_met": true,
     "feedback": "Concise feedback highlighting strengths and areas for improvement",
     "scores": [
-      { "name": "empathy", "value": 0 },
-      { "name": "clarity", "value": 0 },
-      { "name": "conversationFlow", "value": 0 },
-      { "name": "activeListening", "value": 0 }
+      { "name": "Empathy", "value": 0 },
+      { "name": "Clarity", "value": 0 },
+      { "name": "Conversational Flow", "value": 0 },
+      { "name": "Active Listening", "value": 0 }
     ]
   }
+
+  Remember only return "completed" as true if there are at least 3 follow ups by the user. 
 `
 
 export async function evaluateCompletion(

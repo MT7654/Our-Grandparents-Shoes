@@ -49,16 +49,16 @@ export async function GET(request: NextRequest) {
             )
         }
 
-        const evaluation = await fetchCompleteConversation(converseId)
+        const complete_evaluation = await fetchCompleteConversation(converseId)
 
-        if (!evaluation) {
+        if (!complete_evaluation) {
             return NextResponse.json(
                 { error: "Failed to fetch completion evaluation" },
                 { status: 400 }
             )
         }
 
-        return NextResponse.json(evaluation)
+        return NextResponse.json(complete_evaluation)
     } catch (error) {
         return NextResponse.json(
             { error: "Internal Server Error" },

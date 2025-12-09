@@ -18,7 +18,12 @@ export const saveScores = async (
 
     const { data, error } = await supabase
         .from('scores')
-        .insert(rows)
+        .upsert(rows, 
+            {
+                onConflict: ['vid', 'metric_name'] as any,
+                ignoreDuplicates: false
+            }
+        )
         .select()
     
     if (error) {

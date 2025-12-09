@@ -23,10 +23,10 @@ total_chats AS (
 ),
 conv AS (
     SELECT 
-        COUNT(*)::float AS total_sessions,
+        COUNT(DISTINCT C.cid)::float AS total_sessions,
         AVG(score) AS average_score,
-        SUM(CASE WHEN completed THEN 1 ELSE 0 END)::float AS completed_sessions
-    FROM conversation_sessions
+        SUM(CASE WHEN S.completed THEN 1 ELSE 0 END)::float AS completed_sessions
+    FROM conversation_sessions S JOIN conversations C ON C.vid = S.vid
 ),
 category_totals AS (
     SELECT 

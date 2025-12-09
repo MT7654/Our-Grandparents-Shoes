@@ -135,6 +135,13 @@ export const fetchCompleteConversation = async (
         return null
     }
 
+    const chat = await getChatByChatID(conversation.cid)
+
+    if (!chat) {
+        console.error('Error fetching objective')
+        return null
+    }
+
     const values = scores.map(s => s.metric_value)
     const total = values.reduce((acc, v) => (acc + v), 0 as number)
     const average = Math.floor(total / values.length)
@@ -149,6 +156,7 @@ export const fetchCompleteConversation = async (
         ...conversation,
         scores: formatted_scores,
         average,
+        objective: chat.objective
     }
 }
 

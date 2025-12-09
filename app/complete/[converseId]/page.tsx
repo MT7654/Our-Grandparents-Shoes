@@ -16,6 +16,7 @@ export default function ConversationComplete() {
     const converseId = params.converseId as string
 
     const [loading, setLoading] = useState(true)
+    const [objective, setObjective] = useState<string>('')
     const [sessionData, setSessionData] = useState<CompleteParams | null>(null)
 
     useEffect(() => {
@@ -28,14 +29,16 @@ export default function ConversationComplete() {
                 }
 
                 const data = await response.json()
+                const { objective, ...rest } = data
 
-                setSessionData(data)
+                setObjective(objective)
+                setSessionData(rest)    
             } catch (error) {
                 console.error('Error fetching data')
             } finally {
                 setLoading(false)
             }
-        } 
+        }
 
         retrieveFromDB()
     }, [])
@@ -109,7 +112,7 @@ export default function ConversationComplete() {
                 <Badge variant={sessionData.objective_met ? "default" : "secondary"} className="mb-2">
                 {sessionData.objective_met ? "Completed" : "Not Completed"}
                 </Badge>
-                <p className="text-sm text-muted-foreground">Get the senior to talk about how they met their spouse</p>
+                <p className="text-sm text-muted-foreground">{objective}</p>
             </div>
 
             {/* Feedback */}
