@@ -1,38 +1,17 @@
 "use client"
 
+import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import Link from "next/link"
 import { ArrowLeft, Award, TrendingUp, MessageCircle } from "lucide-react"
+import type { Database } from '@/supabase/types'
+import LoadingOverlay from '@/components/loading-overlay'
 
-const pastSessions = [
-  {
-    id: "1",
-    personaName: "Margaret Thompson",
-    date: "2025-01-28",
-    score: 81,
-    objective: "Get the senior to talk about how they met their spouse",
-    completed: true,
-  },
-  {
-    id: "2",
-    personaName: "Robert Chen",
-    date: "2025-01-27",
-    score: 67,
-    objective: "Help the senior feel comfortable sharing health concerns",
-    completed: false,
-  },
-  {
-    id: "3",
-    personaName: "Margaret Thompson",
-    date: "2025-01-26",
-    score: 75,
-    objective: "Build rapport through active listening",
-    completed: true,
-  },
-]
+type PastSession = Database['public']['Views']['conversation_sessions']['Row']
+type Statistic = Database['public']['Views']['statistics']['Row']
 
 const badges = [
   { id: "1", name: "First Conversation", icon: "🎯", unlocked: true },
@@ -43,18 +22,50 @@ const badges = [
   { id: "6", name: "10 Sessions", icon: "🌟", unlocked: false },
 ]
 
-const stats = {
-  totalSessions: 3,
-  averageScore: 74,
-  completionRate: 67,
-  bestCategory: "Empathy",
-}
-
 export default function ProgressDashboard() {
+  const [loading, setLoading] = useState(true)
+  const [pastSessions, setPastSessions] = useState<PastSession[]>([])
+  const [statistics, setStatistics] = useState<Statistic | null>(null)
+
+  useEffect(() => {
+    const getData = async () => {
+      try {
+        const response = await fetch('/api/dashboard', { method: "GET" })
+
+        if (!response.ok) {
+          console.error(`Error fetching statistics and past conversations: ${response.status} ${response.statusText}`)
+        }
+
+        const data = await response.json()
+        const { past_conversations, user_statistics } = data
+
+        if (past_conversations) {
+          setPastSessions(past_conversations)
+        }
+
+        setStatistics(user_statistics)
+      } catch (error) {
+        console.error('Load Error: ', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    getData()
+  }, [])
+
+  const toLocalDate = (input: string | null) => {
+        if (!input) return "Invalid Date"
+        const localDate = new Date(input)
+        return localDate.toLocaleDateString()
+    }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
+          <LoadingOverlay isLoading={loading} />
+
           {/* Header */}
           <div className="mb-8">
             <Link href="/">
@@ -80,47 +91,95 @@ export default function ProgressDashboard() {
 
           {/* Stats Overview */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            {/* Total Sessions Card */}
             <Card>
               <CardHeader className="pb-2">
                 <CardDescription>Total Sessions</CardDescription>
-                <CardTitle className="text-3xl">{stats.totalSessions}</CardTitle>
+                <CardTitle
+                  className={`${
+                    statistics ? "text-3xl" : "text-lg text-muted-foreground"
+                  }`}
+                >
+                  {statistics ? statistics.total_sessions : "No sessions yet"}
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="flex items-center text-xs text-muted-foreground">
-                  <TrendingUp className="w-3 h-3 mr-1" />
-                  Keep it up!
-                </div>
-              </CardContent>
+              {statistics && (
+                <CardContent>
+                  <div className="flex items-center text-xs text-muted-foreground">
+                    <TrendingUp className="w-3 h-3 mr-1" />
+                    Keep it up!
+                  </div>
+                </CardContent>
+              )}
             </Card>
 
+            {/* Average Score Card */}
             <Card>
               <CardHeader className="pb-2">
                 <CardDescription>Average Score</CardDescription>
-                <CardTitle className="text-3xl">{stats.averageScore}</CardTitle>
+                <CardTitle
+                  className={`${
+                    statistics ? "text-3xl" : "text-lg text-muted-foreground"
+                  }`}
+                >
+                  {statistics ? statistics.average_score : "No average score yet"}
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <Progress value={stats.averageScore} className="h-2" />
-              </CardContent>
+              {statistics ? (
+                <CardContent>
+                  <Progress value={statistics.average_score} className="h-2" />
+                </CardContent>
+              ) : (
+                <CardContent>
+                  <div className="text-xs text-muted-foreground">No data available</div>
+                </CardContent>
+              )}
             </Card>
 
+            {/* Completion Rate Card */}
             <Card>
               <CardHeader className="pb-2">
                 <CardDescription>Completion Rate</CardDescription>
-                <CardTitle className="text-3xl">{stats.completionRate}%</CardTitle>
+                <CardTitle
+                  className={`${
+                    statistics ? "text-3xl" : "text-lg text-muted-foreground"
+                  }`}
+                >
+                  {statistics ? `${statistics.completion_rate}%` : "No completion yet"}
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <Progress value={stats.completionRate} className="h-2" />
-              </CardContent>
+              {statistics ? (
+                <CardContent>
+                  <Progress value={statistics.completion_rate} className="h-2" />
+                </CardContent>
+              ) : (
+                <CardContent>
+                  <div className="text-xs text-muted-foreground">No data available</div>
+                </CardContent>
+              )}
             </Card>
 
+            {/* Best Category Card */}
             <Card>
               <CardHeader className="pb-2">
                 <CardDescription>Best Category</CardDescription>
-                <CardTitle className="text-2xl">{stats.bestCategory}</CardTitle>
+                <CardTitle
+                  className={`${
+                    statistics ? "text-2xl" : "text-lg text-muted-foreground"
+                  }`}
+                >
+                  {statistics ? statistics.best_category : "No best category yet"}
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <Badge variant="secondary">Top Skill</Badge>
-              </CardContent>
+              {statistics ? (
+                <CardContent>
+                  <Badge variant="secondary">Top Skill</Badge>
+                </CardContent>
+              ) : (
+                <CardContent>
+                  <div className="text-xs text-muted-foreground">No data available</div>
+                </CardContent>
+              )}
             </Card>
           </div>
 
@@ -133,32 +192,38 @@ export default function ProgressDashboard() {
                   <CardDescription>Your conversation training history</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {pastSessions.map((session) => (
-                      <div
-                        key={session.id}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-secondary/50 rounded-lg gap-3"
-                      >
-                        <div className="flex-1">
-                          <h3 className="font-semibold mb-1">{session.personaName}</h3>
-                          <p className="text-sm text-muted-foreground mb-2">{session.objective}</p>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span>{new Date(session.date).toLocaleDateString()}</span>
-                            <span>•</span>
-                            <Badge variant={session.completed ? "default" : "secondary"} className="text-xs">
-                              {session.completed ? "Completed" : "Incomplete"}
-                            </Badge>
+                  {pastSessions && pastSessions.length > 0 ? (
+                    <div className="space-y-4">
+                      {pastSessions.map((session: PastSession) => (
+                        <div
+                          key={session.vid}
+                          className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-secondary/50 rounded-lg gap-3"
+                        >
+                          <div className="flex-1">
+                            <h3 className="font-semibold mb-1">{session.name}</h3>
+                            <p className="text-sm text-muted-foreground mb-2">{session.objective}</p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span>{toLocalDate(session.created_at)}</span>
+                              <span>•</span>
+                              <Badge variant={session.completed ? "default" : "secondary"} className="text-xs">
+                                {session.completed ? "Completed" : "Incomplete"}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <div className="text-2xl font-bold text-primary">{session.score}</div>
+                              <div className="text-xs text-muted-foreground">Score</div>
+                            </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
-                            <div className="text-2xl font-bold text-primary">{session.score}</div>
-                            <div className="text-xs text-muted-foreground">Score</div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-4 text-center text-muted-foreground">
+                        No past conversations yet.
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>

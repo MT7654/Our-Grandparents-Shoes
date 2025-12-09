@@ -8,8 +8,6 @@ CREATE TABLE IF NOT EXISTS scores (
     UNIQUE (vID, metric_name)
 );
 
--- 
-
 -- Enable Row Level Security
 ALTER TABLE scores ENABLE ROW LEVEL SECURITY;
 

@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ persona })
         }
     } catch (error) {
-        console.error("API /personas error: ", error)
+        console.error("GET /personas error: ", error)
         return NextResponse.json(
             { error: "Internal server error" },
             { status: 500 }
