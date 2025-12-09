@@ -1,37 +1,70 @@
 "use client"
 
+import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar } from "@/components/ui/avatar"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
+import { type FullPersona } from '@/lib/types/types'
+import LoadingOverlay from '@/components/loading-overlay'
 
-const personas = [
-  {
-    id: "margaret",
-    name: "Margaret Thompson",
-    age: 78,
-    personality:
-      "Warm and talkative grandmother who loves sharing stories about her youth. She can be forgetful but appreciates patience and kind reminders.",
-    interests: ["Gardening", "Baking", "Family history"],
-    avatar: "/elderly-woman-cartoon-avatar-smiling-grandmother.jpg",
-  },
-  {
-    id: "robert",
-    name: "Robert Chen",
-    age: 82,
-    personality:
-      "Retired engineer who values precision and can be skeptical of new things. He warms up once he feels heard and respected.",
-    interests: ["Chess", "World War II history", "Classical music"],
-    avatar: "/elderly-man-cartoon-avatar-wise-grandfather.jpg",
-  },
-]
+// const personas = [
+//   {
+//     id: "margaret",
+//     name: "Margaret Thompson",
+//     age: 78,
+//     personality:
+//       "Warm and talkative grandmother who loves sharing stories about her youth. She can be forgetful but appreciates patience and kind reminders.",
+//     interests: ["Gardening", "Baking", "Family history"],
+//     avatar: "/elderly-woman-cartoon-avatar-smiling-grandmother.jpg",
+//   },
+//   {
+//     id: "robert",
+//     name: "Robert Chen",
+//     age: 82,
+//     personality:
+//       "Retired engineer who values precision and can be skeptical of new things. He warms up once he feels heard and respected.",
+//     interests: ["Chess", "World War II history", "Classical music"],
+//     avatar: "/elderly-man-cartoon-avatar-wise-grandfather.jpg",
+//   },
+// ]
 
 export default function PersonaSelection() {
-    // Placeholder logout function
   // Import useRouter from next/navigation
   const { useRouter } = require("next/navigation");
   const router = useRouter();
+
+  const [loading, setLoading] = useState(true)
+  const [personas, setPersonas] = useState<FullPersona[]>([])
+
+  // Fetch personas 
+  useEffect(() => {
+    const getPersonas = async () => {  
+      try {
+        const response = await fetch("/api/personas", { method: "GET" })
+
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status} ${response.statusText}`)
+        }
+
+        const data = await response.json()
+
+        if (data.error) {
+          throw new Error(data.error)
+        }
+
+        setPersonas(data)
+      } catch (error) {
+        console.error("Load error: " + error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    getPersonas()
+  }, [])
+
   async function logout() {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
@@ -40,8 +73,13 @@ export default function PersonaSelection() {
       alert("Logout error: " + error);
     }
   }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10 relative">
+
+      {/* Loading Screen */}
+      <LoadingOverlay isLoading={loading} />
+
       {/* Logout Button Top Right */}
       <div className="absolute top-4 right-4">
         <Button variant="outline" onClick={logout}>Logout</Button>
@@ -66,11 +104,11 @@ export default function PersonaSelection() {
           {/* Persona Cards */}
           <div className="grid md:grid-cols-2 gap-6">
             {personas.map((persona) => (
-              <Card key={persona.id} className="border-2 hover:border-primary transition-colors">
+              <Card key={persona.pid} className="border-2 hover:border-primary transition-colors">
                 <CardHeader>
                   <div className="flex items-start gap-4">
                     <Avatar className="w-24 h-24">
-                      <img src={persona.avatar || "/placeholder.svg"} alt={persona.name} className="object-cover" />
+                      <img src={persona.avatar_url || "/placeholder.svg"} alt={persona.name} className="object-cover" />
                     </Avatar>
                     <div className="flex-1">
                       <CardTitle className="text-2xl mb-1">{persona.name}</CardTitle>
@@ -102,7 +140,7 @@ export default function PersonaSelection() {
                     </div>
                   </div>
 
-                  <Link href={`/chat/${persona.id}`} className="block">
+                  <Link href={`/chat/${persona.pid}`} className="block">
                     <Button className="w-full" size="lg">
                       Start Conversation
                     </Button>
