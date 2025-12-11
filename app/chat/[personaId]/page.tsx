@@ -6,9 +6,10 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { ArrowLeft, Send, Lightbulb, Activity } from "lucide-react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import type { Database } from '@/supabase/types'
 import LoadingOverlay from "@/components/loading-overlay"
+import { useToast } from "@/hooks/use-toast"
 
 type Message = Database['public']['Tables']['messages']['Row']
 type Expression = Database['public']['Enums']['eval_expression']
@@ -18,10 +19,8 @@ export default function ChatTraining() {
     const params = useParams()
     const personaId = params.personaId as string
     const scrollRef = useRef<HTMLDivElement>(null)
-
-    // Import useRouter from next/navigation
-    const { useRouter } = require("next/navigation");
-    const router = useRouter();
+    const router = useRouter()
+    const { toast } = useToast()
 
     const [loading, setLoading] = useState(true)
     const [verseId, setVerseId] = useState<string>('')
@@ -56,25 +55,31 @@ export default function ChatTraining() {
                 ])
 
                 if (!personaResponse.ok) {
-                    throw new Error(`Fetch Persona Error: ${personaResponse.status} ${personaResponse.statusText}`)
+                    const errorData = await personaResponse.json().catch(() => ({}))
+                    throw new Error(errorData.error || `Failed to load persona (${personaResponse.status})`)
                 }
 
                 const { persona } = await personaResponse.json()
                 
                 if (!persona) {
-                    throw new Error('Error fetching persona')
+                    throw new Error('Persona not found')
                 }
 
                 setPersonaName(persona.name)
 
                 if (!conversationResponse.ok) {
-                    throw new Error(`Start Conversation Error: ${conversationResponse.status} ${conversationResponse.statusText}`)
+                    const errorData = await conversationResponse.json().catch(() => ({}))
+                    throw new Error(errorData.error || `Failed to start conversation (${conversationResponse.status})`)
                 }
 
                 const conversationData = await conversationResponse.json()
 
+                if (conversationData.error) {
+                    throw new Error(conversationData.error)
+                }
+
                 if (!conversationData) {
-                    throw new Error('Error starting conversation')
+                    throw new Error('Failed to initialize conversation')
                 }
 
                 const { chat, conversation, messages, evaluation } = conversationData
@@ -97,17 +102,31 @@ export default function ChatTraining() {
                     setObjective(chat.objective)
                 }
             } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'Failed to load conversation'
                 console.error("Load error: ", error)
+                toast({
+                    title: "Error loading conversation",
+                    description: errorMessage,
+                    variant: "destructive",
+                })
+                // Redirect back to personas page after a short delay
+                setTimeout(() => {
+                    router.push('/personas')
+                }, 2000)
             } finally {
                 setLoading(false)
             }
         }
 
         begin()
-    }, [personaId])
+    }, [personaId, router, toast])
 
     // Converse 
     const converse = async () => {
+        if (!inputValue.trim()) {
+            return
+        }
+
         setLoading(true)
 
         try {
@@ -123,10 +142,17 @@ export default function ChatTraining() {
             })
 
             if (!response.ok) {
-                throw new Error(`Error Continuing Conversation: ${response.status} ${response.statusText}`)
+                const errorData = await response.json().catch(() => ({}))
+                throw new Error(errorData.error || `Failed to send message (${response.status})`)
             }
 
-            const { user_message, persona_message, evaluation, rapport_change } = await response.json()
+            const data = await response.json()
+
+            if (data.error) {
+                throw new Error(data.error)
+            }
+
+            const { user_message, persona_message, evaluation, rapport_change } = data
 
             // Set Variables
             if (user_message) {
@@ -155,7 +181,13 @@ export default function ChatTraining() {
                 setRapportChange(rapport_change)
             }
         } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to send message'
             console.error('Converse Error: ', error)
+            toast({
+                title: "Error sending message",
+                description: errorMessage,
+                variant: "destructive",
+            })
         } finally {
             setInputValue("")
             setLoading(false)
@@ -178,13 +210,25 @@ export default function ChatTraining() {
             })
 
             if (!response.ok) {
-                throw new Error(`Error Ending Conversation: ${response.status} ${response.statusText}`)
+                const errorData = await response.json().catch(() => ({}))
+                throw new Error(errorData.error || `Failed to end conversation (${response.status})`)
             }
+
+            // Successfully ended, navigate to completion page
+            router.push(`/complete/${verseId}`)
         } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to end conversation'
             console.error('Save Error: ', error)
+            toast({
+                title: "Error ending conversation",
+                description: errorMessage,
+                variant: "destructive",
+            })
+            // Still navigate to completion page even if save failed
+            // The completion page will handle the error state
+            router.push(`/complete/${verseId}`)
         } finally {
             setLoading(false)
-            router.push(`/complete/${verseId}`)
         }
     }
 

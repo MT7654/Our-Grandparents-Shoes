@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Link from "next/link"
-import { ArrowLeft, Award, TrendingUp, MessageCircle } from "lucide-react"
+import { ArrowLeft, Award, TrendingUp, MessageCircle, AlertCircle } from "lucide-react"
 import type { Database } from '@/supabase/types'
 import LoadingOverlay from '@/components/loading-overlay'
+import { useToast } from "@/hooks/use-toast"
 
 type PastSession = Database['public']['Views']['conversation_sessions']['Row']
 type Statistic = Database['public']['Views']['statistics']['Row']
@@ -24,35 +26,49 @@ const badges = [
 
 export default function ProgressDashboard() {
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [pastSessions, setPastSessions] = useState<PastSession[]>([])
   const [statistics, setStatistics] = useState<Statistic | null>(null)
+  const { toast } = useToast()
 
   useEffect(() => {
     const getData = async () => {
       try {
+        setError(null)
         const response = await fetch('/api/dashboard', { method: "GET" })
 
         if (!response.ok) {
-          console.error(`Error fetching statistics and past conversations: ${response.status} ${response.statusText}`)
+          const errorData = await response.json().catch(() => ({}))
+          const errorMessage = errorData.error || `Failed to load dashboard data (${response.status})`
+          setError(errorMessage)
+          toast({
+            title: "Error loading dashboard",
+            description: errorMessage,
+            variant: "destructive",
+          })
+          return
         }
 
         const data = await response.json()
         const { past_conversations, user_statistics } = data
 
-        if (past_conversations) {
-          setPastSessions(past_conversations)
-        }
-
-        setStatistics(user_statistics)
+        setPastSessions(past_conversations || [])
+        setStatistics(user_statistics || null)
       } catch (error) {
-        console.error('Load Error: ', error)
+        const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
+        setError(errorMessage)
+        toast({
+          title: "Error loading dashboard",
+          description: errorMessage,
+          variant: "destructive",
+        })
       } finally {
         setLoading(false)
       }
     }
 
     getData()
-  }, [])
+  }, [toast])
 
   const toLocalDate = (input: string | null) => {
         if (!input) return "Invalid Date"
@@ -88,6 +104,25 @@ export default function ProgressDashboard() {
               </Link>
             </div>
           </div>
+
+          {/* Error Display */}
+          {error && (
+            <Alert variant="destructive" className="mb-8">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>
+                {error}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="ml-4"
+                  onClick={() => window.location.reload()}
+                >
+                  Retry
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Stats Overview */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

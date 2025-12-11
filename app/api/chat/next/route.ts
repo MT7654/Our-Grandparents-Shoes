@@ -13,9 +13,16 @@ export async function POST(request:NextRequest) {
         }
         const { converseId, latestMessage } = body
 
-        if (!converseId || latestMessage === null) {
+        if (!converseId || latestMessage === null || latestMessage === undefined) {
             return NextResponse.json(
-                { error: 'Converse ID and Message are required'},
+                { error: 'Conversation ID and message are required'},
+                { status: 400 }
+            )
+        }
+
+        if (typeof latestMessage !== 'string' || latestMessage.trim().length === 0) {
+            return NextResponse.json(
+                { error: 'Message cannot be empty'},
                 { status: 400 }
             )
         }
@@ -24,16 +31,17 @@ export async function POST(request:NextRequest) {
 
         if (!data) {
             return NextResponse.json(
-                { error: "Unable to retrieve reply and evaluation" },
+                { error: "Failed to generate response. Please try again." },
                 { status: 422 }
             )
         }
 
         return NextResponse.json(data)
     } catch (error) {
-        console.error('POST /conversation error: ', error)
+        console.error('POST /chat/next error: ', error)
+        const errorMessage = error instanceof Error ? error.message : 'Failed to process message'
         return NextResponse.json(
-            { error: 'Internal Server Error' },
+            { error: errorMessage },
             { status: 500 }
         )
     }

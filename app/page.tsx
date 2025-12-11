@@ -10,10 +10,9 @@ import { MessageCircle, BarChart3 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from "@/hooks/use-toast"
 
 export default function LandingPage() {
-  // Import useRouter from next/navigation
-  const { useRouter } = require("next/navigation");
   const router = useRouter();
 
   const [isAuthOpen, setIsAuthOpen] = useState(false)
@@ -138,7 +137,18 @@ function AuthScreen({ onBack }: { onBack: () => void }) {
   const [registerPassword, setRegisterPassword] = useState("");
 
   const router = useRouter();
+  const { toast } = useToast();
+
   async function login() {
+    if (!loginEmail || !loginPassword) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter both email and password",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
@@ -152,16 +162,38 @@ function AuthScreen({ onBack }: { onBack: () => void }) {
       });
       const result = await response.json();
       if (!response.ok) {
-        alert(result.error || "Registration failed");
+        toast({
+          title: "Login Failed",
+          description: result.error || "Invalid email or password",
+          variant: "destructive",
+        });
         return;
       }
+      toast({
+        title: "Login Successful",
+        description: "Welcome back!",
+      });
       router.push("/personas");
     } catch (error) {
-      alert("Login error: " + error);
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred"
+      toast({
+        title: "Login Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     }
   }
 
   async function register() {
+    if (!registerName || !registerEmail || !registerPassword) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const response = await fetch("/api/auth/signup", {
         method: "POST",
@@ -176,13 +208,25 @@ function AuthScreen({ onBack }: { onBack: () => void }) {
       });
       const result = await response.json();
       if (!response.ok) {
-        alert(result.error || "Registration failed");
+        toast({
+          title: "Registration Failed",
+          description: result.error || "Failed to create account",
+          variant: "destructive",
+        });
         return;
       }
-      alert("Registration successful!");
+      toast({
+        title: "Registration Successful",
+        description: "Account created! Redirecting...",
+      });
       router.push("/personas");
     } catch (error) {
-      alert("Registration error: " + error);
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred"
+      toast({
+        title: "Registration Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     }
   }
 

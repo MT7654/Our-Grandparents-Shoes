@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
 
         if (!converseId) {
             return NextResponse.json(
-                { error: "Converse ID is requied "},
+                { error: "Conversation ID is required" },
                 { status: 400 }
             )
         }
@@ -53,15 +53,17 @@ export async function GET(request: NextRequest) {
 
         if (!complete_evaluation) {
             return NextResponse.json(
-                { error: "Failed to fetch completion evaluation" },
-                { status: 400 }
+                { error: `Conversation with ID "${converseId}" not found or not completed` },
+                { status: 404 }
             )
         }
 
         return NextResponse.json(complete_evaluation)
     } catch (error) {
+        console.error('GET /chat/end error: ', error)
+        const errorMessage = error instanceof Error ? error.message : 'Failed to fetch conversation results'
         return NextResponse.json(
-            { error: "Internal Server Error" },
+            { error: errorMessage },
             { status: 500 }
         )
     }

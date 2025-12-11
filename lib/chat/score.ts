@@ -28,10 +28,10 @@ export const saveScores = async (
     
     if (error) {
         console.error('Error saving scores: ', error)
-        return null
+        throw new Error(`Failed to save scores: ${error.message}`)
     }
     
-    return data as DBScore[]
+    return (data || []) as DBScore[]
 }
 
 export const getScores = async (
@@ -46,8 +46,8 @@ export const getScores = async (
 
     if (error) {
         console.error('Error retrieving scores: ', error)
-        return null
+        throw new Error(`Failed to fetch scores: ${error.message}`)
     }
 
-    return data as DBScore[]
+    return (data || []) as DBScore[]
 }

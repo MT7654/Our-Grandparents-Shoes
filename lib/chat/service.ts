@@ -29,37 +29,21 @@ export const startConversation = async (
     const chat = await getChatByPersonaID(personaID)
 
     if (!chat) {
-        console.error("No chat found for this persona")
-        return null
+        throw new Error(`No chat found for persona ID "${personaID}"`)
     }
     
     const conversation = await getExistingConversationByCID(chat.cid)
 
     if (!conversation) {
         const new_conversation = await createConversation(chat.cid)
-
-        if (!new_conversation) {
-            console.error("Error creating new conversation")
-            return null
-        }
-
         const new_message = await saveMessage(new_conversation.vid, 'persona', DEFAULT_MESSAGE)
 
-        if (new_message) {
-            return {
-                chat,
-                conversation: new_conversation,
-                messages: [new_message],
-                evaluation: null,
-            } 
-        } else {
-            return {
-                chat,
-                conversation: new_conversation,
-                messages: null,
-                evaluation: null,
-            }
-        }
+        return {
+            chat,
+            conversation: new_conversation,
+            messages: new_message ? [new_message] : [],
+            evaluation: null,
+        } 
     } else {
         const full_conversation = await fetchFullConversation(conversation.vid)
         return {
@@ -74,25 +58,17 @@ export const endConversation = async (
 ) => {
     const { messages } = await fetchFullConversation(converseID)
 
-    if (!messages) {
-        console.error('Failed to retrieve messages')
-        return null
+    if (!messages || messages.length === 0) {
+        throw new Error(`No messages found for conversation ID "${converseID}"`)
     }
 
     const evaluation: EndConversationEvaluation = await evaluateCompletion(messages)
 
     const conversation = await saveConversation(converseID, evaluation.completed, evaluation.feedback)
-
-    if (!conversation) {
-        console.error('Failed to update conversation')
-        return null
-    }
-
     const scores = await saveScores(converseID, evaluation.scores)
 
     if (!scores) {
-        console.error('Failed to update scores')
-        return null
+        throw new Error(`Failed to save scores for conversation ID "${converseID}"`)
     }
 
     return {
@@ -126,20 +102,17 @@ export const fetchCompleteConversation = async (
     ])
 
     if (!conversation) {
-        console.error('Error fetching conversation')
-        return null
+        return null // Not found is a valid state, not an error
     }
 
-    if (!scores) {
-        console.error('Error fetching scores')
-        return null
+    if (!scores || scores.length === 0) {
+        throw new Error(`No scores found for conversation ID "${converseID}"`)
     }
 
     const chat = await getChatByChatID(conversation.cid)
 
     if (!chat) {
-        console.error('Error fetching objective')
-        return null
+        throw new Error(`Chat not found for conversation ID "${converseID}"`)
     }
 
     const values = scores.map(s => s.metric_value)

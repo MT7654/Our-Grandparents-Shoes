@@ -18,13 +18,6 @@ export async function POST(request: NextRequest) {
 
         const conversation = await startConversation(personaId)
 
-        if (!conversation) {
-            return NextResponse.json(
-                { error: "Conversation not found or could not be created" },
-                { status: 404 }
-            )
-        }
-
         return NextResponse.json(
             {
                 message: 'User Conversation Loaded',
@@ -33,9 +26,10 @@ export async function POST(request: NextRequest) {
             { status: 200 }
         )
     } catch (error) {
-        console.error('POST /conversation error: ', error)
+        console.error('POST /chat/start error: ', error)
+        const errorMessage = error instanceof Error ? error.message : 'Failed to start conversation'
         return NextResponse.json(
-            { error: 'Internal Server Error'},
+            { error: errorMessage },
             { status: 500 }
         )
     }

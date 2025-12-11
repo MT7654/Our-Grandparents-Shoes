@@ -15,8 +15,12 @@ export const getChatByPersonaID = async (
         .single()
     
     if (error) {
-        console.error("Error fetching chats: ", error)
-        return null
+        // PGRST116 means no rows found
+        if (error.code === 'PGRST116') {
+            return null
+        }
+        console.error("Error fetching chat: ", error)
+        throw new Error(`Failed to fetch chat: ${error.message}`)
     }
 
     return data as Chat
@@ -34,8 +38,12 @@ export const getChatByChatID = async (
         .single()
 
     if (error) {
-        console.error("Error fetching chats: ", error)
-        return null
+        // PGRST116 means no rows found
+        if (error.code === 'PGRST116') {
+            return null
+        }
+        console.error("Error fetching chat: ", error)
+        throw new Error(`Failed to fetch chat: ${error.message}`)
     }
 
     return data as Chat

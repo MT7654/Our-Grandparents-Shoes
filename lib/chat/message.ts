@@ -22,7 +22,7 @@ export const saveMessage = async (
     
     if (error) {
         console.error("Error saving message: ", error)
-        return null
+        throw new Error(`Failed to save message: ${error.message}`)
     }
 
     return data as Message
@@ -41,8 +41,8 @@ export const getMessages = async (
     
     if (error) {
         console.error("Error fetching messages: ", error)
-        return null
+        throw new Error(`Failed to fetch messages: ${error.message}`)
     }
 
-    return data as Message[]
+    return (data || []) as Message[]
 }

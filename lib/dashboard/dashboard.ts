@@ -11,14 +11,15 @@ export const getPastConversations = async (
     const { data, error } = await supabase
         .from('conversation_sessions')
         .select('*')
-        .order('created_at')
+        .order('created_at', { ascending: false })
 
     if (error) {
         console.error("Error fetching past conversations: ", error)
-        return null
+        throw new Error(`Failed to fetch past conversations: ${error.message}`)
     }
 
-    return data as PastSession[]
+    // Return empty array if no data (not an error)
+    return (data || []) as PastSession[]
 }
 
 export const getOverallStatistics = async () => {
@@ -30,8 +31,12 @@ export const getOverallStatistics = async () => {
         .single()
 
     if (error) {
+        // If no rows found, that's not an error - just no statistics yet
+        if (error.code === 'PGRST116') {
+            return null
+        }
         console.error("Error fetching user statistics: ", error)
-        return null
+        throw new Error(`Failed to fetch user statistics: ${error.message}`)
     }
 
     return data as Statistic

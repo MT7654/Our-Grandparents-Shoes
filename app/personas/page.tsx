@@ -4,10 +4,13 @@ import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar } from "@/components/ui/avatar"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, AlertCircle } from "lucide-react"
 import { type FullPersona } from '@/lib/types/types'
 import LoadingOverlay from '@/components/loading-overlay'
+import { useToast } from "@/hooks/use-toast"
+import { useRouter } from "next/navigation"
 
 // const personas = [
 //   {
@@ -31,46 +34,77 @@ import LoadingOverlay from '@/components/loading-overlay'
 // ]
 
 export default function PersonaSelection() {
-  // Import useRouter from next/navigation
-  const { useRouter } = require("next/navigation");
-  const router = useRouter();
+  const router = useRouter()
+  const { toast } = useToast()
 
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [personas, setPersonas] = useState<FullPersona[]>([])
 
   // Fetch personas 
   useEffect(() => {
     const getPersonas = async () => {  
       try {
+        setError(null)
         const response = await fetch("/api/personas", { method: "GET" })
 
         if (!response.ok) {
-          throw new Error(`Error: ${response.status} ${response.statusText}`)
+          const errorData = await response.json().catch(() => ({}))
+          const errorMessage = errorData.error || `Failed to load personas (${response.status})`
+          setError(errorMessage)
+          toast({
+            title: "Error loading personas",
+            description: errorMessage,
+            variant: "destructive",
+          })
+          return
         }
 
         const data = await response.json()
 
         if (data.error) {
-          throw new Error(data.error)
+          setError(data.error)
+          toast({
+            title: "Error loading personas",
+            description: data.error,
+            variant: "destructive",
+          })
+          return
         }
 
-        setPersonas(data)
+        setPersonas(data || [])
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to load personas'
+        setError(errorMessage)
         console.error("Load error: " + error)
+        toast({
+          title: "Error loading personas",
+          description: errorMessage,
+          variant: "destructive",
+        })
       } finally {
         setLoading(false)
       }
     }
 
     getPersonas()
-  }, [])
+  }, [toast])
 
   async function logout() {
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
-      router.push("/");
+      const response = await fetch("/api/auth/logout", { method: "POST" })
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to logout')
+      }
+      router.push("/")
     } catch (error) {
-      alert("Logout error: " + error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to logout'
+      toast({
+        title: "Error logging out",
+        description: errorMessage,
+        variant: "destructive",
+      })
     }
   }
 
@@ -101,7 +135,28 @@ export default function PersonaSelection() {
             </p>
           </div>
 
+          {/* Error Display */}
+          {error && (
+            <Alert variant="destructive" className="mb-8">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>
+                {error}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="ml-4"
+                  onClick={() => window.location.reload()}
+                >
+                  Retry
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Persona Cards */}
+          {!error && (
+            <>
           <div className="grid md:grid-cols-2 gap-6">
             {personas.map((persona) => (
               <Card key={persona.pid} className="border-2 hover:border-primary transition-colors">
@@ -164,6 +219,19 @@ export default function PersonaSelection() {
               </ul>
             </CardContent>
           </Card>
+            </>
+          )}
+
+          {/* Empty State */}
+          {!loading && !error && personas.length === 0 && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>No personas available</AlertTitle>
+              <AlertDescription>
+                There are no conversation partners available at this time. Please try again later.
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
       </div>
     </div>

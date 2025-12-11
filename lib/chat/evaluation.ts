@@ -31,16 +31,15 @@ export const saveEvaluation = async (
         .maybeSingle()
     
     if (error) {
-        console.error("Error saving evaluations: ", error)
-        return null
+        console.error("Error saving evaluation: ", error)
+        throw new Error(`Failed to save evaluation: ${error.message}`)
     }
 
-    if (data) {
-        return data as Evaluation
-    } else {
-        return null
+    if (!data) {
+        throw new Error(`Failed to save evaluation: No data returned`)
     }
-    
+
+    return data as Evaluation
 }
 
 export const getEvaluation = async (
@@ -55,8 +54,12 @@ export const getEvaluation = async (
         .single()
     
     if (error) {
-        console.error("Error saving evaluations: ", error)
-        return null
+        // PGRST116 means no rows found - this is expected, not an error
+        if (error.code === 'PGRST116') {
+            return null
+        }
+        console.error("Error fetching evaluation: ", error)
+        throw new Error(`Failed to fetch evaluation: ${error.message}`)
     }
 
     return data as Evaluation

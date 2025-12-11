@@ -8,22 +8,14 @@ export async function GET(request: NextRequest) {
 
         if (!personaId) {
             const personas = await fetchPersonas()
-
-            if (!personas) {
-                return NextResponse.json(
-                    { error: "Failed to fetch personas" },
-                    { status: 500 }
-                )
-            }
-
-            return NextResponse.json(personas)
+            return NextResponse.json(personas || [])
         } else {
             const persona = await fetchPersona(personaId)
 
             if (!persona) {
                 return NextResponse.json(
-                    { error: "Failed to fetch persona" },
-                    { status: 500 }
+                    { error: `Persona with ID "${personaId}" not found` },
+                    { status: 404 }
                 )
             }
 
@@ -31,8 +23,9 @@ export async function GET(request: NextRequest) {
         }
     } catch (error) {
         console.error("GET /personas error: ", error)
+        const errorMessage = error instanceof Error ? error.message : "Failed to fetch personas"
         return NextResponse.json(
-            { error: "Internal server error" },
+            { error: errorMessage },
             { status: 500 }
         )
     }

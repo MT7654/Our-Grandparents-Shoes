@@ -5,45 +5,115 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Link from "next/link"
-import { CheckCircle2, XCircle, Trophy, RotateCcw, Home } from "lucide-react"
+import { CheckCircle2, XCircle, Trophy, RotateCcw, Home, AlertCircle } from "lucide-react"
 import { CompleteParams } from '@/lib/types/types'
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import LoadingOverlay from '@/components/loading-overlay'
+import { useToast } from "@/hooks/use-toast"
 
 export default function ConversationComplete() {
     const params = useParams()
     const converseId = params.converseId as string
+    const router = useRouter()
+    const { toast } = useToast()
 
     const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
     const [objective, setObjective] = useState<string>('')
     const [sessionData, setSessionData] = useState<CompleteParams | null>(null)
 
     useEffect(() => {
         const retrieveFromDB = async () => {
             try {
+                setError(null)
                 const response = await fetch(`/api/chat/end?id=${converseId}`, { method: "GET" })
 
                 if (!response.ok) {
-                    throw new Error(`Error fetching conversation: ${response.status}, ${response.statusText}`)
+                    const errorData = await response.json().catch(() => ({}))
+                    const errorMessage = errorData.error || `Failed to load conversation results (${response.status})`
+                    setError(errorMessage)
+                    toast({
+                        title: "Error loading results",
+                        description: errorMessage,
+                        variant: "destructive",
+                    })
+                    return
                 }
 
                 const data = await response.json()
+
+                if (data.error) {
+                    setError(data.error)
+                    toast({
+                        title: "Error loading results",
+                        description: data.error,
+                        variant: "destructive",
+                    })
+                    return
+                }
+
                 const { objective, ...rest } = data
 
-                setObjective(objective)
+                setObjective(objective || '')
                 setSessionData(rest)    
             } catch (error) {
-                console.error('Error fetching data')
+                const errorMessage = error instanceof Error ? error.message : 'Failed to load conversation results'
+                setError(errorMessage)
+                console.error('Error fetching data: ', error)
+                toast({
+                    title: "Error loading results",
+                    description: errorMessage,
+                    variant: "destructive",
+                })
             } finally {
                 setLoading(false)
             }
         }
 
         retrieveFromDB()
-    }, [])
+    }, [converseId, toast])
 
-    if (loading || !sessionData) return <LoadingOverlay isLoading={loading || !sessionData}/> 
+    if (loading) return <LoadingOverlay isLoading={true}/> 
+
+    if (error || !sessionData) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10 flex items-center justify-center p-4">
+                <Card className="w-full max-w-2xl">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <AlertCircle className="w-5 h-5 text-destructive" />
+                            Error Loading Results
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <Alert variant="destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>Error</AlertTitle>
+                            <AlertDescription>
+                                {error || 'Failed to load conversation results. The conversation may not have been completed properly.'}
+                            </AlertDescription>
+                        </Alert>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <Link href="/personas" className="flex-1">
+                                <Button variant="outline" className="w-full">
+                                    <RotateCcw className="w-4 h-4 mr-2" />
+                                    Try Another Persona
+                                </Button>
+                            </Link>
+                            <Link href="/dashboard" className="flex-1">
+                                <Button className="w-full">
+                                    <Home className="w-4 h-4 mr-2" />
+                                    Go to Dashboard
+                                </Button>
+                            </Link>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10 flex items-center justify-center p-4">

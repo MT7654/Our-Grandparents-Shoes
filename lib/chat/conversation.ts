@@ -18,7 +18,7 @@ export const createConversation = async (
     
     if (error) {
         console.error("Error creating conversation: ", error)
-        return null
+        throw new Error(`Failed to create conversation: ${error.message}`)
     }
 
     return data as Conversation
@@ -42,8 +42,12 @@ export const saveConversation = async (
         .single()
     
     if (error) {
-        console.error('Error ending conversation: ', error)
-        return null
+        console.error('Error saving conversation: ', error)
+        // PGRST116 means no rows found
+        if (error.code === 'PGRST116') {
+            throw new Error(`Conversation with ID "${converseID}" not found`)
+        }
+        throw new Error(`Failed to save conversation: ${error.message}`)
     }
 
     return data as Conversation
@@ -62,8 +66,12 @@ export const getExistingConversationByCID = async (
         .single()
     
     if (error) {
+        // PGRST116 means no rows found - this is expected, not an error
+        if (error.code === 'PGRST116') {
+            return null
+        }
         console.error('Error fetching conversation: ', error)
-        return null
+        throw new Error(`Failed to fetch conversation: ${error.message}`)
     }
 
     return data as Conversation
@@ -81,8 +89,12 @@ export const getConversationByConversationID = async (
         .single()
     
     if (error) {
+        // PGRST116 means no rows found
+        if (error.code === 'PGRST116') {
+            return null
+        }
         console.error('Error fetching conversation: ', error)
-        return null
+        throw new Error(`Failed to fetch conversation: ${error.message}`)
     }
 
     return data as Conversation
@@ -94,8 +106,7 @@ export const getUserConversations = async () => {
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-        console.error('No logged-in user')
-        return null
+        throw new Error('User not authenticated')
     }
 
     const { data, error } = await supabase
@@ -105,8 +116,8 @@ export const getUserConversations = async () => {
     
     if (error) {
         console.error('Error fetching conversations: ', error)
-        return null
+        throw new Error(`Failed to fetch user conversations: ${error.message}`)
     }
 
-    return data as Conversation[]
+    return (data || []) as Conversation[]
 }

@@ -12,18 +12,23 @@ export const fetchPersonas = async () => {
         .from('interests')
         .select('*')
     
-    if (interests_error || personas_error) {
-        console.error("Error fetching personas: ", interests_error, personas_error)
-        return null
+    if (personas_error) {
+        console.error("Error fetching personas: ", personas_error)
+        throw new Error(`Failed to fetch personas: ${personas_error.message}`)
     }
 
-    const interestMap = interests.reduce((acc, i) => {
+    if (interests_error) {
+        console.error("Error fetching interests: ", interests_error)
+        throw new Error(`Failed to fetch interests: ${interests_error.message}`)
+    }
+
+    const interestMap = (interests || []).reduce((acc, i) => {
         if (!acc[i.pid]) acc[i.pid] = []
         acc[i.pid].push(i.name)
         return acc
     }, {} as Record<string, string[]>)
 
-    const data: FullPersona[] = personas.map((p) => ({
+    const data: FullPersona[] = (personas || []).map((p) => ({
         ...p,
         interests: interestMap[p.pid] ?? []
     }))
@@ -42,17 +47,30 @@ export const fetchPersona = async (
         .eq('pid', personaID)
         .single()
 
+    if (persona_error) {
+        // PGRST116 means no rows found - this is a "not found" case, not an error
+        if (persona_error.code === 'PGRST116') {
+            return null
+        }
+        console.error("Error fetching persona: ", persona_error)
+        throw new Error(`Failed to fetch persona: ${persona_error.message}`)
+    }
+
     const { data: interests, error: interests_error } = await supabase
         .from('interests')
         .select('*')
         .eq('pid', personaID)
     
-    if (interests_error || persona_error) {
-        console.error("Error fetching personas: ", interests_error, persona_error)
-        return null
+    if (interests_error) {
+        console.error("Error fetching interests: ", interests_error)
+        // If persona exists but interests fail, we can still return persona with empty interests
+        return {
+            ...persona,
+            interests: []
+        } as FullPersona
     }
 
-    const formatted_intersts = interests.map(i => i.name)
+    const formatted_intersts = (interests || []).map(i => i.name)
 
     return {
         ...persona,
