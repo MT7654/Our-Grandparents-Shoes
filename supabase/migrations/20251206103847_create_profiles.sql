@@ -28,28 +28,18 @@ END;
 $$;
 
 -- Policy: Only Admins can read other profiles
-CREATE POLICY "Admin can read other profiles"
+CREATE POLICY "Admin can view all profiles"
 ON profiles
 FOR SELECT
 USING (is_admin(auth.uid()));
 
 -- Policy: Users can read and modify their own profiles
-CREATE POLICY "Users can read their own profiles"
+CREATE POLICY "Users can view own profiles"
 ON profiles
 FOR SELECT 
 USING (user_id = auth.uid());
-
-CREATE POLICY "Users can insert their own profiles"
-ON profiles
-FOR INSERT
-WITH CHECK (user_id = auth.uid());
 
 CREATE POLICY "Users can update their own profiles"
 ON profiles
 FOR UPDATE
 WITH CHECK (user_id = auth.uid());
-
-CREATE POLICY "Users can delete their own profiles"
-ON profiles
-FOR DELETE
-USING (user_id = auth.uid());
