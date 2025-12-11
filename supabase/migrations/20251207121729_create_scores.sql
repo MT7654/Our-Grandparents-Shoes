@@ -21,7 +21,7 @@ USING (EXISTS (SELECT 1 FROM conversations WHERE conversations.vID = scores.vID 
 CREATE POLICY "Admins can read all Scores"
 ON scores
 FOR SELECT
-USING (EXISTS (SELECT 1 FROM admins WHERE id = auth.uid()));
+USING (EXISTS (SELECT 1 FROM profiles WHERE user_id = auth.uid() AND role = 'admin'));
 
 -- Policy: Users can never insert or update into scores directly
 CREATE POLICY "Users cannot insert or update scores"

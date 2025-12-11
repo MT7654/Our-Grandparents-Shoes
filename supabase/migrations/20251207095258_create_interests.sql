@@ -18,14 +18,14 @@ USING (auth.uid() is NOT NULL);
 CREATE POLICY "Admins can update Interests"
 ON interests
 FOR UPDATE
-USING (EXISTS (SELECT 1 FROM admins WHERE id = auth.uid()));
+USING (EXISTS (SELECT 1 FROM profiles WHERE user_id = auth.uid() AND role = 'admin'));
 
 CREATE POLICY "Admins can delete Interests"
 ON interests
 FOR DELETE
-USING (EXISTS (SELECT 1 FROM admins WHERE id = auth.uid()));
+USING (EXISTS (SELECT 1 FROM profiles WHERE user_id = auth.uid() AND role = 'admin'));
 
 CREATE POLICY "Admins can insert Interests"
 ON interests
 FOR INSERT
-WITH CHECK (EXISTS (SELECT 1 FROM admins WHERE id = auth.uid()));
+WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE user_id = auth.uid() AND role = 'admin'));

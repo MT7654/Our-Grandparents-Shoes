@@ -39,4 +39,4 @@ WITH CHECK (EXISTS (SELECT 1 FROM conversations WHERE conversations.vID = messag
 CREATE POLICY "Admins can read all Messages"
 ON messages
 FOR SELECT
-USING (EXISTS (SELECT 1 FROM admins WHERE id = auth.uid()));
+USING (EXISTS (SELECT 1 FROM profiles WHERE user_id = auth.uid() AND role = 'admin'));

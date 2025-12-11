@@ -42,4 +42,4 @@ WITH CHECK (auth.uid() = uID);
 CREATE POLICY "Admins can read all Conversations"
 ON conversations
 FOR SELECT
-USING (EXISTS (SELECT 1 FROM admins WHERE id = auth.uid()));
+USING (EXISTS (SELECT 1 FROM profiles WHERE user_id = auth.uid() AND role = 'admin'));

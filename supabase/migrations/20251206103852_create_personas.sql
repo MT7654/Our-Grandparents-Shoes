@@ -20,14 +20,14 @@ USING (auth.uid() is NOT NULL);
 CREATE POLICY "Admins can update Personas"
 ON personas
 FOR UPDATE
-USING (EXISTS (SELECT 1 FROM admins WHERE id = auth.uid()));
+USING (EXISTS (SELECT 1 FROM profiles WHERE user_id = auth.uid() AND role = 'admin'));
 
 CREATE POLICY "Admins can delete Personas"
 ON personas
 FOR DELETE
-USING (EXISTS (SELECT 1 FROM admins WHERE id = auth.uid()));
+USING (EXISTS (SELECT 1 FROM profiles WHERE user_id = auth.uid() AND role = 'admin'));
 
 CREATE POLICY "Admins can insert Personas"
 ON personas
 FOR INSERT
-WITH CHECK (EXISTS (SELECT 1 FROM admins WHERE id = auth.uid()));
+WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE user_id = auth.uid() AND role = 'admin'));
