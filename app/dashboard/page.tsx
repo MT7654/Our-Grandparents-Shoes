@@ -9,26 +9,28 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Link from "next/link"
 import { ArrowLeft, Award, TrendingUp, MessageCircle, AlertCircle } from "lucide-react"
 import type { Database } from '@/supabase/types'
+import type { DisplayBadge } from '@/lib/types/types'
 import LoadingOverlay from '@/components/loading-overlay'
 import { useToast } from "@/hooks/use-toast"
 
 type PastSession = Database['public']['Views']['conversation_sessions']['Row']
 type Statistic = Database['public']['Views']['statistics']['Row']
 
-const badges = [
-  { id: "1", name: "First Conversation", icon: "🎯", unlocked: true },
-  { id: "2", name: "Empathy Expert", icon: "❤️", unlocked: true },
-  { id: "3", name: "5 Sessions", icon: "⭐", unlocked: false },
-  { id: "4", name: "Perfect Score", icon: "🏆", unlocked: false },
-  { id: "5", name: "Active Listener", icon: "👂", unlocked: true },
-  { id: "6", name: "10 Sessions", icon: "🌟", unlocked: false },
-]
+// const badges = [
+//   { id: "1", name: "First Conversation", icon: "🎯", unlocked: true },
+//   { id: "2", name: "Empathy Expert", icon: "❤️", unlocked: true },
+//   { id: "3", name: "5 Sessions", icon: "⭐", unlocked: false },
+//   { id: "4", name: "Perfect Score", icon: "🏆", unlocked: false },
+//   { id: "5", name: "Active Listener", icon: "👂", unlocked: true },
+//   { id: "6", name: "10 Sessions", icon: "🌟", unlocked: false },
+// ]
 
 export default function ProgressDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [pastSessions, setPastSessions] = useState<PastSession[]>([])
   const [statistics, setStatistics] = useState<Statistic | null>(null)
+  const [badges, setBadges] = useState<DisplayBadge[]>([])
   const { toast } = useToast()
 
   useEffect(() => {
@@ -50,10 +52,11 @@ export default function ProgressDashboard() {
         }
 
         const data = await response.json()
-        const { past_conversations, user_statistics } = data
+        const { past_conversations, user_statistics, user_achievements } = data
 
         setPastSessions(past_conversations || [])
         setStatistics(user_statistics || null)
+        setBadges(user_achievements || [])
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
         setError(errorMessage)
@@ -71,10 +74,19 @@ export default function ProgressDashboard() {
   }, [toast])
 
   const toLocalDate = (input: string | null) => {
-        if (!input) return "Invalid Date"
-        const localDate = new Date(input)
-        return localDate.toLocaleDateString()
+    if (!input) return "Invalid Date"
+    const localDate = new Date(input)
+    return localDate.toLocaleDateString()
+  }
+
+  const getBadgeIcon = (badge: DisplayBadge) => {
+    switch (badge.category) {
+      case "Progression":
+        return "🎯"
+      case "Skill":
+        return "🌟"
     }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10">
@@ -277,14 +289,14 @@ export default function ProgressDashboard() {
                   <div className="grid grid-cols-3 gap-3">
                     {badges.map((badge) => (
                       <div
-                        key={badge.id}
+                        key={badge.bid}
                         className={`flex flex-col items-center justify-center p-3 rounded-lg border-2 ${
                           badge.unlocked
                             ? "bg-primary/10 border-primary/20"
                             : "bg-secondary/50 border-border opacity-50"
                         }`}
                       >
-                        <span className="text-3xl mb-1">{badge.icon}</span>
+                        <span className="text-3xl mb-1">{getBadgeIcon(badge)}</span>
                         <span className="text-xs text-center leading-tight">{badge.name}</span>
                       </div>
                     ))}

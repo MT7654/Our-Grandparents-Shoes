@@ -20,10 +20,3 @@ CREATE POLICY "Users can read their own evaluation"
 ON evaluations
 FOR SELECT
 USING (EXISTS (SELECT 1 FROM conversations WHERE conversations.vID = evaluations.vID AND conversations.uID = auth.uid()));
-
--- Policy: Users can never insert into evaluations directly
-CREATE POLICY "Users cannot insert or update evaluations"
-ON evaluations
-FOR all
-USING (false)
-WITH CHECK (false);

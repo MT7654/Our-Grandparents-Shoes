@@ -3,6 +3,8 @@ import type { Database } from '@/supabase/types'
 type Conversation = Database['public']['Tables']['conversations']['Row']
 type DBScore = Database['public']['Tables']['scores']['Row']
 type Evaluation = Database['public']['Tables']['evaluations']['Row']
+type Badge = Database['public']['Tables']['badges']['Row']
+type Achievement = Database['public']['Tables']['achievements']['Row']
 
 export interface FullPersona {
     pid: string,
@@ -42,4 +44,13 @@ export type MidConversationEvaluation = {
   expression: Evaluation['expression'],
   rapportChange: Evaluation['rapport'],
   suggestion: Evaluation['suggestion']
+}
+
+export type DisplayBadge = {
+  bid: Badge['bid'],
+  name: Badge['name'],
+  description: Badge['description'],
+  category: Badge['category'],
+  unlocked: boolean,
+  awarded: Achievement['awarded_at']
 }
