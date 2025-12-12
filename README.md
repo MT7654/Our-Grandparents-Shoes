@@ -90,6 +90,9 @@ The database schema is defined in SQL migration files. You can run them in two w
    - `20251207121729_create_scores.sql`
    - `20251209055547_create_unique_recent_message_trigger.sql`
    - `20251209081512_create_dashboard_views.sql`
+   - `20251211113206_create_badges.sql`
+   - `20251211114854_create_achievements.sql`
+   - `20251211120546_create_award_triggers.sql`
 
 4. Copy and paste each file's contents into the SQL Editor and click "Run"
 
@@ -118,6 +121,7 @@ To populate the database with sample personas and chats:
 2. Run the seed files in order:
    - `supabase/seeds/001.personas.sql` (creates personas and interests)
    - `supabase/seeds/002.chats.sql` (creates sample chat sessions)
+   - `supabase/seeds/003.badges.sql` (creates badges)
 
    **Note:** The seed files create two personas (Margaret Thompson and Robert Chen) with their interests and sample chat sessions.
 
@@ -139,6 +143,8 @@ After running migrations, verify your setup:
    - `evaluations`
    - `interests`
    - `scores`
+   - `badges`
+   - `achievements`
 
 3. Check **Database** → **Views** for:
    - `conversation_sessions`
