@@ -1,5 +1,5 @@
 -- Create Roles Type
-CREATE TYPE Roles as ENUM('admin', 'user');
+CREATE TYPE Roles as ENUM('user', 'admin');
 
 -- Create Admins Table
 CREATE TABLE IF NOT EXISTS profiles (
@@ -9,8 +9,8 @@ CREATE TABLE IF NOT EXISTS profiles (
     last_active DATE,
     no_of_sessions SMALLINT,
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
-    role Roles NOT NULL,
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE
+    role Roles,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE
 );
 
 -- Enable: Row Level Security
