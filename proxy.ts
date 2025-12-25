@@ -2,7 +2,7 @@ import { type NextRequest } from 'next/server'
 import { updateSession } from './lib/supabase/middleware'
 import { validatePath } from './lib/auth/middleware'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const path_response = await validatePath(request)
 
   // Check for redirection
