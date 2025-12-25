@@ -6,8 +6,8 @@ import { type Database } from '@/supabase/types'
 
 type Message = Database['public']['Tables']['messages']['Row']
 
-const apiKey = process.env.NEXT_PUBLIC_GROQ_API_KEY
-if (!apiKey) throw new Error("NEXT_PUBLIC_GROQ_API_KEY not set")
+const apiKey = process.env.GROQ_API_KEY
+if (!apiKey) throw new Error("GROQ_API_KEY not set")
 
 const groq = new Groq({ apiKey })
 
