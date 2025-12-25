@@ -8,9 +8,41 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MessageCircle, BarChart3 } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { createClient } from '@/lib/supabase/client'
+import { useToast } from "@/hooks/use-toast"
 
 export default function LandingPage() {
+  const router = useRouter();
+
   const [isAuthOpen, setIsAuthOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // For client side redirection
+  const verify = async (nextPath: string) => {
+    const supabase = createClient()
+
+    const { data: { session } } = await supabase.auth.getSession()
+
+    if (session) {
+      router.push(`/${nextPath}`) 
+    } else {
+      setIsAuthOpen(true)
+      setIsLoading(false)
+    } 
+  }
+
+  const startTraining = () => {
+    setIsLoading(true)
+    verify('personas')
+  }
+
+  const startTracking = () => {
+    setIsLoading(true)
+    verify('dashboard')
+  }
+
+  if (isLoading) return null
 
   if (isAuthOpen) {
     return <AuthScreen onBack={() => setIsAuthOpen(false)} />
@@ -37,7 +69,7 @@ export default function LandingPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button size="lg" className="text-lg px-8 py-6 w-full sm:w-auto" onClick={() => setIsAuthOpen(true)}>
+            <Button size="lg" className="text-lg px-8 py-6 w-full sm:w-auto" onClick={() => startTraining()}>
               Start Training
             </Button>
 
@@ -45,7 +77,7 @@ export default function LandingPage() {
               size="lg"
               variant="outline"
               className="text-lg px-8 py-6 w-full sm:w-auto bg-transparent"
-              onClick={() => setIsAuthOpen(true)}
+              onClick={() => startTracking()}
             >
               <BarChart3 className="w-5 h-5 mr-2" />
               Track My Progress
@@ -98,6 +130,106 @@ export default function LandingPage() {
 }
 
 function AuthScreen({ onBack }: { onBack: () => void }) {
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [registerName, setRegisterName] = useState("");
+  const [registerEmail, setRegisterEmail] = useState("");
+  const [registerPassword, setRegisterPassword] = useState("");
+
+  const router = useRouter();
+  const { toast } = useToast();
+
+  async function login() {
+    if (!loginEmail || !loginPassword) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter both email and password",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: loginEmail,
+          password: loginPassword,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        toast({
+          title: "Login Failed",
+          description: result.error || "Invalid email or password",
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({
+        title: "Login Successful",
+        description: "Welcome back!",
+      });
+      router.push("/personas");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred"
+      toast({
+        title: "Login Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  }
+
+  async function register() {
+    if (!registerName || !registerEmail || !registerPassword) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: registerEmail,
+          password: registerPassword,
+          metadata: { full_name: registerName }
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        toast({
+          title: "Registration Failed",
+          description: result.error || "Failed to create account",
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({
+        title: "Registration Successful",
+        description: "Account created! Redirecting...",
+      });
+      router.push("/personas");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred"
+      toast({
+        title: "Registration Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -118,33 +250,59 @@ function AuthScreen({ onBack }: { onBack: () => void }) {
             <TabsContent value="login" className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="login-email">Email</Label>
-                <Input id="login-email" type="email" placeholder="you@example.com" />
+                <Input
+                  id="login-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={loginEmail}
+                  onChange={e => setLoginEmail(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="login-password">Password</Label>
-                <Input id="login-password" type="password" placeholder="••••••••" />
+                <Input
+                  id="login-password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={loginPassword}
+                  onChange={e => setLoginPassword(e.target.value)}
+                />
               </div>
-              <Link href="/personas">
-                <Button className="w-full">Sign In</Button>
-              </Link>
+              <Button className="w-full" onClick={login}>Sign In</Button>
             </TabsContent>
 
             <TabsContent value="register" className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="register-name">Full Name</Label>
-                <Input id="register-name" type="text" placeholder="John Doe" />
+                <Input
+                  id="register-name"
+                  type="text"
+                  placeholder="John Doe"
+                  value={registerName}
+                  onChange={e => setRegisterName(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
-                <Label htmlId="register-email">Email</Label>
-                <Input id="register-email" type="email" placeholder="you@example.com" />
+                <Label htmlFor="register-email">Email</Label>
+                <Input
+                  id="register-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={registerEmail}
+                  onChange={e => setRegisterEmail(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="register-password">Password</Label>
-                <Input id="register-password" type="password" placeholder="••••••••" />
+                <Input
+                  id="register-password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={registerPassword}
+                  onChange={e => setRegisterPassword(e.target.value)}
+                />
               </div>
-              <Link href="/personas">
-                <Button className="w-full">Create Account</Button>
-              </Link>
+              <Button className="w-full" onClick={register}>Register</Button>
             </TabsContent>
           </Tabs>
         </CardContent>
