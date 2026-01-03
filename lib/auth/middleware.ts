@@ -1,10 +1,15 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
+const userPaths = ['/personas', '/dashboard', '/complete', '/chat']
+const adminPaths = ['/admin']
+
 export async function validatePath(request: NextRequest) {
     const path = request.nextUrl.pathname
-    const protectedPaths = ['/personas', '/dashboard', '/complete', '/chat']
-    const isProtected = protectedPaths.some((p) => path.startsWith(p))
+    const redirectUrl = new URL('/', request.url)
+    const isUserProtected = userPaths.some((p) => path.startsWith(p))
+    const isAdminProtected = adminPaths.some((p) => path.startsWith(p))
+    const isProtected = isUserProtected || isAdminProtected
 
     if (isProtected) {
         const supabase = createServerClient(
@@ -23,7 +28,16 @@ export async function validatePath(request: NextRequest) {
         const { data: { session }, error } = await supabase.auth.getSession() 
 
         if (error || !session) {
-            return NextResponse.redirect(new URL('/', request.url))
+            return NextResponse.redirect(redirectUrl)
+        }
+
+        // Check Role
+        const role = session.access_token ? JSON.parse(atob(session.access_token.split('.')[1]))['user_role'] : null
+        if (isAdminProtected && role !== 'admin') {
+            return NextResponse.redirect(redirectUrl)
+        }
+        if (isUserProtected && role !== 'user') {
+            return NextResponse.redirect(redirectUrl)
         }
     }
 

@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       {
         message: 'Login successful',
         user: data.user,
-        session: data.session,
+        session: data.session
       },
       { status: 200 }
     )

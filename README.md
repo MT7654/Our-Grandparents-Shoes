@@ -81,6 +81,7 @@ The database schema is defined in SQL migration files. You can run them in two w
 2. Navigate to **SQL Editor**
 3. Run each migration file in order (from `supabase/migrations/`):
    - `20251206103847_create_profiles.sql`
+   - `20251206103850_create_profile_creation_trigger.sql`
    - `20251206103852_create_personas.sql`
    - `20251206103857_create_chats.sql`
    - `20251206111752_create_conversations.sql`
@@ -93,6 +94,7 @@ The database schema is defined in SQL migration files. You can run them in two w
    - `20251211113206_create_badges.sql`
    - `20251211114854_create_achievements.sql`
    - `20251211120546_create_award_triggers.sql`
+   - `20260102130913_create_custom_claims.sql`
 
 4. Copy and paste each file's contents into the SQL Editor and click "Run"
 
@@ -125,11 +127,23 @@ To populate the database with sample personas and chats:
 
    **Note:** The seed files create two personas (Margaret Thompson and Robert Chen) with their interests and sample chat sessions.
 
-### 5. Configure Row Level Security (RLS)
+### 5. Configure Auth Hooks for Custom Access Token Claims
+
+The application uses custom JWT claims to include user roles in access tokens. This is set up through the `20260102130913_create_custom_claims.sql` migration, which creates a function that adds the user's role to their access token.
+
+**After running the migrations**, verify the Auth Hook is configured in the Supabase Dashboard:
+
+1. Go to your Supabase project dashboard
+2. Navigate to **Authentication** → **Auth Hooks**
+3. Under **Custom Access Token** section, you should see:
+   - **Hook Function**: `public.custom_access_token_hook`
+   - This hook automatically adds the `user_role` claim to JWT tokens based on the user's role in the `profiles` table
+
+### 6. Configure Row Level Security (RLS)
 
 The migrations automatically enable Row Level Security on the `profiles` table. The RLS policies are defined in the migration files and will be applied automatically when you run the migrations.
 
-### 6. Verify Setup
+### 7. Verify Setup
 
 After running migrations, verify your setup:
 
