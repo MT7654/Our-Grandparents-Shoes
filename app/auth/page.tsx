@@ -1,0 +1,212 @@
+"use client"
+
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useRouter } from "next/navigation"
+import { useToast } from "@/hooks/use-toast"
+
+export default function AuthScreen() {
+    const [loginEmail, setLoginEmail] = useState("");
+    const [loginPassword, setLoginPassword] = useState("");
+    const [registerName, setRegisterName] = useState("");
+    const [registerEmail, setRegisterEmail] = useState("");
+    const [registerPassword, setRegisterPassword] = useState("");
+  
+    const router = useRouter();
+    const { toast } = useToast();
+
+    const onBack = () => {
+      router.push("/")
+    }
+  
+    async function login() {
+      if (!loginEmail || !loginPassword) {
+        toast({
+          title: "Validation Error",
+          description: "Please enter both email and password",
+          variant: "destructive",
+        });
+        return;
+      }
+  
+      try {
+        const response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: loginEmail,
+            password: loginPassword,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          toast({
+            title: "Login Failed",
+            description: result.error || "Invalid email or password",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        toast({
+          title: "Login Successful",
+          description: "Welcome back!",
+        });
+
+        const role = result.session.access_token ? JSON.parse(atob(result.session.access_token.split('.')[1]))['user_role'] : null
+
+        if (role == 'admin') {
+          router.push('/admin');
+        } else {
+          router.push("/personas");
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred"
+
+        toast({
+          title: "Login Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
+    }
+  
+    async function register() {
+      if (!registerName || !registerEmail || !registerPassword) {
+        toast({
+          title: "Validation Error",
+          description: "Please fill in all fields",
+          variant: "destructive",
+        });
+        return;
+      }
+  
+      try {
+        const response = await fetch("/api/auth/signup", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: registerEmail,
+            password: registerPassword,
+            metadata: { full_name: registerName }
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          toast({
+            title: "Registration Failed",
+            description: result.error || "Failed to create account",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        toast({
+          title: "Registration Successful",
+          description: "Account created! Redirecting...",
+        });
+
+        router.push("/personas");
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred"
+        
+        toast({
+          title: "Registration Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
+    }
+  
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <Button variant="ghost" onClick={onBack} className="w-fit mb-2">
+              ← Back
+            </Button>
+            <CardTitle className="text-2xl">Welcome Back</CardTitle>
+            <CardDescription>Sign in to continue your conversation training journey</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="login" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="login">Login</TabsTrigger>
+                <TabsTrigger value="register">Register</TabsTrigger>
+              </TabsList>
+  
+              <TabsContent value="login" className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="login-email">Email</Label>
+                  <Input
+                    id="login-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={loginEmail}
+                    onChange={e => setLoginEmail(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="login-password">Password</Label>
+                  <Input
+                    id="login-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={loginPassword}
+                    onChange={e => setLoginPassword(e.target.value)}
+                  />
+                </div>
+                <Button className="w-full" onClick={login}>Sign In</Button>
+              </TabsContent>
+  
+              <TabsContent value="register" className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="register-name">Full Name</Label>
+                  <Input
+                    id="register-name"
+                    type="text"
+                    placeholder="John Doe"
+                    value={registerName}
+                    onChange={e => setRegisterName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="register-email">Email</Label>
+                  <Input
+                    id="register-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={registerEmail}
+                    onChange={e => setRegisterEmail(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="register-password">Password</Label>
+                  <Input
+                    id="register-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={registerPassword}
+                    onChange={e => setRegisterPassword(e.target.value)}
+                  />
+                </div>
+                <Button className="w-full" onClick={register}>Register</Button>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }

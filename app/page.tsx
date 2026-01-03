@@ -2,54 +2,93 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { MessageCircle, BarChart3 } from "lucide-react"
-import Link from "next/link"
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { MessageCircle, BarChart3, Shield } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from "@/hooks/use-toast"
+import LoadingOverlay from '@/components/loading-overlay'
 
 export default function LandingPage() {
   const router = useRouter();
-
-  const [isAuthOpen, setIsAuthOpen] = useState(false)
+  const { toast } = useToast();
+  
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // For client side redirection
-  const verify = async (nextPath: string) => {
+  const verify = async (target: string) => {
     const supabase = createClient()
-
     const { data: { session } } = await supabase.auth.getSession()
 
-    if (session) {
-      router.push(`/${nextPath}`) 
+    const role = session?.access_token ? JSON.parse(atob(session.access_token.split('.')[1]))['user_role'] : null
+
+    return { hasSession: !!session, actualRole: role, isAuthorized: session && role == target }
+  }
+
+  const navigateWithRole = async ({
+    role, 
+    successPath, 
+    sessionMessage,
+    accountMessage,
+  }: {
+    role: 'user' | 'admin'
+    successPath: string
+    sessionMessage: string
+    accountMessage: string
+  }) => {
+    setIsLoading(true)
+
+    const { isAuthorized, hasSession, actualRole } = await verify(role)
+
+    if (isAuthorized) {
+      router.push(successPath)
     } else {
-      setIsAuthOpen(true)
-      setIsLoading(false)
-    } 
+      if (!hasSession) {
+        toast({
+          description: sessionMessage,
+          variant: "default",
+        });
+      } else {
+        toast({
+          description: accountMessage,
+          variant: "default",
+        })
+      }
+    }
+
+    setIsLoading(false)
   }
 
-  const startTraining = () => {
-    setIsLoading(true)
-    verify('personas')
+  const startTraining = async () => {
+    await navigateWithRole({
+      role: 'user',
+      successPath: '/personas',
+      sessionMessage: "Please log in as a user to start your training session.",
+      accountMessage: "This feature requires a user account. Please log in with your user credentials.",
+    })
   }
 
-  const startTracking = () => {
-    setIsLoading(true)
-    verify('dashboard')
+  const startTracking = async () => {
+    await navigateWithRole({
+      role: 'user',
+      successPath: '/dashboard',
+      sessionMessage: "Please log in as a user to track your progress.",
+      accountMessage: "This feature requires a user account. Please log in with your user credentials.",
+    })
   }
 
-  if (isLoading) return null
-
-  if (isAuthOpen) {
-    return <AuthScreen onBack={() => setIsAuthOpen(false)} />
+  const goToAdmin = async () => {
+    await navigateWithRole({
+      role: 'admin',
+      successPath: '/admin',
+      sessionMessage: "Please log in as an admin to access the admin panel.",
+      accountMessage: "This feature requires an admin account. Please log in with your admin credentials.",
+    })
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10">
+      <LoadingOverlay isLoading={isLoading} />
       <div className="container mx-auto px-4 py-16 md:py-24">
         <div className="max-w-4xl mx-auto text-center space-y-8">
           {/* Header */}
@@ -81,6 +120,16 @@ export default function LandingPage() {
             >
               <BarChart3 className="w-5 h-5 mr-2" />
               Track My Progress
+            </Button>
+
+            <Button
+              size="lg"
+              variant="outline"
+              className="text-lg px-8 py-6 w-full sm:w-auto bg-transparent"
+              onClick={() => goToAdmin()}
+            >
+              <Shield className="w-5 h-5 mr-2" />
+              Admin Login
             </Button>
           </div>
 
@@ -129,184 +178,4 @@ export default function LandingPage() {
   )
 }
 
-function AuthScreen({ onBack }: { onBack: () => void }) {
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [registerName, setRegisterName] = useState("");
-  const [registerEmail, setRegisterEmail] = useState("");
-  const [registerPassword, setRegisterPassword] = useState("");
 
-  const router = useRouter();
-  const { toast } = useToast();
-
-  async function login() {
-    if (!loginEmail || !loginPassword) {
-      toast({
-        title: "Validation Error",
-        description: "Please enter both email and password",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: loginEmail,
-          password: loginPassword,
-        }),
-      });
-      const result = await response.json();
-      if (!response.ok) {
-        toast({
-          title: "Login Failed",
-          description: result.error || "Invalid email or password",
-          variant: "destructive",
-        });
-        return;
-      }
-      toast({
-        title: "Login Successful",
-        description: "Welcome back!",
-      });
-      router.push("/personas");
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred"
-      toast({
-        title: "Login Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    }
-  }
-
-  async function register() {
-    if (!registerName || !registerEmail || !registerPassword) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all fields",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const response = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: registerEmail,
-          password: registerPassword,
-          metadata: { full_name: registerName }
-        }),
-      });
-      const result = await response.json();
-      if (!response.ok) {
-        toast({
-          title: "Registration Failed",
-          description: result.error || "Failed to create account",
-          variant: "destructive",
-        });
-        return;
-      }
-      toast({
-        title: "Registration Successful",
-        description: "Account created! Redirecting...",
-      });
-      router.push("/personas");
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred"
-      toast({
-        title: "Registration Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    }
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <Button variant="ghost" onClick={onBack} className="w-fit mb-2">
-            ← Back
-          </Button>
-          <CardTitle className="text-2xl">Welcome Back</CardTitle>
-          <CardDescription>Sign in to continue your conversation training journey</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="login" className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="login-email">Email</Label>
-                <Input
-                  id="login-email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={loginEmail}
-                  onChange={e => setLoginEmail(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="login-password">Password</Label>
-                <Input
-                  id="login-password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={loginPassword}
-                  onChange={e => setLoginPassword(e.target.value)}
-                />
-              </div>
-              <Button className="w-full" onClick={login}>Sign In</Button>
-            </TabsContent>
-
-            <TabsContent value="register" className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="register-name">Full Name</Label>
-                <Input
-                  id="register-name"
-                  type="text"
-                  placeholder="John Doe"
-                  value={registerName}
-                  onChange={e => setRegisterName(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="register-email">Email</Label>
-                <Input
-                  id="register-email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={registerEmail}
-                  onChange={e => setRegisterEmail(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="register-password">Password</Label>
-                <Input
-                  id="register-password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={registerPassword}
-                  onChange={e => setRegisterPassword(e.target.value)}
-                />
-              </div>
-              <Button className="w-full" onClick={register}>Register</Button>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
