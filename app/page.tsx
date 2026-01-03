@@ -43,7 +43,7 @@ export default function LandingPage() {
     if (isAuthorized) {
       router.push(successPath)
     } else {
-      if (!hasSession) {
+      if (hasSession) {
         toast({
           description: sessionMessage,
           variant: "default",
@@ -53,6 +53,7 @@ export default function LandingPage() {
           description: accountMessage,
           variant: "default",
         })
+        router.push('/auth')
       }
     }
 
@@ -63,7 +64,7 @@ export default function LandingPage() {
     await navigateWithRole({
       role: 'user',
       successPath: '/personas',
-      sessionMessage: "Please log in as a user to start your training session.",
+      sessionMessage: "Please log out and log in as a user to start your training session.",
       accountMessage: "This feature requires a user account. Please log in with your user credentials.",
     })
   }
@@ -72,7 +73,7 @@ export default function LandingPage() {
     await navigateWithRole({
       role: 'user',
       successPath: '/dashboard',
-      sessionMessage: "Please log in as a user to track your progress.",
+      sessionMessage: "Please log out and log in as a user to track your progress.",
       accountMessage: "This feature requires a user account. Please log in with your user credentials.",
     })
   }
@@ -81,7 +82,7 @@ export default function LandingPage() {
     await navigateWithRole({
       role: 'admin',
       successPath: '/admin',
-      sessionMessage: "Please log in as an admin to access the admin panel.",
+      sessionMessage: "Please log out and log in as an admin to access the admin panel.",
       accountMessage: "This feature requires an admin account. Please log in with your admin credentials.",
     })
   }
@@ -129,7 +130,7 @@ export default function LandingPage() {
               onClick={() => goToAdmin()}
             >
               <Shield className="w-5 h-5 mr-2" />
-              Admin Login
+              Admin Dashboard
             </Button>
           </div>
 

@@ -1,12 +1,19 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { converse } from '@/lib/chat/service'
 import type { Database } from '@/supabase/types'
+import { guard } from '@/lib/auth/guard'
 
 type Conversation = Database['public']['Tables']['conversations']['Row']
 type Message = Database['public']['Tables']['messages']['Row']
 
 export async function POST(request:NextRequest) {
     try {
+        const guardResult = await guard('user')
+
+        if (guardResult instanceof NextResponse) {
+            return guardResult
+        }
+        
         const body = (await request.json()) as { 
             converseId: Conversation['vid'], 
             latestMessage: Message['content']

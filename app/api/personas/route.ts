@@ -1,8 +1,15 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { fetchPersonas, fetchPersona } from '@/lib/personas/personas'
+import { guard } from '@/lib/auth/guard'
 
 export async function GET(request: NextRequest) {
     try {
+        const guardResult = await guard('user')
+
+        if (guardResult instanceof NextResponse) {
+            return guardResult
+        }
+        
         const { searchParams } = new URL(request.url)
         const personaId = searchParams.get("id")
 

@@ -1,11 +1,18 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { startConversation } from '@/lib/chat/service'
 import type { Database } from '@/supabase/types'
+import { guard } from '@/lib/auth/guard'
 
 type Persona = Database['public']['Tables']['personas']['Row']
 
 export async function POST(request: NextRequest) {
     try {
+        const guardResult = await guard('user')
+
+        if (guardResult instanceof NextResponse) {
+            return guardResult
+        }
+        
         const body = await request.json()
         const personaId: Persona['pid'] | undefined = body?.personaId
 

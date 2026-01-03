@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server'
 import { getPastConversations, getOverallStatistics, getUserAchievements } from '@/lib/dashboard/dashboard'
+import { guard } from '@/lib/auth/guard'
 
 export async function GET() {
     try {
+        const guardResult = await guard('user')
+
+        if (guardResult instanceof NextResponse) {
+            return guardResult
+        }
+        
         const past_conversations = await getPastConversations()
         const user_statistics = await getOverallStatistics()
         const user_achievements = await getUserAchievements()
