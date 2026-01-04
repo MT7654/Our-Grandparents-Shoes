@@ -5,18 +5,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
-import { Users, MessageCircle, TrendingUp, LogOut, BarChart3 } from "lucide-react"
+import { Users, MessageCircle, TrendingUp, LogOut, BarChart3, Search } from "lucide-react"
 import { format } from "date-fns"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts"
 import LoadingOverlay from "@/components/loading-overlay"
-import { ChatData } from "@/lib/types/types"
+import { ChatData, Filters } from "@/lib/types/types"
 import type { Database } from "@/supabase/types"
 
 type Volunteer = Database['public']['Views']['statistics_by_volunteers']['Row']
+const HIGH_PERFORMING_THRESHOLD = 80
 
 export default function AdminPage() {
   const router = useRouter()
@@ -29,13 +32,25 @@ export default function AdminPage() {
   const [volunteers, setVolunteers] = useState<Volunteer[]>([])
   const [chats, setChats] = useState<ChatData[]>([])
 
-  // User Changeable Volunteers
+  // User Changeable Variables
+  const [tab, setTab] = useState<"volunteers" | "chats">("volunteers")
   const [limit, setLimit] = useState<number>(10)
-  const [highPerformingThreshold, setHighPerformingThreshold] = useState<number>(80)
-  const [filters, setFilters] = useState<string[]>([])
+  const [searchQuery, setSearchQuery] = useState<string>("")
+  const [filters, setFilters] = useState<Filters>({
+    volunteer_name: "",
+    persona_name: "",
+  })
 
   // Loading State
   const [loading, setLoading] = useState<boolean>(true)
+
+  // Update filters when search query changes
+  useEffect(() => {
+    setFilters({
+      volunteer_name: tab === "volunteers" ? searchQuery : "",
+      persona_name: tab === "chats" ? searchQuery : "",
+    })
+  }, [searchQuery, tab])
 
   useEffect(() => {
     setLoading(true)
@@ -49,7 +64,7 @@ export default function AdminPage() {
           },
           body: JSON.stringify({
             limit,
-            highPerformingThreshold,
+            highPerformingThreshold:HIGH_PERFORMING_THRESHOLD,
             filters,
           }),
         })
@@ -87,7 +102,7 @@ export default function AdminPage() {
     }
 
     getData()
-  }, [limit, highPerformingThreshold, filters])
+  }, [limit, filters])
 
   // Logout handler
   async function handleLogout() {
@@ -119,7 +134,7 @@ export default function AdminPage() {
   const chartConfig = {
     score: {
       label: "Average Score",
-      color: "hsl(var(--chart-1))",
+      color: "var(--chart-1)",
     },
   }
 
@@ -164,7 +179,7 @@ export default function AdminPage() {
             <CardContent>
               <div className="text-2xl font-bold">{highPerformNum}</div>
               <p className="text-xs text-muted-foreground">
-                Score ≥ {highPerformingThreshold}%
+                Score ≥ {HIGH_PERFORMING_THRESHOLD}%
               </p>
             </CardContent>
           </Card>
@@ -186,15 +201,46 @@ export default function AdminPage() {
         {/* Main Content Tabs */}
         <Tabs defaultValue="volunteers" className="w-full">
           <TabsList className="mb-6">
-            <TabsTrigger value="volunteers">
+            <TabsTrigger value="volunteers" onClick={() => setTab("volunteers")}>
               <Users className="w-4 h-4 mr-2" />
               Volunteers
             </TabsTrigger>
-            <TabsTrigger value="chats">
+            <TabsTrigger value="chats" onClick={() => setTab("chats")}>
               <MessageCircle className="w-4 h-4 mr-2" />
               Chats
             </TabsTrigger>
           </TabsList>
+
+          {/* Search and Limit Controls */}
+          <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search by volunteer name or persona name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label htmlFor="limit-select" className="text-sm text-muted-foreground whitespace-nowrap">
+                Limit:
+              </label>
+              <Select value={limit.toString()} onValueChange={(value) => setLimit(Number(value))}>
+                <SelectTrigger id="limit-select" className="w-[120px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
           {/* Volunteers Tab */}
           <TabsContent value="volunteers" className="space-y-4">
