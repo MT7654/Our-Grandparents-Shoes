@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -12,148 +12,82 @@ import { format } from "date-fns"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts"
+import LoadingOverlay from "@/components/loading-overlay"
+import { ChatData } from "@/lib/types/types"
+import type { Database } from "@/supabase/types"
 
-// Mock data types (will be replaced with real data from API later)
-interface Volunteer {
-  id: string
-  name: string
-  email: string
-  sessionsCompleted: number
-  averageScore: number
-  completionRate: number
-  joinedAt: string
-  lastActive: string
-}
-
-interface Chat {
-  id: string
-  personaName: string
-  objective: string
-  performanceData: { tries: number; averageScore: number }[]
-}
-
-// Mock data (frontend only for now)
-const mockVolunteers: Volunteer[] = [
-  {
-    id: "1",
-    name: "Sarah Johnson",
-    email: "sarah.johnson@example.com",
-    sessionsCompleted: 12,
-    averageScore: 85,
-    completionRate: 92,
-    joinedAt: "2024-01-15T10:00:00Z",
-    lastActive: "2024-12-10T14:30:00Z",
-  },
-  {
-    id: "2",
-    name: "Michael Chen",
-    email: "michael.chen@example.com",
-    sessionsCompleted: 8,
-    averageScore: 92,
-    completionRate: 88,
-    joinedAt: "2024-02-20T09:00:00Z",
-    lastActive: "2024-12-11T16:20:00Z",
-  },
-  {
-    id: "3",
-    name: "Emily Rodriguez",
-    email: "emily.rodriguez@example.com",
-    sessionsCompleted: 5,
-    averageScore: 78,
-    completionRate: 75,
-    joinedAt: "2024-03-10T11:00:00Z",
-    lastActive: "2024-11-28T10:15:00Z",
-  },
-  {
-    id: "4",
-    name: "David Kim",
-    email: "david.kim@example.com",
-    sessionsCompleted: 15,
-    averageScore: 88,
-    completionRate: 95,
-    joinedAt: "2024-01-05T08:00:00Z",
-    lastActive: "2024-12-11T18:45:00Z",
-  },
-]
-
-const SCORE_THRESHOLD = 80 // Threshold for high-performing volunteers
-const TOTAL_CHATS_AVAILABLE = 8 // Total number of chat templates available
-
-const mockChats: Chat[] = [
-  {
-    id: "1",
-    personaName: "Margaret",
-    objective: "Discuss gardening tips",
-    performanceData: [
-      { tries: 1, averageScore: 65 },
-      { tries: 2, averageScore: 72 },
-      { tries: 3, averageScore: 80 },
-      { tries: 4, averageScore: 85 },
-    ],
-  },
-  {
-    id: "2",
-    personaName: "Robert",
-    objective: "Share family stories",
-    performanceData: [
-      { tries: 1, averageScore: 70 },
-      { tries: 2, averageScore: 78 },
-      { tries: 3, averageScore: 82 },
-    ],
-  },
-  {
-    id: "3",
-    personaName: "Eleanor",
-    objective: "Talk about favorite recipes",
-    performanceData: [
-      { tries: 1, averageScore: 68 },
-      { tries: 2, averageScore: 75 },
-      { tries: 3, averageScore: 83 },
-      { tries: 4, averageScore: 88 },
-      { tries: 5, averageScore: 90 },
-    ],
-  },
-  {
-    id: "4",
-    personaName: "William",
-    objective: "Discuss hobbies",
-    performanceData: [
-      { tries: 1, averageScore: 72 },
-      { tries: 2, averageScore: 80 },
-      { tries: 3, averageScore: 85 },
-      { tries: 4, averageScore: 87 },
-    ],
-  },
-  {
-    id: "5",
-    personaName: "Dorothy",
-    objective: "Plan a day trip",
-    performanceData: [
-      { tries: 1, averageScore: 60 },
-      { tries: 2, averageScore: 70 },
-    ],
-  },
-  {
-    id: "6",
-    personaName: "Frank",
-    objective: "Learn about technology",
-    performanceData: [
-      { tries: 1, averageScore: 75 },
-      { tries: 2, averageScore: 82 },
-      { tries: 3, averageScore: 86 },
-    ],
-  },
-]
+type Volunteer = Database['public']['Views']['statistics_by_volunteers']['Row']
 
 export default function AdminPage() {
   const router = useRouter()
   const { toast } = useToast()
-  const [volunteers] = useState<Volunteer[]>(mockVolunteers)
-  const [chats] = useState<Chat[]>(mockChats)
+  
+  // Admin Dashboard Details
+  const [volunteerNum, setVolunteerNum] = useState<number>(0)
+  const [chatNum, setChatNum] = useState<number>(0)
+  const [highPerformNum, setHighPerformNum] = useState<number>(0)
+  const [volunteers, setVolunteers] = useState<Volunteer[]>([])
+  const [chats, setChats] = useState<ChatData[]>([])
 
-  // Calculate statistics
-  const totalVolunteers = volunteers.length
-  const highPerformingVolunteers = volunteers.filter((v) => v.averageScore >= SCORE_THRESHOLD).length
+  // User Changeable Volunteers
+  const [limit, setLimit] = useState<number>(10)
+  const [highPerformingThreshold, setHighPerformingThreshold] = useState<number>(80)
+  const [filters, setFilters] = useState<string[]>([])
+
+  // Loading State
+  const [loading, setLoading] = useState<boolean>(true)
+
+  useEffect(() => {
+    setLoading(true)
+
+    const getData = async () => {
+      try {
+        const data = await fetch("/api/admin", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            limit,
+            highPerformingThreshold,
+            filters,
+          }),
+        })
+
+        if (!data.ok) {
+          const errorData = await data.json().catch(() => ({}))
+          throw new Error(errorData.error || `Failed to load admin data (${data.status})`)
+        }
+
+        const { 
+          totalVolunteers, 
+          totalChats, 
+          highPerformingVolunteers, 
+          volunteerDetails, 
+          chatProgressWithAverageScores 
+        } = await data.json()
+
+        setVolunteerNum(totalVolunteers || 0)
+        setChatNum(totalChats || 0)
+        setHighPerformNum(highPerformingVolunteers || 0)
+        setVolunteers(volunteerDetails || [])
+        setChats(chatProgressWithAverageScores || [])
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Failed to load admin data"
+        console.error("Load error: " + error)
+
+        toast({
+          title: "Error loading admin data",
+          description: errorMessage,
+          variant: "destructive",
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    getData()
+  }, [limit, highPerformingThreshold, filters])
 
   // Logout handler
   async function handleLogout() {
@@ -191,6 +125,7 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10">
+      <LoadingOverlay isLoading={loading} />
       <div className="container mx-auto px-4 py-8 md:py-12">
         {/* Header */}
         <div className="mb-8 flex items-start justify-between">
@@ -214,7 +149,7 @@ export default function AdminPage() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{totalVolunteers}</div>
+              <div className="text-2xl font-bold">{volunteerNum}</div>
               <p className="text-xs text-muted-foreground">
                 in total
               </p>
@@ -227,9 +162,9 @@ export default function AdminPage() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{highPerformingVolunteers}</div>
+              <div className="text-2xl font-bold">{highPerformNum}</div>
               <p className="text-xs text-muted-foreground">
-                Score ≥ {SCORE_THRESHOLD}%
+                Score ≥ {highPerformingThreshold}%
               </p>
             </CardContent>
           </Card>
@@ -240,7 +175,7 @@ export default function AdminPage() {
               <MessageCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{TOTAL_CHATS_AVAILABLE}</div>
+              <div className="text-2xl font-bold">{chatNum}</div>
               <p className="text-xs text-muted-foreground">
                 Chat templates available
               </p>
@@ -280,42 +215,38 @@ export default function AdminPage() {
                       <TableHead>Average Score</TableHead>
                       <TableHead>Completion Rate</TableHead>
                       <TableHead>Joined</TableHead>
-                      <TableHead>Last Active</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {volunteers.map((volunteer) => (
-                      <TableRow key={volunteer.id}>
-                        <TableCell className="font-medium">{volunteer.name}</TableCell>
+                      <TableRow key={volunteer.uid}>
+                        <TableCell className="font-medium">{volunteer.full_name}</TableCell>
                         <TableCell className="text-muted-foreground">{volunteer.email}</TableCell>
-                        <TableCell>{volunteer.sessionsCompleted}</TableCell>
+                        <TableCell>{volunteer.total_sessions}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <span className="font-medium">{volunteer.averageScore}%</span>
+                            <span className="font-medium">{Math.floor(volunteer.average_score!)}%</span>
                             <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
                               <div
                                 className="h-full bg-primary"
-                                style={{ width: `${volunteer.averageScore}%` }}
+                                style={{ width: `${volunteer.average_score}%` }}
                               />
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <span className="font-medium">{volunteer.completionRate}%</span>
+                            <span className="font-medium">{Math.floor(volunteer.completion_rate!)}%</span>
                             <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
                               <div
                                 className="h-full bg-primary"
-                                style={{ width: `${volunteer.completionRate}%` }}
+                                style={{ width: `${volunteer.completion_rate}%` }}
                               />
                             </div>
                           </div>
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {formatDate(volunteer.joinedAt)}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {formatDate(volunteer.lastActive)}
+                          {formatDate(volunteer.created_at!)}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -345,10 +276,10 @@ export default function AdminPage() {
                   </TableHeader>
                   <TableBody>
                     {chats.map((chat) => (
-                      <Dialog key={chat.id}>
+                      <Dialog key={chat.cid}>
                         <TableRow>
-                          <TableCell className="font-medium">{chat.personaName}</TableCell>
-                          <TableCell className="max-w-xs">{chat.objective}</TableCell>
+                          <TableCell className="font-medium">{chat.persona_name}</TableCell>
+                          <TableCell className="max-w-xs">{chat.chat_objective}</TableCell>
                           <TableCell className="text-right">
                             <DialogTrigger asChild>
                               <Button variant="ghost" size="sm" className="gap-2">
@@ -361,14 +292,14 @@ export default function AdminPage() {
                         <DialogContent className="sm:max-w-[600px]">
                           <DialogHeader>
                             <DialogTitle>
-                              {chat.personaName} - {chat.objective}
+                              {chat.persona_name} - {chat.chat_objective}
                             </DialogTitle>
                             <DialogDescription>
                               Average score of all volunteers against number of tries
                             </DialogDescription>
                           </DialogHeader>
                           <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                            <LineChart accessibilityLayer data={chat.performanceData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                            <LineChart accessibilityLayer data={chat.triesAgainstScore} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                               <XAxis
                                 dataKey="tries"
@@ -398,10 +329,10 @@ export default function AdminPage() {
                               <Line
                                 type="linear"
                                 dataKey="averageScore"
-                                stroke="hsl(var(--chart-1))"
+                                stroke="var(--chart-1)"
                                 strokeWidth={2}
-                                dot={{ fill: "hsl(var(--chart-1))", r: 4 }}
-                                activeDot={{ r: 6, fill: "hsl(var(--chart-1))" }}
+                                dot={{ fill: "var(--chart-1)", r: 4 }}
+                                activeDot={{ r: 6, fill: "var(--chart-1)" }}
                                 connectNulls={true}
                               />
                             </LineChart>

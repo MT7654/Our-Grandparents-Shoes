@@ -50,10 +50,10 @@ grant SELECT, UPDATE
   on table public.profiles
   to authenticated;
 
--- create policy "Allow auth admin to read user roles" ON public.profiles
--- as permissive for select
--- to supabase_auth_admin
--- using (true);
+create policy "Allow auth admin to read user roles" ON public.profiles
+as permissive for select
+to supabase_auth_admin
+using (true);
 
 -- Register your custom claims function for JWT
 select auth.jwt_set_custom_claims_function('public.custom_access_token_hook');

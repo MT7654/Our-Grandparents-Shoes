@@ -54,3 +54,18 @@ export type DisplayBadge = {
   unlocked: boolean,
   awarded: Achievement['awarded_at']
 }
+
+export interface ChatData {
+  cid: string,
+  persona_name: string
+  chat_objective: string
+  triesAgainstScore: {
+      tries: number
+      averageScore: number
+  }[]
+}
+
+export interface Filters {
+  volunteer_name?: string
+  persona_name?: string
+}
