@@ -55,6 +55,3 @@ as permissive for select
 to supabase_auth_admin
 using (true);
 
--- Register your custom claims function for JWT
-select auth.jwt_set_custom_claims_function('public.custom_access_token_hook');
-
