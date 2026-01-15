@@ -4,12 +4,14 @@ import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
 import Link from "next/link"
 import { ArrowLeft, Send, Lightbulb, Activity } from "lucide-react"
 import { useParams, useRouter } from "next/navigation"
 import type { Database } from '@/supabase/types'
 import LoadingOverlay from "@/components/loading-overlay"
 import { useToast } from "@/hooks/use-toast"
+import { Spinner } from "@/components/ui/spinner"
 
 type Message = Database['public']['Tables']['messages']['Row']
 type Expression = Database['public']['Enums']['eval_expression']
@@ -36,6 +38,16 @@ export default function ChatTraining() {
     const [lastEvaluation, setLastEvaluation] = useState(false)
     const [rapportChange, setRapportChange] = useState(0)
     const [inputValue, setInputValue] = useState("")
+
+    // For Testing
+    const [loadingView, setLoadingView] = useState<number>(1)
+    const [loadSimulation, setLoadSimulation] = useState<boolean>(false)
+    
+    // Draggable test view selector state
+    const [testViewPosition, setTestViewPosition] = useState({ x: 16, y: 16 })
+    const [isDragging, setIsDragging] = useState(false)
+    const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
+    const testViewRef = useRef<HTMLDivElement>(null)
 
     // Start Conversation (Load Data)
     useEffect(() => {
@@ -128,6 +140,9 @@ export default function ChatTraining() {
         }
 
         setLoading(true)
+        if (loadSimulation) {
+            await new Promise(resolve => setTimeout(resolve, 1000))
+        }
 
         try {
             const response = await fetch('/api/chat/next', {
@@ -238,7 +253,7 @@ export default function ChatTraining() {
         return localDate.toLocaleTimeString([], { hour: "2-digit", minute: '2-digit' })
     }
 
-    const getPortraitUrl = (expr: Expression) => {
+    const getPortraitUrl = (name: String, expr: Expression) => {
         // Map expression to image filename
         // Images are named: Happy.jpg, Sad.jpg, Angry.jpg, Neutral.jpg, Shocked.jpg in public folder
     
@@ -253,7 +268,7 @@ export default function ChatTraining() {
         const emotion = emotionMap[expr] || "Neutral"
         
         // Return the image path - images are shared for both personas
-        return `/${emotion}.jpg`
+        return `/${name + " " + emotion}.jpg`
     }
     
     const handleAvatarError = () => {
@@ -271,6 +286,63 @@ export default function ChatTraining() {
         }
     }, [messages])
 
+    // Draggable test view selector handlers
+    const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+        // Only start dragging if clicking on the container or drag handle, not on buttons or switch
+        const target = e.target as HTMLElement
+        const isButton = target.tagName === 'BUTTON' || target.closest('button')
+        const isSwitch = target.closest('[data-slot="switch"]') || target.closest('[data-slot="switch-thumb"]')
+        
+        if (!isButton && !isSwitch) {
+            e.preventDefault()
+            if (testViewRef.current) {
+                const rect = testViewRef.current.getBoundingClientRect()
+                setDragOffset({
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                })
+                setIsDragging(true)
+            }
+        }
+    }
+
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (isDragging && testViewRef.current) {
+                const rect = testViewRef.current.getBoundingClientRect()
+                const newX = e.clientX - dragOffset.x
+                const newY = e.clientY - dragOffset.y
+                
+                // Constrain to viewport
+                const maxX = window.innerWidth - rect.width
+                const maxY = window.innerHeight - rect.height
+                
+                setTestViewPosition({
+                    x: Math.max(0, Math.min(newX, maxX)),
+                    y: Math.max(0, Math.min(newY, maxY))
+                })
+            }
+        }
+
+        const handleMouseUp = () => {
+            setIsDragging(false)
+        }
+
+        if (isDragging) {
+            document.addEventListener('mousemove', handleMouseMove)
+            document.addEventListener('mouseup', handleMouseUp)
+            document.body.style.userSelect = 'none'
+            document.body.style.cursor = 'grabbing'
+        }
+
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove)
+            document.removeEventListener('mouseup', handleMouseUp)
+            document.body.style.userSelect = ''
+            document.body.style.cursor = ''
+        }
+    }, [isDragging, dragOffset])
+
     const getHealthBarColor = () => {
         if (rapport >= 70) return "bg-emerald-500"
         if (rapport >= 40) return "bg-amber-500"
@@ -285,8 +357,78 @@ export default function ChatTraining() {
 
     return (
         <div className="min-h-screen bg-[#F5F6F8] pb-32">
+        {/* Test View Selector - Draggable */}
+        <div 
+            ref={testViewRef}
+            className="fixed z-50 bg-white border border-gray-300 rounded-lg shadow-lg p-2 flex flex-col gap-2 select-none"
+            style={{
+                left: `${testViewPosition.x}px`,
+                top: `${testViewPosition.y}px`,
+                userSelect: 'none',
+                cursor: isDragging ? 'grabbing' : 'grab'
+            }}
+            onMouseDown={handleMouseDown}
+        >
+            {/* Drag Handle */}
+            <div className="flex items-center justify-between pb-1 border-b border-gray-200">
+                <span className="text-gray-700 text-xs font-semibold">Test Controls</span>
+                <span className="text-gray-400 text-xs">⋮⋮</span>
+            </div>
 
-        <LoadingOverlay isLoading={loading} />
+            <div className="flex gap-1 items-center">
+                <span className="text-gray-600 text-xs whitespace-nowrap">Loading:</span>
+                <button
+                    onClick={() => setLoadingView(1)}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className={`w-8 h-8 rounded text-xs font-medium transition-colors ${
+                        loadingView === 1 
+                            ? "bg-blue-600 text-white" 
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                    title="View 1: With Overlay"
+                >
+                    1
+                </button>
+                <button
+                    onClick={() => setLoadingView(2)}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className={`w-8 h-8 rounded text-xs font-medium transition-colors ${
+                        loadingView === 2 
+                            ? "bg-blue-600 text-white" 
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                    title="View 2: No Overlay"
+                >
+                    2
+                </button>
+                <button
+                    onClick={() => setLoadingView(3)}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className={`w-8 h-8 rounded text-xs font-medium transition-colors ${
+                        loadingView === 3 
+                            ? "bg-blue-600 text-white" 
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                    title="View 3: Small Loader"
+                >
+                    3
+                </button>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 pt-1 border-t border-gray-200">
+                <span className="text-gray-600 text-xs whitespace-nowrap">Load Sim:</span>
+                <div className="flex items-center gap-2" onMouseDown={(e) => e.stopPropagation()}>
+                    <span className="text-gray-600 text-xs">
+                        {loadSimulation ? 'ON' : 'OFF'}
+                    </span>
+                    <Switch
+                        checked={loadSimulation}
+                        onCheckedChange={setLoadSimulation}
+                    />
+                </div>
+            </div>
+        </div>
+        {loadingView === 1 && <LoadingOverlay isLoading={loading} />}
 
         {/* Header */}
         <div className="border-b border-gray-200 bg-white shadow-sm">
@@ -325,7 +467,7 @@ export default function ChatTraining() {
             <Card className="bg-white border-gray-200 p-4 flex items-center gap-4">
             <div className="flex-shrink-0">
                 <img
-                src={getPortraitUrl(expression)}
+                src={getPortraitUrl(personaName, expression)}
                 alt={`${personaName} - ${expression} expression`}
                 className="w-[150px] h-[150px] max-[600px]:w-[120px] max-[600px]:h-[120px] object-cover rounded-full border-4 border-gray-300 transition-opacity duration-300"
                 style={{ flex: "0 0 auto" }}
@@ -402,6 +544,9 @@ export default function ChatTraining() {
                 </div>
                 ))}
             </div>
+
+            {loadingView === 3 && loading && (<Spinner className="text-blue-600 ml-8" />)}
+
             </Card>
 
             {/* 6. End Training Button */}
@@ -416,15 +561,21 @@ export default function ChatTraining() {
         {/* Input Bar */}
         <div className="fixed bottom-0 left-0 right-0 border-t border-gray-300 bg-white shadow-lg p-4">
             <div className="container mx-auto max-w-3xl">
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
                 <Input
                 placeholder="Type your message..."
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && converse()}
-                className="flex-1 bg-gray-50 border-gray-300 text-gray-900 placeholder:text-gray-400"
+                onKeyPress={(e) => e.key === "Enter" && !loading && converse()}
+                disabled={loadingView === 3 && loading}
+                className="flex-1 bg-gray-50 border-gray-300 text-gray-900 placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
-                <Button onClick={converse} size="icon" className="bg-blue-600 hover:bg-blue-700">
+                <Button 
+                    onClick={converse} 
+                    size="icon" 
+                    className="bg-blue-600 hover:bg-blue-700"
+                    disabled={loadingView === 3 && loading}
+                >
                 <Send className="w-4 h-4" />
                 </Button>
             </div>
