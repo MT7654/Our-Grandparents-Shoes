@@ -149,7 +149,12 @@ export default function ChatTraining() {
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+      // Use setTimeout to ensure DOM has updated before scrolling
+      setTimeout(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+        }
+      }, 100)
     }
   }, [messages])
 
@@ -429,7 +434,7 @@ export default function ChatTraining() {
         {/* Scrollable message log */}
         <div
           ref={scrollRef}
-          className="flex-1 min-h-[300px] overflow-y-auto px-4 py-3 space-y-3 bg-gray-50"
+          className="flex-1 min-h-[300px] overflow-y-auto px-4 py-3 pb-6 space-y-3 bg-gray-50"
         >
           {messages.map((message) => (
             <div
