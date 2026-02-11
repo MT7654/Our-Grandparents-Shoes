@@ -127,7 +127,7 @@ export default function ScenarioSelection() {
                       </ul>
                     </div>
 
-                    <Link href={`/chat/margaret`} className="block">
+                    <Link href={`/chat/margaret?scenario=${scenario.id}`} className="block">
                       <Button className="w-full" size="lg">
                         {scenario.cta}
                       </Button>

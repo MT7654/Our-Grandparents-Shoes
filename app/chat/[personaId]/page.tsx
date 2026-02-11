@@ -5,29 +5,42 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import Link from "next/link"
-import { ArrowLeft, Send, Target, AlertCircle } from "lucide-react"
-import { useParams, useRouter } from "next/navigation"
+import { ArrowLeft, Send, AlertCircle, Lightbulb } from "lucide-react"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
+
+/* ------------------------------------------------------------------ */
+/*  Types                                                              */
+/* ------------------------------------------------------------------ */
 
 interface Message {
   id: string
   sender: "user" | "persona"
   text: string
   timestamp: Date
+  /** Coaching tip surfaced by the Secondary AI after this user message */
+  coachTip?: string
 }
 
 type Expression = "happy" | "neutral" | "sad" | "angry"
 
-type ScenarioType = "house-visit" | "emotional-listening" | "resolve-task"
+type ScenarioType = "house-visit" | "listening-ear" | "resolve-task"
 
 interface ScenarioConfig {
   type: ScenarioType
-  name: string
-  hint: string
+  label: string
+  objective: string
+  focusAreas: string[]
+  guidance: string[]
   color: string
   bgColor: string
-  difficulty: "Easy" | "Medium" | "Hard"
-  maxTurns: number
 }
 
 interface EvaluationResult {
@@ -37,22 +50,76 @@ interface EvaluationResult {
   suggestion: string
 }
 
+/* ------------------------------------------------------------------ */
+/*  Scenario definitions (aligned with /personas page ids)             */
+/* ------------------------------------------------------------------ */
+
+const SCENARIOS: Record<ScenarioType, ScenarioConfig> = {
+  "house-visit": {
+    type: "house-visit",
+    label: "House Visit",
+    objective: "Complete a polite and efficient home visit with the senior.",
+    focusAreas: ["Clear communication", "Staying on topic", "Respecting time"],
+    guidance: [
+      "Keep conversation short and polite",
+      "Ask clear, practical questions",
+      "Stay focused on the purpose of the visit",
+    ],
+    color: "text-blue-700",
+    bgColor: "bg-blue-50",
+  },
+  "listening-ear": {
+    type: "listening-ear",
+    label: "Listening Ear",
+    objective: "Help the senior feel heard and emotionally supported.",
+    focusAreas: ["Empathy", "Validation", "Letting the senior lead"],
+    guidance: [
+      "Encourage sharing",
+      "Validate emotions",
+      "Do not interrupt",
+      "Avoid solving unless asked",
+    ],
+    color: "text-purple-700",
+    bgColor: "bg-purple-50",
+  },
+  "resolve-task": {
+    type: "resolve-task",
+    label: "Resolve a Task",
+    objective: "Help the senior complete a specific task successfully.",
+    focusAreas: ["Clear instructions", "Breaking steps down", "Checking understanding"],
+    guidance: [
+      "Explain steps clearly and slowly",
+      "Break tasks into simple parts",
+      "Check understanding frequently",
+      "Be patient and reassuring",
+    ],
+    color: "text-green-700",
+    bgColor: "bg-green-50",
+  },
+}
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                          */
+/* ------------------------------------------------------------------ */
+
 export default function ChatTraining() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const personaId = params.personaId as string
+
+  // Determine scenario from URL query, fallback to listening-ear
+  const scenarioParam = (searchParams.get("scenario") ?? "listening-ear") as ScenarioType
+  const scenario = SCENARIOS[scenarioParam] ?? SCENARIOS["listening-ear"]
+
+  // Refs
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const [scenario] = useState<ScenarioConfig>({
-    type: "emotional-listening",
-    name: "Share a Memory",
-    hint: "Validate feelings, don't rush",
-    color: "text-purple-700",
-    bgColor: "bg-purple-100",
-    difficulty: "Medium",
-    maxTurns: 10,
-  })
+  // Difficulty & turn limits
+  const [difficulty, setDifficulty] = useState<"Easy" | "Hard">("Easy")
+  const maxTurns = difficulty === "Hard" ? 8 : 10
 
+  // Conversation state
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -64,38 +131,25 @@ export default function ChatTraining() {
   const [inputValue, setInputValue] = useState("")
   const [rapport, setRapport] = useState(50)
   const [expression, setExpression] = useState<Expression>("neutral")
-  const [objective] = useState("Get the senior to talk about how they met their spouse")
   const [lastEvaluation, setLastEvaluation] = useState<EvaluationResult | null>(null)
   const [currentTurn, setCurrentTurn] = useState(1)
   const [conversationEnded, setConversationEnded] = useState(false)
 
-  const personaName = personaId === "margaret" ? "Margaret Thompson" : "Robert Chen"
+  const personaName = "Margaret Chan"
 
-  const getPortraitUrl = (expr: Expression) => {
-    const baseQuery =
-      personaId === "margaret"
-        ? "elderly grandmother woman smiling portrait RPG game character art"
-        : "elderly grandfather man portrait RPG game character art"
-
-    const expressionQuery =
-      expr === "happy"
-        ? "smiling happy"
-        : expr === "sad"
-        ? "sad concerned"
-        : expr === "angry"
-        ? "stern upset"
-        : "neutral calm"
-
-    return `/placeholder.svg?height=400&width=300&query=${encodeURIComponent(
-      `${baseQuery} ${expressionQuery}`
-    )}`
-  }
+  /* ---------------------------------------------------------------- */
+  /*  Auto-scroll on new messages                                      */
+  /* ---------------------------------------------------------------- */
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
   }, [messages])
+
+  /* ---------------------------------------------------------------- */
+  /*  Primary AI: persona response (placeholder)                       */
+  /* ---------------------------------------------------------------- */
 
   async function sendMessageToPersona(userMessage: string): Promise<string> {
     const responses = [
@@ -107,19 +161,29 @@ export default function ChatTraining() {
     return responses[Math.floor(Math.random() * responses.length)]
   }
 
-  async function evaluateConversation(userMessage: string, personaResponse: string): Promise<EvaluationResult> {
-    const sentiments: ("positive" | "neutral" | "negative")[] = ["positive", "neutral", "negative"]
+  /* ---------------------------------------------------------------- */
+  /*  Secondary AI: evaluation (placeholder)                           */
+  /* ---------------------------------------------------------------- */
+
+  async function evaluateConversation(
+    userMessage: string,
+    personaResponse: string,
+  ): Promise<EvaluationResult> {
+    const sentiments: ("positive" | "neutral" | "negative")[] = [
+      "positive",
+      "neutral",
+      "negative",
+    ]
     const expressions: Expression[] = ["happy", "neutral", "sad", "angry"]
     const suggestions = [
-      "Great! Try asking a follow-up question about their spouse or relationship",
-      "Show empathy by acknowledging their feelings and memories",
-      "Consider asking about specific details like where they met or what attracted them",
-      "Express interest in their story - try saying 'That sounds wonderful, please tell me more'",
-      "Try to be more specific with your questions to engage them better",
+      "Great! Try asking a follow-up question about their story",
+      "Show empathy by acknowledging their feelings",
+      "Consider asking about specific details to keep them engaged",
+      "Express interest - try saying 'That sounds wonderful, please tell me more'",
+      "Try to be more specific with your questions",
       "Show genuine curiosity about their experiences",
     ]
-
-    const rapportChange = Math.floor(Math.random() * 20) - 5 // -5 to +15
+    const rapportChange = Math.floor(Math.random() * 20) - 5
 
     return {
       sentiment: sentiments[Math.floor(Math.random() * sentiments.length)],
@@ -128,6 +192,10 @@ export default function ChatTraining() {
       suggestion: suggestions[Math.floor(Math.random() * suggestions.length)],
     }
   }
+
+  /* ---------------------------------------------------------------- */
+  /*  UI update helpers                                                */
+  /* ---------------------------------------------------------------- */
 
   function updateHealthBar(change: number) {
     setRapport((prev) => Math.min(Math.max(prev + change, 0), 100))
@@ -138,8 +206,14 @@ export default function ChatTraining() {
   }
 
   function showSystemSuggestions(newSuggestion: string) {
-    setLastEvaluation((prev) => ({ ...prev, suggestion: newSuggestion } as EvaluationResult))
+    setLastEvaluation(
+      (prev) => ({ ...prev, suggestion: newSuggestion }) as EvaluationResult,
+    )
   }
+
+  /* ---------------------------------------------------------------- */
+  /*  Send handler                                                     */
+  /* ---------------------------------------------------------------- */
 
   const handleSend = async () => {
     if (!inputValue.trim() || conversationEnded) return
@@ -150,13 +224,14 @@ export default function ChatTraining() {
       text: inputValue,
       timestamp: new Date(),
     }
-    setMessages([...messages, userMessage])
+    setMessages((prev) => [...prev, userMessage])
     const userMessageText = inputValue
     setInputValue("")
 
     const nextTurn = currentTurn + 1
     setCurrentTurn(nextTurn)
 
+    // Primary AI
     const personaResponseText = await sendMessageToPersona(userMessageText)
     const personaMessage: Message = {
       id: (Date.now() + 1).toString(),
@@ -164,20 +239,38 @@ export default function ChatTraining() {
       text: personaResponseText,
       timestamp: new Date(),
     }
-    setMessages((prev) => [...prev, personaMessage])
 
+    // Secondary AI
     const evaluation = await evaluateConversation(userMessageText, personaResponseText)
     setLastEvaluation(evaluation)
     updateHealthBar(evaluation.rapportChange)
     updateAvatarExpression(evaluation.expression)
     showSystemSuggestions(evaluation.suggestion)
 
-    if (nextTurn >= scenario.maxTurns) setConversationEnded(true)
+    // Attach the coaching tip to the user message so it renders below it
+    setMessages((prev) => {
+      const updated = [...prev]
+      const lastUserIdx = updated.findLastIndex((m) => m.sender === "user")
+      if (lastUserIdx !== -1) {
+        updated[lastUserIdx] = { ...updated[lastUserIdx], coachTip: evaluation.suggestion }
+      }
+      return [...updated, personaMessage]
+    })
+
+    if (nextTurn >= maxTurns) setConversationEnded(true)
   }
 
   const handleEndEarly = () => {
     router.push("/complete")
   }
+
+  const handleDifficultyChange = (value: "Easy" | "Hard") => {
+    setDifficulty(value)
+  }
+
+  /* ---------------------------------------------------------------- */
+  /*  Derived values                                                   */
+  /* ---------------------------------------------------------------- */
 
   const getHealthBarColor = () => {
     if (rapport >= 70) return "bg-emerald-500"
@@ -185,198 +278,258 @@ export default function ChatTraining() {
     return "bg-rose-500"
   }
 
-  const turnsRemaining = scenario.maxTurns - currentTurn
+  const expressionBadge = () => {
+    switch (expression) {
+      case "happy":
+        return "bg-green-100 text-green-700"
+      case "sad":
+        return "bg-blue-100 text-blue-700"
+      case "angry":
+        return "bg-red-100 text-red-700"
+      default:
+        return "bg-gray-100 text-gray-700"
+    }
+  }
+
+  const expressionDot = () => {
+    switch (expression) {
+      case "happy":
+        return "bg-green-500"
+      case "sad":
+        return "bg-blue-500"
+      case "angry":
+        return "bg-red-500"
+      default:
+        return "bg-gray-400"
+    }
+  }
+
+  const turnsRemaining = maxTurns - currentTurn
   const showTurnWarning = turnsRemaining <= 2 && !conversationEnded
 
+  /* ---------------------------------------------------------------- */
+  /*  Render                                                           */
+  /* ---------------------------------------------------------------- */
+
   return (
-    <div className="min-h-screen bg-[#F5F6F8] flex flex-col">
-      {/* Header */}
-      <div className="border-b border-gray-200 bg-white shadow-sm">
-        <div className="container mx-auto px-4 py-3">
-          <Link href="/personas">
-            <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
-          </Link>
-        </div>
-      </div>
-
-      {/* Sticky Status Bar */}
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
-        <div className="container mx-auto px-4 py-3 max-w-3xl">
-          <div className="flex items-center justify-between gap-3 mb-2">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <Badge className={`${scenario.bgColor} ${scenario.color} border-0 text-xs font-semibold`}>
-                {scenario.type === "house-visit" && "🏠 House Visit"}
-                {scenario.type === "emotional-listening" && "💙 Emotional"}
-                {scenario.type === "resolve-task" && "✅ Task"}
-              </Badge>
-              <span className="text-sm font-semibold text-gray-900 truncate">{scenario.name}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs font-medium">
-                {scenario.difficulty}
-              </Badge>
-              <span className="text-xs font-semibold text-gray-600 whitespace-nowrap">
-                Turn {currentTurn} / {scenario.maxTurns}
-              </span>
-            </div>
+    <div className="h-dvh flex flex-col bg-[#F5F6F8]">
+      {/* ── Header ─────────────────────────────────────────────── */}
+      <header className="bg-white border-b border-gray-200 shadow-sm px-4 py-2.5">
+        <div className="max-w-3xl mx-auto flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Link href="/personas">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-gray-600 hover:text-gray-900 bg-transparent"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            </Link>
+            <span className="text-sm font-bold text-gray-900">{scenario.label}</span>
           </div>
 
-          {/* Progress Bar */}
           <div className="flex items-center gap-3">
-            <div className="flex-1">
-              <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className={`absolute inset-y-0 left-0 ${getHealthBarColor()} transition-all duration-500`}
-                  style={{ width: `${rapport}%` }}
-                />
-              </div>
-            </div>
-            <span className="text-xs font-bold text-gray-900 whitespace-nowrap">{rapport}%</span>
+            <Select
+              value={difficulty}
+              onValueChange={handleDifficultyChange}
+              disabled={currentTurn > 1}
+            >
+              <SelectTrigger className="h-7 w-[72px] text-xs border-gray-300">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Easy" className="text-xs">Easy</SelectItem>
+                <SelectItem value="Hard" className="text-xs">Hard</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <span className="text-xs font-bold text-gray-600 tabular-nums">
+              {currentTurn}/{maxTurns}
+            </span>
           </div>
-
-          {/* Scenario Hint */}
-          <p className="text-xs text-gray-600 mt-2 italic">{scenario.hint}</p>
-
-          {showTurnWarning && (
-            <div className="mt-2 flex items-center gap-2 text-amber-700 bg-amber-50 px-3 py-2 rounded-md">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span className="text-xs font-medium">
-                {turnsRemaining} {turnsRemaining === 1 ? "turn" : "turns"} remaining
-              </span>
-            </div>
-          )}
         </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-y-auto pb-32">
-        <div className="container mx-auto px-4 py-4 max-w-3xl space-y-3">
-          {/* Objective */}
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-3">
-            <div className="flex items-start gap-3">
-              <Target className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <h4 className="text-xs font-bold text-blue-700 uppercase tracking-wide">Objective</h4>
-                <p className="text-sm text-gray-800 mt-0.5 leading-snug">{objective}</p>
-              </div>
-            </div>
+        {/* Rapport bar */}
+        <div className="max-w-3xl mx-auto mt-2 flex items-center gap-3">
+          <span className="text-xs font-semibold text-gray-600">Rapport</span>
+          <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className={`h-full ${getHealthBarColor()} transition-all duration-500`}
+              style={{ width: `${rapport}%` }}
+            />
           </div>
+          <span className="text-xs font-bold text-gray-900 tabular-nums w-8 text-right">
+            {rapport}%
+          </span>
+        </div>
 
-          {/* Avatar - Large, inside chat panel */}
-          <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-lg p-3">
-            <div className="flex-shrink-0 w-1/2">
+        {/* Turn warning */}
+        {showTurnWarning && (
+          <div className="max-w-3xl mx-auto mt-2 flex items-center gap-2 text-amber-800 bg-amber-100 px-3 py-1.5 rounded">
+            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="text-xs font-medium">
+              {turnsRemaining} {turnsRemaining === 1 ? "turn" : "turns"} remaining
+            </span>
+          </div>
+        )}
+      </header>
+
+      {/* ── Chat Panel (fills remaining space) ─────────────────── */}
+      <Card className="flex-1 flex flex-col mx-3 my-3 max-w-3xl w-full self-center overflow-hidden border-gray-200">
+        {/* Fixed avatar + objective inside the chat card */}
+        <div className="border-b border-gray-200 bg-white">
+          {/* Avatar row */}
+          <div className="flex items-center gap-3 px-4 pt-4 pb-3">
+            <div className="relative flex-shrink-0">
               <img
-                src={getPortraitUrl(expression) || "/placeholder.svg"}
+                src="/elderly-woman-cartoon-avatar-smiling-grandmother.jpg"
                 alt={personaName}
-                className="w-full h-full object-cover rounded-lg border-2 border-gray-300"
+                className="w-16 h-16 rounded-full object-cover border-2 border-gray-300"
+              />
+              <div
+                className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white ${expressionDot()}`}
+                title={expression}
               />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-bold text-gray-900">{personaName}</h3>
-              <Badge
-                variant="secondary"
-                className={`mt-1 text-xs capitalize ${
-                  expression === "happy"
-                    ? "bg-green-100 text-green-700"
-                    : expression === "sad"
-                    ? "bg-blue-100 text-blue-700"
-                    : expression === "angry"
-                    ? "bg-red-100 text-red-700"
-                    : "bg-gray-100 text-gray-700"
-                }`}
-              >
+              <h3 className="text-base font-bold text-gray-900">{personaName}</h3>
+              <Badge variant="secondary" className={`text-xs capitalize ${expressionBadge()}`}>
                 {expression}
               </Badge>
             </div>
           </div>
 
-          {/* Conversation Log */}
-          <Card className="bg-white border-gray-200">
-            <div className="border-b border-gray-200 px-3 py-2 bg-gray-50">
-              <h4 className="font-semibold text-gray-800 text-xs uppercase tracking-wide">Conversation</h4>
-            </div>
-
-            <div className="p-3 space-y-2.5 min-h-[300px] max-h-[400px] overflow-y-auto" ref={scrollRef}>
-              {messages.map((message) => (
-                <div key={message.id} className={`flex flex-col ${message.sender === "user" ? "items-end" : "items-start"}`}>
-                  {/* Message */}
-                  <div
-                    className={`max-w-[85%] rounded-xl px-3 py-2 ${
-                      message.sender === "user" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-900"
-                    }`}
-                  >
-                    <p className="text-sm leading-relaxed">{message.text}</p>
-                    <span
-                      className={`text-xs mt-1 block ${
-                        message.sender === "user" ? "text-blue-100" : "text-gray-500"
-                      }`}
-                    >
-                      {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    </span>
-                  </div>
-
-                  {/* AI Guidance */}
-                  {message.sender === "user" && lastEvaluation && (
-                    <div className="text-xs text-amber-700 mt-1 italic max-w-[75%]">
-                      Coach: {lastEvaluation.suggestion}
-                    </div>
-                  )}
-                </div>
+          {/* Objective */}
+          <div className={`mx-4 mb-3 ${scenario.bgColor} border rounded-lg p-2.5`}>
+            <h4 className={`text-xs font-bold ${scenario.color} uppercase tracking-wide mb-0.5`}>
+              Objective
+            </h4>
+            <p className="text-sm text-gray-800 leading-snug">{scenario.objective}</p>
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {scenario.focusAreas.map((area, i) => (
+                <span
+                  key={i}
+                  className="text-xs bg-white/80 px-2 py-0.5 rounded text-gray-700"
+                >
+                  {area}
+                </span>
               ))}
             </div>
-          </Card>
-
-          {/* Session Controls */}
-          <div className="pt-2">
-            {conversationEnded ? (
-              <div className="space-y-2">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
-                  <p className="text-sm font-semibold text-blue-700">Conversation Complete!</p>
-                  <p className="text-xs text-gray-600 mt-1">Time to review your performance</p>
-                </div>
-                <Link href="/complete" className="block">
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold">
-                    View Feedback
-                  </Button>
-                </Link>
-              </div>
-            ) : (
-              <Button
-                onClick={handleEndEarly}
-                variant="outline"
-                className="w-full text-gray-600 hover:text-gray-900 hover:bg-gray-100 border-gray-300 bg-transparent"
-              >
-                End Session Early
-              </Button>
-            )}
           </div>
+        </div>
+
+        {/* Scrollable message log */}
+        <div
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto px-4 py-3 space-y-3 bg-gray-50"
+        >
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={`flex flex-col ${message.sender === "user" ? "items-end" : "items-start"}`}
+            >
+              {/* Bubble */}
+              <div
+                className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 shadow-sm ${
+                  message.sender === "user"
+                    ? "bg-blue-600 text-white"
+                    : "bg-white border border-gray-200 text-gray-900"
+                }`}
+              >
+                <p className="text-sm leading-relaxed">{message.text}</p>
+                <span
+                  className={`text-xs mt-1 block ${
+                    message.sender === "user" ? "text-blue-200" : "text-gray-400"
+                  }`}
+                >
+                  {message.timestamp.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </div>
+
+              {/* Coaching tip below the user message that triggered it */}
+              {message.sender === "user" && message.coachTip && (
+                <div className="flex items-start gap-1.5 mt-1.5 max-w-[80%]">
+                  <Lightbulb className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-700 leading-relaxed italic">
+                    {message.coachTip}
+                  </p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* ── Bottom controls ────────────────────────────────────── */}
+
+      {/* Scenario guidance */}
+      {!conversationEnded && (
+        <div className={`${scenario.bgColor} border-t px-4 py-2`}>
+          <div className="max-w-3xl mx-auto">
+            <h4 className={`text-xs font-bold ${scenario.color} uppercase tracking-wide mb-1`}>
+              Guidance
+            </h4>
+            <div className="flex flex-wrap gap-x-4 gap-y-0.5">
+              {scenario.guidance.map((tip, i) => (
+                <span key={i} className="text-xs text-gray-700">
+                  - {tip}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* End session / View results */}
+      <div className="bg-white border-t border-gray-200 px-4 py-2">
+        <div className="max-w-3xl mx-auto">
+          {conversationEnded ? (
+            <Link href="/complete">
+              <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold h-9 text-sm">
+                View Results
+              </Button>
+            </Link>
+          ) : (
+            <Button
+              onClick={handleEndEarly}
+              variant="outline"
+              size="sm"
+              className="w-full text-gray-500 hover:text-gray-900 border-gray-300 bg-transparent h-8 text-xs"
+            >
+              End Session Early
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Input Bar */}
-      <div className="border-t border-gray-300 bg-white shadow-lg">
-        <div className="container mx-auto px-4 py-3 max-w-3xl">
-          <div className="flex gap-2">
-            <Input
-              placeholder={conversationEnded ? "Conversation ended" : "Type your message..."}
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleSend()}
-              disabled={conversationEnded}
-              className="flex-1 bg-gray-50 border-gray-300 text-gray-900 placeholder:text-gray-400 disabled:opacity-50"
-            />
-            <Button
-              onClick={handleSend}
-              size="icon"
-              disabled={conversationEnded}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-            >
-              <Send className="w-4 h-4" />
-            </Button>
-          </div>
+      {/* Input bar */}
+      <div className="bg-white border-t border-gray-300 shadow-lg px-4 py-2.5">
+        <div className="flex gap-2 max-w-3xl mx-auto">
+          <Input
+            placeholder={conversationEnded ? "Session ended" : "Type your message..."}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault()
+                handleSend()
+              }
+            }}
+            disabled={conversationEnded}
+            className="flex-1 h-10 text-sm bg-gray-50 border-gray-300 disabled:opacity-50"
+          />
+          <Button
+            onClick={handleSend}
+            size="icon"
+            disabled={conversationEnded}
+            className="h-10 w-10 bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+          >
+            <Send className="w-4 h-4" />
+          </Button>
         </div>
       </div>
     </div>
