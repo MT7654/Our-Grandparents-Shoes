@@ -383,34 +383,33 @@ export default function ChatTraining() {
 
       {/* ── Chat Card (fills remaining space) ──────────────────── */}
       <Card className="flex-1 flex flex-col mx-3 my-3 max-w-3xl w-full self-center overflow-hidden border-gray-200">
-        {/* Fixed top: Avatar (30% width) + Objective */}
-        <div className="flex-shrink-0 border-b border-gray-200 bg-white p-4">
-          <div className="flex gap-4">
-            {/* Avatar -- ~30% of card width, rectangular */}
-            <div className="w-[30%] flex-shrink-0">
-              <div className="relative">
-                <img
-                  src="/elderly-woman-cartoon-avatar-smiling-grandmother.jpg"
-                  alt={personaName}
-                  className={`w-full aspect-square rounded-xl object-cover border-3 ${expressionBorder()} transition-colors duration-300`}
-                />
-              </div>
-              <div className="mt-2 text-center">
-                <h3 className="text-sm font-bold text-gray-900 leading-tight">{personaName}</h3>
-                <Badge variant="secondary" className={`mt-1 text-xs capitalize ${expressionBadge()}`}>
+        {/* Fixed top: Full-width avatar + name overlay + objective */}
+        <div className="flex-shrink-0 border-b border-gray-200 bg-white">
+          {/* Full-width avatar banner */}
+          <div className="relative w-full">
+            <img
+              src="/elderly-woman-cartoon-avatar-smiling-grandmother.jpg"
+              alt={personaName}
+              className={`w-full h-48 sm:h-56 object-cover border-b-4 ${expressionBorder()} transition-colors duration-300`}
+            />
+            {/* Name + expression overlay */}
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-4 pb-3 pt-8">
+              <div className="flex items-end justify-between">
+                <h3 className="text-base font-bold text-white drop-shadow-sm">{personaName}</h3>
+                <Badge variant="secondary" className={`text-xs capitalize ${expressionBadge()}`}>
                   {expression}
                 </Badge>
               </div>
             </div>
+          </div>
 
-            {/* Objective -- remaining ~70% */}
-            <div className="flex-1 min-w-0 flex flex-col justify-center">
-              <div className={`${scenario.bgColor} border rounded-lg p-3`}>
-                <h4 className={`text-xs font-bold ${scenario.color} uppercase tracking-wide mb-1`}>
-                  Objective
-                </h4>
-                <p className="text-sm text-gray-800 leading-relaxed">{scenario.objective}</p>
-              </div>
+          {/* Objective */}
+          <div className="p-3">
+            <div className={`${scenario.bgColor} border rounded-lg p-3`}>
+              <h4 className={`text-xs font-bold ${scenario.color} uppercase tracking-wide mb-1`}>
+                Objective
+              </h4>
+              <p className="text-sm text-gray-800 leading-relaxed">{scenario.objective}</p>
             </div>
           </div>
         </div>
