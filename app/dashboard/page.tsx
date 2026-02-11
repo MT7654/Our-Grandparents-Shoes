@@ -1,214 +1,243 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import Link from "next/link"
-import { ArrowLeft, Award, TrendingUp, MessageCircle } from "lucide-react"
+import {
+  ArrowLeft,
+  MessageCircle,
+  Home,
+  Heart,
+  CheckSquare,
+  ChevronRight,
+  Lock,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react"
 
-const pastSessions = [
+interface PastSession {
+  id: string
+  scenario: "House Visit" | "Listening Ear" | "Resolve a Task"
+  difficulty: "Easy" | "Hard"
+  date: string
+  objectiveCompleted: boolean
+}
+
+const pastSessions: PastSession[] = [
   {
     id: "1",
-    personaName: "Margaret Thompson",
+    scenario: "Listening Ear",
+    difficulty: "Easy",
     date: "2025-01-28",
-    score: 81,
-    objective: "Get the senior to talk about how they met their spouse",
-    completed: true,
+    objectiveCompleted: true,
   },
   {
     id: "2",
-    personaName: "Robert Chen",
+    scenario: "House Visit",
+    difficulty: "Hard",
     date: "2025-01-27",
-    score: 67,
-    objective: "Help the senior feel comfortable sharing health concerns",
-    completed: false,
+    objectiveCompleted: false,
   },
   {
     id: "3",
-    personaName: "Margaret Thompson",
+    scenario: "Resolve a Task",
+    difficulty: "Easy",
     date: "2025-01-26",
-    score: 75,
-    objective: "Build rapport through active listening",
-    completed: true,
+    objectiveCompleted: true,
+  },
+  {
+    id: "4",
+    scenario: "Listening Ear",
+    difficulty: "Hard",
+    date: "2025-01-25",
+    objectiveCompleted: true,
   },
 ]
 
-const badges = [
-  { id: "1", name: "First Conversation", icon: "🎯", unlocked: true },
-  { id: "2", name: "Empathy Expert", icon: "❤️", unlocked: true },
-  { id: "3", name: "5 Sessions", icon: "⭐", unlocked: false },
-  { id: "4", name: "Perfect Score", icon: "🏆", unlocked: false },
-  { id: "5", name: "Active Listener", icon: "👂", unlocked: true },
-  { id: "6", name: "10 Sessions", icon: "🌟", unlocked: false },
+interface Achievement {
+  id: string
+  label: string
+  icon: typeof CheckCircle2
+  unlocked: boolean
+}
+
+const achievements: Achievement[] = [
+  {
+    id: "first-convo",
+    label: "First Conversation Completed",
+    icon: MessageCircle,
+    unlocked: true,
+  },
+  {
+    id: "all-scenarios",
+    label: "All 3 Scenarios Completed",
+    icon: CheckSquare,
+    unlocked: true,
+  },
+  {
+    id: "all-hard",
+    label: "All Scenarios Completed on Hard",
+    icon: Lock,
+    unlocked: false,
+  },
 ]
 
-const stats = {
-  totalSessions: 3,
-  averageScore: 74,
-  completionRate: 67,
-  bestCategory: "Empathy",
+function getScenarioIcon(scenario: string) {
+  switch (scenario) {
+    case "House Visit":
+      return <Home className="w-4 h-4 text-blue-600" />
+    case "Listening Ear":
+      return <Heart className="w-4 h-4 text-purple-600" />
+    case "Resolve a Task":
+      return <CheckSquare className="w-4 h-4 text-green-600" />
+    default:
+      return null
+  }
+}
+
+function getScenarioBg(scenario: string) {
+  switch (scenario) {
+    case "House Visit":
+      return "bg-blue-50 border-blue-200"
+    case "Listening Ear":
+      return "bg-purple-50 border-purple-200"
+    case "Resolve a Task":
+      return "bg-green-50 border-green-200"
+    default:
+      return "bg-gray-50 border-gray-200"
+  }
 }
 
 export default function ProgressDashboard() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="mb-8">
-            <Link href="/">
-              <Button variant="ghost" className="mb-4">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Home
+    <div className="min-h-screen bg-[#F5F6F8]">
+      <div className="max-w-2xl mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <Link href="/">
+            <Button variant="ghost" className="mb-4 bg-transparent text-gray-600 hover:text-gray-900">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Home
+            </Button>
+          </Link>
+
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">My Sessions</h1>
+              <p className="text-sm text-gray-600 mt-1">Review your past conversations</p>
+            </div>
+            <Link href="/personas">
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Train
               </Button>
             </Link>
+          </div>
+        </div>
 
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <h1 className="text-4xl font-bold mb-2">Your Progress</h1>
-                <p className="text-lg text-muted-foreground">Track your conversation training journey</p>
-              </div>
+        {/* Past Conversations - Primary Section */}
+        <div className="mb-8">
+          <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Past Conversations</h2>
+
+          {pastSessions.length === 0 ? (
+            <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
+              <p className="text-sm text-gray-600">No conversations yet. Start your first training session.</p>
               <Link href="/personas">
-                <Button size="lg">
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  Continue Training
-                </Button>
+                <Button className="mt-4 bg-blue-600 hover:bg-blue-700 text-white">Start Training</Button>
               </Link>
             </div>
-          </div>
+          ) : (
+            <div className="space-y-2">
+              {pastSessions.map((session) => (
+                <Link key={session.id} href={`/dashboard/review/${session.id}`} className="block">
+                  <div className="bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-400 hover:shadow-sm transition-all cursor-pointer">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        {/* Scenario Icon */}
+                        <div className={`p-2 rounded-lg border ${getScenarioBg(session.scenario)}`}>
+                          {getScenarioIcon(session.scenario)}
+                        </div>
 
-          {/* Stats Overview */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Total Sessions</CardDescription>
-                <CardTitle className="text-3xl">{stats.totalSessions}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center text-xs text-muted-foreground">
-                  <TrendingUp className="w-3 h-3 mr-1" />
-                  Keep it up!
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Average Score</CardDescription>
-                <CardTitle className="text-3xl">{stats.averageScore}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Progress value={stats.averageScore} className="h-2" />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Completion Rate</CardDescription>
-                <CardTitle className="text-3xl">{stats.completionRate}%</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Progress value={stats.completionRate} className="h-2" />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Best Category</CardDescription>
-                <CardTitle className="text-2xl">{stats.bestCategory}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Badge variant="secondary">Top Skill</Badge>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid lg:grid-cols-3 gap-6">
-            {/* Past Sessions */}
-            <div className="lg:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Past Sessions</CardTitle>
-                  <CardDescription>Your conversation training history</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {pastSessions.map((session) => (
-                      <div
-                        key={session.id}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-secondary/50 rounded-lg gap-3"
-                      >
-                        <div className="flex-1">
-                          <h3 className="font-semibold mb-1">{session.personaName}</h3>
-                          <p className="text-sm text-muted-foreground mb-2">{session.objective}</p>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span>{new Date(session.date).toLocaleDateString()}</span>
-                            <span>•</span>
-                            <Badge variant={session.completed ? "default" : "secondary"} className="text-xs">
-                              {session.completed ? "Completed" : "Incomplete"}
+                        {/* Session Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-semibold text-gray-900">{session.scenario}</span>
+                            <Badge
+                              variant="outline"
+                              className="text-xs px-1.5 py-0 border-gray-300 text-gray-600"
+                            >
+                              {session.difficulty}
                             </Badge>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
-                            <div className="text-2xl font-bold text-primary">{session.score}</div>
-                            <div className="text-xs text-muted-foreground">Score</div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-gray-500">
+                              {new Date(session.date).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })}
+                            </span>
+                            <span className="text-xs text-gray-400">-</span>
+                            {session.objectiveCompleted ? (
+                              <span className="flex items-center gap-1 text-xs text-green-700 font-medium">
+                                <CheckCircle2 className="w-3 h-3" />
+                                Completed
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1 text-xs text-gray-500 font-medium">
+                                <XCircle className="w-3 h-3" />
+                                Not Completed
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
 
-            {/* Badges */}
-            <div>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Award className="w-5 h-5" />
-                    Achievements
-                  </CardTitle>
-                  <CardDescription>Unlocked badges</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-3 gap-3">
-                    {badges.map((badge) => (
-                      <div
-                        key={badge.id}
-                        className={`flex flex-col items-center justify-center p-3 rounded-lg border-2 ${
-                          badge.unlocked
-                            ? "bg-primary/10 border-primary/20"
-                            : "bg-secondary/50 border-border opacity-50"
-                        }`}
-                      >
-                        <span className="text-3xl mb-1">{badge.icon}</span>
-                        <span className="text-xs text-center leading-tight">{badge.name}</span>
-                      </div>
-                    ))}
+                      {/* Chevron */}
+                      <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                    </div>
                   </div>
-                  <div className="mt-4 text-center">
-                    <p className="text-sm text-muted-foreground">
-                      {badges.filter((b) => b.unlocked).length} of {badges.length} unlocked
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Quick Stats */}
-              <Card className="mt-4 bg-accent/50 border-accent">
-                <CardHeader>
-                  <CardTitle className="text-base">💪 Keep Going!</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  <p>• Complete 2 more sessions to unlock "5 Sessions" badge</p>
-                  <p>• Your empathy score is your strongest skill</p>
-                  <p>• Practice active listening to improve flow</p>
-                </CardContent>
-              </Card>
+                </Link>
+              ))}
             </div>
+          )}
+        </div>
+
+        {/* Achievements - Secondary Section */}
+        <div>
+          <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Achievements</h2>
+          <div className="space-y-2">
+            {achievements.map((achievement) => {
+              const Icon = achievement.icon
+              return (
+                <div
+                  key={achievement.id}
+                  className={`flex items-center gap-3 bg-white border rounded-lg p-3 ${
+                    achievement.unlocked ? "border-gray-200" : "border-gray-200 opacity-50"
+                  }`}
+                >
+                  <div
+                    className={`p-2 rounded-lg ${
+                      achievement.unlocked ? "bg-green-50 border border-green-200" : "bg-gray-100 border border-gray-200"
+                    }`}
+                  >
+                    {achievement.unlocked ? (
+                      <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    ) : (
+                      <Lock className="w-4 h-4 text-gray-400" />
+                    )}
+                  </div>
+                  <span
+                    className={`text-sm font-medium ${achievement.unlocked ? "text-gray-900" : "text-gray-500"}`}
+                  >
+                    {achievement.label}
+                  </span>
+                  {achievement.unlocked && (
+                    <Badge className="ml-auto bg-green-100 text-green-800 border-0 text-xs">Unlocked</Badge>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>
