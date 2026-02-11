@@ -412,6 +412,18 @@ export default function ChatTraining() {
               <p className="text-sm text-gray-800 leading-snug">{scenario.objective}</p>
             </div>
           </div>
+
+          {/* Coaching tip - fixed below objective */}
+          {lastEvaluation && !conversationEnded && (
+            <div className="px-3 pb-2">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 flex items-start gap-2">
+                <Lightbulb className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-700 leading-relaxed">
+                  {lastEvaluation.suggestion}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Scrollable message log */}
@@ -445,17 +457,7 @@ export default function ChatTraining() {
                 </span>
               </div>
 
-              {/* Inline coaching tip (only in "inline" mode) */}
-              {guidanceMode === "inline" &&
-                message.sender === "user" &&
-                message.coachTip && (
-                  <div className="flex items-start gap-1.5 mt-1.5 max-w-[80%]">
-                    <Lightbulb className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-amber-700 leading-relaxed italic">
-                      {message.coachTip}
-                    </p>
-                  </div>
-                )}
+
             </div>
           ))}
         </div>
