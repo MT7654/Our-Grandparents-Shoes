@@ -1,121 +1,138 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import Link from "next/link"
-import { CheckCircle2, XCircle, Trophy, RotateCcw, Home } from "lucide-react"
+import { CheckCircle2, XCircle, ThumbsUp, AlertTriangle } from "lucide-react"
+
+interface FeedbackItem {
+  userMessage: string
+  explanation: string
+}
 
 export default function ConversationComplete() {
-  // Mock data - in real app this would come from session state
-  const sessionData = {
-    success: true,
-    scores: {
-      empathy: 85,
-      clarity: 72,
-      conversationalFlow: 78,
-      activeListening: 90,
+  // Placeholder data - in real app this comes from backend evaluation
+  const objectiveCompleted = true
+
+  const goodPrompts: FeedbackItem[] = [
+    {
+      userMessage: "That sounds like it was really important to you. Can you tell me more about that time?",
+      explanation:
+        "This message validates the senior's feelings and uses an open-ended follow-up to encourage them to share more, without rushing or redirecting.",
     },
-    objectiveCompleted: true,
-    totalScore: 81,
-    feedback:
-      "Excellent work showing empathy and actively listening. Consider asking more follow-up questions to improve conversational flow.",
-  }
+    {
+      userMessage: "I can see why that memory means so much to you.",
+      explanation:
+        "A simple acknowledgment that shows empathy and active listening. It lets the senior know their story is being heard without shifting focus to yourself.",
+    },
+    {
+      userMessage: "Take your time, there's no rush.",
+      explanation:
+        "This reassures the senior that the conversation is patient and unhurried, which helps build trust and comfort.",
+    },
+  ]
+
+  const needsImprovement: FeedbackItem[] = [
+    {
+      userMessage: "Yeah, but anyway, what about your kids?",
+      explanation:
+        "This abruptly changed the topic while the senior was still sharing. A better approach would be to let them finish before transitioning naturally.",
+    },
+    {
+      userMessage: "You should try going out more, it would help.",
+      explanation:
+        "Offering unsolicited advice can feel dismissive. Instead, try reflecting what they said back to them or asking what they feel would help.",
+    },
+  ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10 flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl">
-        <CardHeader className="text-center">
-          {sessionData.success ? (
-            <div className="space-y-4">
-              <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto">
-                <CheckCircle2 className="w-12 h-12 text-green-600" />
-              </div>
-              <div>
-                <CardTitle className="text-3xl mb-2">Conversation Complete!</CardTitle>
-                <CardDescription className="text-base">
-                  Great job building rapport and achieving your objective
-                </CardDescription>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="w-20 h-20 rounded-full bg-yellow-500/20 flex items-center justify-center mx-auto">
-                <XCircle className="w-12 h-12 text-yellow-600" />
-              </div>
-              <div>
-                <CardTitle className="text-3xl mb-2">Session Ended</CardTitle>
-                <CardDescription className="text-base">Keep practicing to improve your skills</CardDescription>
-              </div>
-            </div>
-          )}
-        </CardHeader>
+    <div className="min-h-screen bg-[#F5F6F8]">
+      <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+        {/* Page Header */}
+        <div className="text-center space-y-2">
+          <h1 className="text-2xl font-bold text-gray-900">Conversation Ended</h1>
+          <p className="text-sm text-gray-600 leading-relaxed">
+            Your session with Margaret Chan has concluded. Here is your feedback.
+          </p>
+        </div>
 
-        <CardContent className="space-y-6">
-          {/* Overall Score */}
-          <div className="text-center p-6 bg-primary/10 rounded-lg">
-            <div className="text-5xl font-bold text-primary mb-2">
-              {sessionData.totalScore}
-              <span className="text-2xl text-muted-foreground">/100</span>
-            </div>
-            <p className="text-sm text-muted-foreground">Overall Score</p>
+        {/* Objective Status */}
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Objective Status</h2>
+          <div className="flex items-center gap-2">
+            {objectiveCompleted ? (
+              <>
+                <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
+                <Badge className="bg-green-100 text-green-800 border-0 text-sm font-semibold">Completed</Badge>
+              </>
+            ) : (
+              <>
+                <XCircle className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                <Badge className="bg-gray-100 text-gray-700 border-0 text-sm font-semibold">Not Completed</Badge>
+              </>
+            )}
           </div>
+        </div>
 
-          {/* Score Breakdown */}
-          <div>
-            <h3 className="font-semibold mb-4 flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-primary" />
-              Score Breakdown
-            </h3>
-            <div className="space-y-4">
-              {Object.entries(sessionData.scores).map(([category, score]) => (
-                <div key={category} className="space-y-2">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="font-medium capitalize">{category.replace(/([A-Z])/g, " $1").trim()}</span>
-                    <span className="text-muted-foreground">{score}/100</span>
-                  </div>
-                  <Progress value={score} className="h-2" />
+        {/* Good Conversational Prompts */}
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 bg-green-50 border-b border-green-200">
+            <ThumbsUp className="w-4 h-4 text-green-700" />
+            <h2 className="text-sm font-bold text-green-800">Good Conversational Prompts</h2>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {goodPrompts.map((item, index) => (
+              <div key={index} className="p-4 space-y-2">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                  <p className="text-sm text-blue-900 font-medium leading-relaxed">
+                    {'"'}
+                    {item.userMessage}
+                    {'"'}
+                  </p>
                 </div>
-              ))}
-            </div>
+                <p className="text-sm text-gray-700 leading-relaxed pl-1">{item.explanation}</p>
+              </div>
+            ))}
           </div>
+        </div>
 
-          {/* Objective Status */}
-          <div className="p-4 bg-secondary rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-lg">🎯</span>
-              <h3 className="font-semibold">Objective Status</h3>
-            </div>
-            <Badge variant={sessionData.objectiveCompleted ? "default" : "secondary"} className="mb-2">
-              {sessionData.objectiveCompleted ? "Completed" : "Not Completed"}
-            </Badge>
-            <p className="text-sm text-muted-foreground">Get the senior to talk about how they met their spouse</p>
+        {/* Needs Improvement */}
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 border-b border-amber-200">
+            <AlertTriangle className="w-4 h-4 text-amber-700" />
+            <h2 className="text-sm font-bold text-amber-800">Needs Improvement</h2>
           </div>
+          <div className="divide-y divide-gray-100">
+            {needsImprovement.map((item, index) => (
+              <div key={index} className="p-4 space-y-2">
+                <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  <p className="text-sm text-amber-900 font-medium leading-relaxed">
+                    {'"'}
+                    {item.userMessage}
+                    {'"'}
+                  </p>
+                </div>
+                <p className="text-sm text-gray-700 leading-relaxed pl-1">{item.explanation}</p>
+              </div>
+            ))}
+          </div>
+        </div>
 
-          {/* Feedback */}
-          <div className="p-4 bg-accent/50 border border-accent rounded-lg">
-            <h3 className="font-semibold mb-2 text-sm">💡 Coach Feedback</h3>
-            <p className="text-sm leading-relaxed">{sessionData.feedback}</p>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-4">
-            <Link href="/personas" className="flex-1">
-              <Button variant="outline" className="w-full bg-transparent">
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Try Another Persona
-              </Button>
-            </Link>
-            <Link href="/dashboard" className="flex-1">
-              <Button className="w-full">
-                <Home className="w-4 h-4 mr-2" />
-                Go to Dashboard
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+          <Link href="/personas" className="flex-1">
+            <Button
+              variant="outline"
+              className="w-full bg-transparent border-gray-300 text-gray-800 hover:bg-gray-100"
+            >
+              Try Another Scenario
+            </Button>
+          </Link>
+          <Link href="/dashboard" className="flex-1">
+            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">Go to Dashboard</Button>
+          </Link>
+        </div>
+      </div>
     </div>
   )
 }
