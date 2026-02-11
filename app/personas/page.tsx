@@ -2,114 +2,141 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar } from "@/components/ui/avatar"
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Home, Heart, CheckSquare } from "lucide-react"
 
-const personas = [
+const scenarios = [
   {
-    id: "margaret",
-    name: "Margaret Thompson",
-    age: 78,
-    personality:
-      "Warm and talkative grandmother who loves sharing stories about her youth. She can be forgetful but appreciates patience and kind reminders.",
-    interests: ["Gardening", "Baking", "Family history"],
-    avatar: "/elderly-woman-cartoon-avatar-smiling-grandmother.jpg",
+    id: "house-visit",
+    name: "House Visit",
+    description: "Practice short, polite social visits with practical conversations",
+    icon: Home,
+    iconColor: "text-blue-600",
+    bgColor: "bg-blue-50",
+    borderColor: "border-blue-200",
+    instructions: [
+      "Keep conversation short and polite",
+      "Ask clear, practical questions",
+      "Stay focused on the purpose of the visit",
+    ],
+    cta: "Start House Visit",
   },
   {
-    id: "robert",
-    name: "Robert Chen",
-    age: 82,
-    personality:
-      "Retired engineer who values precision and can be skeptical of new things. He warms up once he feels heard and respected.",
-    interests: ["Chess", "World War II history", "Classical music"],
-    avatar: "/elderly-man-cartoon-avatar-wise-grandfather.jpg",
+    id: "listening-ear",
+    name: "Listening Ear",
+    description: "Learn to provide emotional support and validation",
+    icon: Heart,
+    iconColor: "text-purple-600",
+    bgColor: "bg-purple-50",
+    borderColor: "border-purple-200",
+    instructions: [
+      "Encourage the senior to talk",
+      "Validate emotions and feelings",
+      "Do not rush or interrupt",
+      "Avoid giving solutions unless asked",
+    ],
+    cta: "Start Listening Session",
+  },
+  {
+    id: "resolve-task",
+    name: "Resolve a Task",
+    description: "Practice helping seniors complete practical tasks with patience",
+    icon: CheckSquare,
+    iconColor: "text-green-600",
+    bgColor: "bg-green-50",
+    borderColor: "border-green-200",
+    instructions: [
+      "Explain steps clearly and slowly",
+      "Break tasks into simple parts",
+      "Check understanding frequently",
+      "Be patient and reassuring",
+    ],
+    cta: "Start Task Training",
   },
 ]
 
-export default function PersonaSelection() {
+export default function ScenarioSelection() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10">
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="mb-8">
             <Link href="/">
-              <Button variant="ghost" className="mb-4">
+              <Button variant="ghost" className="mb-4 bg-transparent">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Home
               </Button>
             </Link>
 
-            <h1 className="text-4xl font-bold mb-2">Choose Your Conversation Partner</h1>
-            <p className="text-lg text-muted-foreground">
-              Select a senior persona to practice meaningful conversations
-            </p>
+            <h1 className="text-4xl font-bold mb-2 text-balance">Choose What You Want to Practice</h1>
+            <p className="text-lg text-muted-foreground">Select a training scenario to begin</p>
           </div>
 
-          {/* Persona Cards */}
-          <div className="grid md:grid-cols-2 gap-6">
-            {personas.map((persona) => (
-              <Card key={persona.id} className="border-2 hover:border-primary transition-colors">
-                <CardHeader>
-                  <div className="flex items-start gap-4">
-                    <Avatar className="w-24 h-24">
-                      <img src={persona.avatar || "/placeholder.svg"} alt={persona.name} className="object-cover" />
-                    </Avatar>
-                    <div className="flex-1">
-                      <CardTitle className="text-2xl mb-1">{persona.name}</CardTitle>
-                      <CardDescription className="text-base">Age {persona.age}</CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <h3 className="font-semibold mb-2 text-sm text-muted-foreground uppercase tracking-wide">
-                      Personality
-                    </h3>
-                    <p className="text-foreground leading-relaxed">{persona.personality}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold mb-2 text-sm text-muted-foreground uppercase tracking-wide">
-                      Interests
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {persona.interests.map((interest) => (
-                        <span
-                          key={interest}
-                          className="px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-sm"
-                        >
-                          {interest}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <Link href={`/chat/${persona.id}`} className="block">
-                    <Button className="w-full" size="lg">
-                      Start Conversation
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Quick Tips */}
-          <Card className="mt-8 bg-accent/50 border-accent">
-            <CardHeader>
-              <CardTitle className="text-lg">💡 Tips for Success</CardTitle>
+          {/* Persona Context - Static */}
+          <Card className="mb-8 border-2">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-4">
+                <img
+                  src="/elderly-woman-cartoon-avatar-smiling-grandmother.jpg"
+                  alt="Margaret Chan"
+                  className="w-20 h-20 rounded-full object-cover border-2 border-gray-300"
+                />
+                <div>
+                  <CardTitle className="text-2xl">Margaret Chan</CardTitle>
+                  <CardDescription className="text-base mt-1 leading-relaxed">
+                    A warm and friendly senior who enjoys conversation. You'll practice different scenarios with Margaret.
+                  </CardDescription>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm">
-                <li>• Listen actively and show genuine interest in their stories</li>
-                <li>• Speak clearly and at a comfortable pace</li>
-                <li>• Be patient with repetition or memory gaps</li>
-                <li>• Ask open-ended questions to encourage sharing</li>
-              </ul>
-            </CardContent>
           </Card>
+
+          {/* Scenario Selection Cards */}
+          <div className="space-y-6">
+            {scenarios.map((scenario) => {
+              const Icon = scenario.icon
+              return (
+                <Card
+                  key={scenario.id}
+                  className={`border-2 ${scenario.borderColor} ${scenario.bgColor} hover:shadow-lg transition-all`}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start gap-4">
+                      <div className={`p-3 rounded-lg bg-white border ${scenario.borderColor}`}>
+                        <Icon className={`w-8 h-8 ${scenario.iconColor}`} />
+                      </div>
+                      <div className="flex-1">
+                        <CardTitle className="text-2xl mb-1">{scenario.name}</CardTitle>
+                        <CardDescription className="text-base leading-relaxed">{scenario.description}</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <h3 className="font-semibold mb-2 text-sm text-muted-foreground uppercase tracking-wide">
+                        How to Approach This Scenario
+                      </h3>
+                      <ul className="space-y-1.5">
+                        {scenario.instructions.map((instruction, index) => (
+                          <li key={index} className="text-sm leading-relaxed flex items-start gap-2">
+                            <span className="text-muted-foreground mt-0.5">•</span>
+                            <span>{instruction}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <Link href={`/chat/margaret`} className="block">
+                      <Button className="w-full" size="lg">
+                        {scenario.cta}
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
         </div>
       </div>
     </div>
