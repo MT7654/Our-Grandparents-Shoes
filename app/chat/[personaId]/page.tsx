@@ -119,7 +119,7 @@ export default function ChatTraining() {
   //                 "bottom-bar" = persistent bar above input.
   //  Change this single value to switch between the two modes.
   // -----------------------------------------------------------
-  const guidanceMode: GuidanceMode = "inline"
+  const guidanceMode: GuidanceMode = "bottom-bar"
 
   // Difficulty & turn limits
   const [difficulty, setDifficulty] = useState<"Easy" | "Hard">("Easy")
@@ -463,24 +463,26 @@ export default function ChatTraining() {
 
       {/* ── Bottom controls ────────────────────────────────────── */}
 
-      {/* Bottom-bar guidance (only in "bottom-bar" mode) */}
-      {guidanceMode === "bottom-bar" && !conversationEnded && lastEvaluation && (
-        <div className="bg-amber-50 border-t border-amber-200 px-4 py-2">
-          <div className="max-w-3xl mx-auto flex items-start gap-2">
-            <Lightbulb className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-            <div className="flex-1 min-w-0">
-              <span className="text-xs font-bold text-amber-700 uppercase tracking-wide">Coach</span>
-              <p className="text-xs text-gray-800 leading-relaxed mt-0.5">
-                {lastEvaluation.suggestion}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* End session / View results */}
+      {/* Guidance + End session / View results */}
       <div className="bg-white border-t border-gray-200 px-4 py-2">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-3xl mx-auto space-y-2">
+          {/* Scenario guidance box (bottom-bar mode, non-scrollable, above button) */}
+          {guidanceMode === "bottom-bar" && !conversationEnded && (
+            <div className={`${scenario.bgColor} border rounded-lg px-3 py-2`}>
+              <h4 className={`text-xs font-bold ${scenario.color} uppercase tracking-wide mb-1`}>
+                Guidance
+              </h4>
+              <ul className="space-y-0.5">
+                {scenario.guidance.map((tip, i) => (
+                  <li key={i} className="flex items-start gap-1.5">
+                    <span className={`text-xs ${scenario.color} mt-0.5`}>-</span>
+                    <span className="text-xs text-gray-700 leading-relaxed">{tip}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {conversationEnded ? (
             <Link href="/complete">
               <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold h-9 text-sm">
