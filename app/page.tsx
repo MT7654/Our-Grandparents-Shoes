@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { MessageCircle, BarChart3 } from "lucide-react"
+import { MessageCircle } from "lucide-react"
 import Link from "next/link"
 
 export default function LandingPage() {
@@ -27,69 +27,18 @@ export default function LandingPage() {
               <span>Communication Training</span>
             </div>
 
-            <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-balance">Senior Conversation Trainer</h1>
+            <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-balance">TalkBetter: Senior Care</h1>
 
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-balance leading-relaxed">
-              Build meaningful connections through practice. Learn to communicate with empathy, clarity, and confidence
-              with senior citizens.
+              Build meaningful connections with seniors through thoughtful communication.
             </p>
           </div>
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button size="lg" className="text-lg px-8 py-6 w-full sm:w-auto" onClick={() => setIsAuthOpen(true)}>
-              Start Training
+              Get Started
             </Button>
-
-            <Button
-              size="lg"
-              variant="outline"
-              className="text-lg px-8 py-6 w-full sm:w-auto bg-transparent"
-              onClick={() => setIsAuthOpen(true)}
-            >
-              <BarChart3 className="w-5 h-5 mr-2" />
-              Track My Progress
-            </Button>
-          </div>
-
-          {/* Feature Cards */}
-          <div className="grid md:grid-cols-3 gap-6 mt-16">
-            <Card className="border-2">
-              <CardHeader>
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
-                  <MessageCircle className="w-6 h-6 text-primary" />
-                </div>
-                <CardTitle>Practice Conversations</CardTitle>
-                <CardDescription>Engage in realistic dialogues with AI-powered senior personas</CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="border-2">
-              <CardHeader>
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
-                  <svg className="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-                <CardTitle>Real-Time Feedback</CardTitle>
-                <CardDescription>Get instant suggestions on empathy, tone, and conversational flow</CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="border-2">
-              <CardHeader>
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
-                  <BarChart3 className="w-6 h-6 text-primary" />
-                </div>
-                <CardTitle>Track Progress</CardTitle>
-                <CardDescription>Monitor your improvement with detailed scores and completion badges</CardDescription>
-              </CardHeader>
-            </Card>
           </div>
         </div>
       </div>
@@ -98,6 +47,8 @@ export default function LandingPage() {
 }
 
 function AuthScreen({ onBack }: { onBack: () => void }) {
+  const [consentChecked, setConsentChecked] = useState(false)
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -105,8 +56,8 @@ function AuthScreen({ onBack }: { onBack: () => void }) {
           <Button variant="ghost" onClick={onBack} className="w-fit mb-2">
             ← Back
           </Button>
-          <CardTitle className="text-2xl">Welcome Back</CardTitle>
-          <CardDescription>Sign in to continue your conversation training journey</CardDescription>
+          <CardTitle className="text-2xl">Welcome</CardTitle>
+          <CardDescription>Sign in or create an account to get started</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
@@ -115,6 +66,7 @@ function AuthScreen({ onBack }: { onBack: () => void }) {
               <TabsTrigger value="register">Register</TabsTrigger>
             </TabsList>
 
+            {/* Login Tab */}
             <TabsContent value="login" className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="login-email">Email</Label>
@@ -129,21 +81,39 @@ function AuthScreen({ onBack }: { onBack: () => void }) {
               </Link>
             </TabsContent>
 
+            {/* Register Tab */}
             <TabsContent value="register" className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="register-name">Full Name</Label>
                 <Input id="register-name" type="text" placeholder="John Doe" />
               </div>
               <div className="space-y-2">
-                <Label htmlId="register-email">Email</Label>
+                <Label htmlFor="register-email">Email</Label>
                 <Input id="register-email" type="email" placeholder="you@example.com" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="register-password">Password</Label>
                 <Input id="register-password" type="password" placeholder="••••••••" />
               </div>
-              <Link href="/personas">
-                <Button className="w-full">Create Account</Button>
+
+              {/* Consent Checkbox */}
+              <div className="flex items-start space-x-2">
+                <input
+                  id="consent"
+                  type="checkbox"
+                  checked={consentChecked}
+                  onChange={(e) => setConsentChecked(e.target.checked)}
+                  className="mt-1 rounded border-gray-300"
+                />
+                <Label htmlFor="consent" className="text-xs text-gray-700">
+                  I consent to TalkBetter: Senior Care collecting and using my personal data in accordance with the app's privacy policy.
+                </Label>
+              </div>
+
+              <Link href={consentChecked ? "/personas" : "#"}>
+                <Button className="w-full" disabled={!consentChecked}>
+                  Create Account
+                </Button>
               </Link>
             </TabsContent>
           </Tabs>
