@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Link from "next/link"
 import { ArrowLeft, Send, Target, AlertCircle, Lightbulb, Activity } from "lucide-react"
 import { useParams, useRouter } from "next/navigation"
@@ -26,7 +27,7 @@ interface ScenarioConfig {
   hint: string
   color: string
   bgColor: string
-  difficulty: "Easy" | "Medium" | "Hard"
+  difficulty: "Easy" | "Hard"
   maxTurns: number
 }
 
@@ -44,15 +45,27 @@ export default function ChatTraining() {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // Scenario configuration - in real app, this would come from backend
-  const [scenario] = useState<ScenarioConfig>({
+  const [scenario, setScenario] = useState<ScenarioConfig>({
     type: "emotional-listening",
     name: "Share a Memory",
     hint: "Validate feelings, don't rush",
     color: "text-purple-700",
     bgColor: "bg-purple-100",
-    difficulty: "Medium",
+    difficulty: "Easy",
     maxTurns: 10,
   })
+
+  const [difficulty, setDifficulty] = useState<"Easy" | "Hard">("Easy")
+
+  const handleDifficultyChange = (value: "Easy" | "Hard") => {
+    setDifficulty(value)
+    setScenario((prev) => ({
+      ...prev,
+      difficulty: value,
+      // Adjust maxTurns based on difficulty
+      maxTurns: value === "Hard" ? 8 : 10,
+    }))
+  }
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -248,9 +261,19 @@ export default function ChatTraining() {
               <span className="text-xs font-bold text-gray-900 truncate">{scenario.name}</span>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <Badge variant="outline" className="text-xs px-2 py-0.5">
-                {scenario.difficulty}
-              </Badge>
+              <Select value={difficulty} onValueChange={handleDifficultyChange} disabled={currentTurn > 1}>
+                <SelectTrigger className="h-6 w-20 text-xs border-gray-300">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Easy" className="text-xs">
+                    Easy
+                  </SelectItem>
+                  <SelectItem value="Hard" className="text-xs">
+                    Hard
+                  </SelectItem>
+                </SelectContent>
+              </Select>
               <span className="text-xs font-bold text-gray-700">
                 {currentTurn}/{scenario.maxTurns}
               </span>
