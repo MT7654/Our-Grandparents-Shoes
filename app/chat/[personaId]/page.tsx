@@ -390,7 +390,7 @@ export default function ChatTraining() {
             <img
               src="/elderly-woman-cartoon-avatar-smiling-grandmother.jpg"
               alt={personaName}
-              className={`w-full h-44 sm:h-52 object-cover border-b-4 ${expressionBorder()} transition-colors duration-300`}
+              className={`w-full h-56 sm:h-64 object-cover border-b-4 ${expressionBorder()} transition-colors duration-300`}
             />
             {/* Name + expression overlay */}
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-4 pb-3 pt-8">
@@ -404,12 +404,12 @@ export default function ChatTraining() {
           </div>
 
           {/* Objective */}
-          <div className="px-3 py-1.5">
-            <div className={`${scenario.bgColor} border rounded-lg px-3 py-1.5`}>
-              <h4 className={`text-xs font-bold ${scenario.color} uppercase tracking-wide mb-0.5`}>
+          <div className="px-3 py-1">
+            <div className={`${scenario.bgColor} border rounded-lg px-2.5 py-1`}>
+              <h4 className={`text-[10px] font-bold ${scenario.color} uppercase tracking-wide mb-0.5`}>
                 Objective
               </h4>
-              <p className="text-sm text-gray-800 leading-snug">{scenario.objective}</p>
+              <p className="text-xs text-gray-800 leading-tight">{scenario.objective}</p>
             </div>
           </div>
 
