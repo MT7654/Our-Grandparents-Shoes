@@ -78,7 +78,7 @@ export default function ChatTraining() {
   const [inputValue, setInputValue] = useState("")
   const [rapport, setRapport] = useState(50)
   const [expression, setExpression] = useState<Expression>("neutral")
-  const [objective] = useState("Get the senior to talk about how they met their spouse")
+  const [objective] = useState("Lend a listening ear to the senior's problems")
   const [suggestion, setSuggestion] = useState("Try asking about their day or showing interest in their well-being")
   const [lastEvaluation, setLastEvaluation] = useState<EvaluationResult | null>(null)
   const [currentTurn, setCurrentTurn] = useState(1)
