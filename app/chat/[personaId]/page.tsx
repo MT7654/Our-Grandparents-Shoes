@@ -468,23 +468,6 @@ export default function ChatTraining() {
       {/* Guidance + End session / View results */}
       <div className="bg-white border-t border-gray-200 px-4 py-2">
         <div className="max-w-3xl mx-auto space-y-2">
-          {/* Scenario guidance box (bottom-bar mode, non-scrollable, above button) */}
-          {guidanceMode === "bottom-bar" && !conversationEnded && (
-            <div className={`${scenario.bgColor} border rounded-lg px-3 py-2`}>
-              <h4 className={`text-xs font-bold ${scenario.color} uppercase tracking-wide mb-1`}>
-                Guidance
-              </h4>
-              <ul className="space-y-0.5">
-                {scenario.guidance.map((tip, i) => (
-                  <li key={i} className="flex items-start gap-1.5">
-                    <span className={`text-xs ${scenario.color} mt-0.5`}>-</span>
-                    <span className="text-xs text-gray-700 leading-relaxed">{tip}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
           {conversationEnded ? (
             <Link href="/complete">
               <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold h-9 text-sm">
