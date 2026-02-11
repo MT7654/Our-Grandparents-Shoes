@@ -47,7 +47,7 @@ export default function ChatTraining() {
   // Scenario configuration - in real app, this would come from backend
   const [scenario, setScenario] = useState<ScenarioConfig>({
     type: "emotional-listening",
-    name: "Share a Memory",
+    name: "Empathy",
     hint: "Validate feelings, don't rush",
     color: "text-purple-700",
     bgColor: "bg-purple-100",
