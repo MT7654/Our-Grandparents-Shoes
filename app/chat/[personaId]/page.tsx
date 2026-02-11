@@ -4,9 +4,10 @@ import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { ArrowLeft, Send, Lightbulb, Activity } from "lucide-react"
-import { useParams } from "next/navigation"
+import { ArrowLeft, Send, Target, AlertCircle, Lightbulb, Activity } from "lucide-react"
+import { useParams, useRouter } from "next/navigation"
 
 interface Message {
   id: string
@@ -17,6 +18,18 @@ interface Message {
 
 type Expression = "happy" | "neutral" | "sad" | "angry"
 
+type ScenarioType = "house-visit" | "emotional-listening" | "resolve-task"
+
+interface ScenarioConfig {
+  type: ScenarioType
+  name: string
+  hint: string
+  color: string
+  bgColor: string
+  difficulty: "Easy" | "Medium" | "Hard"
+  maxTurns: number
+}
+
 interface EvaluationResult {
   sentiment: "positive" | "neutral" | "negative"
   expression: Expression
@@ -26,8 +39,20 @@ interface EvaluationResult {
 
 export default function ChatTraining() {
   const params = useParams()
+  const router = useRouter()
   const personaId = params.personaId as string
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Scenario configuration - in real app, this would come from backend
+  const [scenario] = useState<ScenarioConfig>({
+    type: "emotional-listening",
+    name: "Share a Memory",
+    hint: "Validate feelings, don't rush",
+    color: "text-purple-700",
+    bgColor: "bg-purple-100",
+    difficulty: "Medium",
+    maxTurns: 10,
+  })
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -43,6 +68,8 @@ export default function ChatTraining() {
   const [objective] = useState("Get the senior to talk about how they met their spouse")
   const [suggestion, setSuggestion] = useState("Try asking about their day or showing interest in their well-being")
   const [lastEvaluation, setLastEvaluation] = useState<EvaluationResult | null>(null)
+  const [currentTurn, setCurrentTurn] = useState(1)
+  const [conversationEnded, setConversationEnded] = useState(false)
 
   const personaName = personaId === "margaret" ? "Margaret Thompson" : "Robert Chen"
 
@@ -137,7 +164,7 @@ export default function ChatTraining() {
   }
 
   const handleSend = async () => {
-    if (!inputValue.trim()) return
+    if (!inputValue.trim() || conversationEnded) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -148,6 +175,10 @@ export default function ChatTraining() {
     setMessages([...messages, userMessage])
     const userMessageText = inputValue
     setInputValue("")
+
+    // Increment turn counter
+    const nextTurn = currentTurn + 1
+    setCurrentTurn(nextTurn)
 
     // Call Primary AI to get persona response
     const personaResponseText = await sendMessageToPersona(userMessageText)
@@ -170,6 +201,15 @@ export default function ChatTraining() {
     updateHealthBar(evaluation.rapportChange)
     updateAvatarExpression(evaluation.expression)
     showSystemSuggestions(evaluation.suggestion)
+
+    // Check if max turns reached
+    if (nextTurn >= scenario.maxTurns) {
+      setConversationEnded(true)
+    }
+  }
+
+  const handleEndEarly = () => {
+    router.push("/complete")
   }
 
   const getHealthBarColor = () => {
@@ -184,137 +224,199 @@ export default function ChatTraining() {
     return "text-gray-600"
   }
 
+  const turnsRemaining = scenario.maxTurns - currentTurn
+  const showTurnWarning = turnsRemaining <= 2 && !conversationEnded
+
   return (
-    <div className="min-h-screen bg-[#F5F6F8] pb-32">
+    <div className="min-h-screen bg-[#F5F6F8] flex flex-col">
       {/* Header */}
       <div className="border-b border-gray-200 bg-white shadow-sm">
         <div className="container mx-auto px-4 py-3">
           <Link href="/personas">
             <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Personas
+              Back
             </Button>
           </Link>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-4 max-w-3xl space-y-4">
-        {/* 1. Objective */}
-        <Card className="bg-blue-50 border-blue-200 p-4">
-          <h4 className="font-bold text-blue-700 text-sm flex items-center gap-2 mb-1">🎯 Objective</h4>
-          <p className="text-gray-700 text-sm leading-relaxed">{objective}</p>
-        </Card>
-
-        {/* 2. Rapport */}
-        <Card className="bg-white border-gray-200 p-4">
-          <div className="flex items-center justify-between mb-1.5">
-            <h4 className="font-bold text-gray-800 text-sm">Rapport Level</h4>
-            <span className="text-gray-900 font-bold text-lg">{rapport}%</span>
+      {/* Sticky Status Bar - Always visible on mobile */}
+      <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
+        <div className="container mx-auto px-4 py-3 max-w-3xl">
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <Badge className={`${scenario.bgColor} ${scenario.color} border-0 text-xs font-semibold`}>
+                {scenario.type === "house-visit" && "🏠 House Visit"}
+                {scenario.type === "emotional-listening" && "💙 Emotional"}
+                {scenario.type === "resolve-task" && "✅ Task"}
+              </Badge>
+              <span className="text-sm font-semibold text-gray-900 truncate">{scenario.name}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs font-medium">
+                {scenario.difficulty}
+              </Badge>
+              <span className="text-xs font-semibold text-gray-600 whitespace-nowrap">
+                Turn {currentTurn} / {scenario.maxTurns}
+              </span>
+            </div>
           </div>
-          <div className="relative h-6 bg-gray-200 rounded-full overflow-hidden border border-gray-300">
-            <div
-              className={`absolute inset-y-0 left-0 ${getHealthBarColor()} transition-all duration-500 rounded-full`}
-              style={{ width: `${rapport}%` }}
-            />
-          </div>
-        </Card>
-
-        {/* 3. Avatar */}
-        <Card className="bg-white border-gray-200 p-4 flex items-center gap-4">
-          <div className="flex-shrink-0">
-            <img
-              src={getPortraitUrl(expression) || "/placeholder.svg"}
-              alt={personaName}
-              className="w-[150px] h-[150px] max-[600px]:w-[120px] max-[600px]:h-[120px] object-cover rounded-full border-4 border-gray-300"
-              style={{ flex: "0 0 auto" }}
-            />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-xl font-bold text-gray-900">{personaName}</h3>
-          </div>
-        </Card>
-
-        {/* 4. Convo Tips / Suggestions */}
-        <Card className="bg-amber-50 border-amber-200 p-4">
-          <h4 className="font-bold text-amber-700 text-sm flex items-center gap-2 mb-1">
-            <Lightbulb className="w-4 h-4" /> Conversation Tip
-          </h4>
-          <p className="text-gray-700 text-sm leading-relaxed">{suggestion}</p>
-        </Card>
-
-        {lastEvaluation && (
-          <Card className="bg-purple-50 border-purple-200 p-3">
-            <h4 className="font-bold text-purple-700 text-xs flex items-center gap-2 mb-2">
-              <Activity className="w-3.5 h-3.5" /> AI Evaluation
-            </h4>
-            <div className="grid grid-cols-3 gap-2 text-xs">
-              <div>
-                <span className="text-gray-600 font-medium">Sentiment:</span>
-                <p className={`font-bold capitalize ${getSentimentColor(lastEvaluation.sentiment)}`}>
-                  {lastEvaluation.sentiment}
-                </p>
-              </div>
-              <div>
-                <span className="text-gray-600 font-medium">Expression:</span>
-                <p className="font-bold text-purple-700 capitalize">{lastEvaluation.expression}</p>
-              </div>
-              <div>
-                <span className="text-gray-600 font-medium">Rapport:</span>
-                <p className={`font-bold ${lastEvaluation.rapportChange >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-                  {lastEvaluation.rapportChange >= 0 ? "+" : ""}
-                  {lastEvaluation.rapportChange}
-                </p>
+          
+          {/* Compact Progress Bar */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className={`absolute inset-y-0 left-0 ${getHealthBarColor()} transition-all duration-500`}
+                  style={{ width: `${rapport}%` }}
+                />
               </div>
             </div>
-          </Card>
-        )}
-
-        {/* 5. Convo Log */}
-        <Card className="bg-white border-gray-200 flex flex-col h-[400px]">
-          <div className="border-b border-gray-200 p-3 bg-gray-50">
-            <h4 className="font-bold text-gray-800 text-sm">Conversation Log</h4>
+            <span className="text-xs font-bold text-gray-900 whitespace-nowrap">{rapport}%</span>
           </div>
 
-          <div className="p-4 space-y-3 overflow-y-auto flex-1" ref={scrollRef}>
-            {messages.map((message) => (
-              <div key={message.id} className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
-                <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
-                    message.sender === "user" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-900"
-                  }`}
-                >
-                  <p className="leading-relaxed text-sm">{message.text}</p>
-                  <span
-                    className={`text-xs mt-1 block ${message.sender === "user" ? "text-blue-100" : "text-gray-500"}`}
-                  >
-                    {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
+          {/* Scenario Hint */}
+          <p className="text-xs text-gray-600 mt-2 italic">{scenario.hint}</p>
 
-        {/* 6. End Training Button */}
-        <Link href="/complete" className="block">
-          <Button className="w-full bg-[#E53935] hover:bg-[#C62828] text-white font-semibold py-3.5 rounded-lg shadow-md">
-            End Training Session
-          </Button>
-        </Link>
+          {/* Turn Warning */}
+          {showTurnWarning && (
+            <div className="mt-2 flex items-center gap-2 text-amber-700 bg-amber-50 px-3 py-2 rounded-md">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span className="text-xs font-medium">
+                {turnsRemaining} {turnsRemaining === 1 ? "turn" : "turns"} remaining
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Input Bar */}
-      <div className="fixed bottom-0 left-0 right-0 border-t border-gray-300 bg-white shadow-lg p-4">
-        <div className="container mx-auto max-w-3xl">
+      {/* Main Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto pb-32">
+        <div className="container mx-auto px-4 py-4 max-w-3xl space-y-3">
+          
+          {/* Compact HUD: Objective + Current Status */}
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-3">
+            <div className="flex items-start gap-3">
+              <Target className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <h4 className="text-xs font-bold text-blue-700 uppercase tracking-wide">Objective</h4>
+                <p className="text-sm text-gray-800 mt-0.5 leading-snug">{objective}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Avatar - Compact */}
+          <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-lg p-3">
+            <div className="flex-shrink-0">
+              <img
+                src={getPortraitUrl(expression) || "/placeholder.svg"}
+                alt={personaName}
+                className="w-[140px] h-[140px] max-[600px]:w-[120px] max-[600px]:h-[120px] object-cover rounded-lg border-2 border-gray-300"
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-bold text-gray-900">{personaName}</h3>
+              <Badge
+                variant="secondary"
+                className={`mt-1 text-xs capitalize ${
+                  expression === "happy"
+                    ? "bg-green-100 text-green-700"
+                    : expression === "sad"
+                      ? "bg-blue-100 text-blue-700"
+                      : expression === "angry"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-gray-100 text-gray-700"
+                }`}
+              >
+                {expression}
+              </Badge>
+            </div>
+          </div>
+
+          {/* Conversation Log */}
+          <Card className="bg-white border-gray-200">
+            <div className="border-b border-gray-200 px-3 py-2 bg-gray-50">
+              <h4 className="font-semibold text-gray-800 text-xs uppercase tracking-wide">Conversation</h4>
+            </div>
+
+            <div className="p-3 space-y-2.5 min-h-[300px] max-h-[400px] overflow-y-auto" ref={scrollRef}>
+              {messages.map((message) => (
+                <div key={message.id} className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
+                  <div
+                    className={`max-w-[85%] rounded-xl px-3 py-2 ${
+                      message.sender === "user" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-900"
+                    }`}
+                  >
+                    <p className="text-sm leading-relaxed">{message.text}</p>
+                    <span
+                      className={`text-xs mt-1 block ${message.sender === "user" ? "text-blue-100" : "text-gray-500"}`}
+                    >
+                      {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Session Controls */}
+          <div className="pt-2">
+            {conversationEnded ? (
+              <div className="space-y-2">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+                  <p className="text-sm font-semibold text-blue-700">Conversation Complete!</p>
+                  <p className="text-xs text-gray-600 mt-1">Time to review your performance</p>
+                </div>
+                <Link href="/complete" className="block">
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold">
+                    View Feedback
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <Button
+                onClick={handleEndEarly}
+                variant="outline"
+                className="w-full text-gray-600 hover:text-gray-900 hover:bg-gray-100 border-gray-300 bg-transparent"
+              >
+                End Session Early
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Coaching Tip Bar - Just above input */}
+      {suggestion && !conversationEnded && (
+        <div className="border-t border-amber-200 bg-amber-50 px-4 py-2">
+          <div className="container mx-auto max-w-3xl">
+            <div className="flex items-start gap-2">
+              <span className="text-xs font-bold text-amber-700 uppercase tracking-wide flex-shrink-0">Coach:</span>
+              <p className="text-xs text-gray-700 leading-relaxed">{suggestion}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Input Bar - Fixed bottom */}
+      <div className="border-t border-gray-300 bg-white shadow-lg">
+        <div className="container mx-auto px-4 py-3 max-w-3xl">
           <div className="flex gap-2">
             <Input
-              placeholder="Type your message..."
+              placeholder={conversationEnded ? "Conversation ended" : "Type your message..."}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={(e) => e.key === "Enter" && handleSend()}
-              className="flex-1 bg-gray-50 border-gray-300 text-gray-900 placeholder:text-gray-400"
+              disabled={conversationEnded}
+              className="flex-1 bg-gray-50 border-gray-300 text-gray-900 placeholder:text-gray-400 disabled:opacity-50"
             />
-            <Button onClick={handleSend} size="icon" className="bg-blue-600 hover:bg-blue-700">
+            <Button
+              onClick={handleSend}
+              size="icon"
+              disabled={conversationEnded}
+              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+            >
               <Send className="w-4 h-4" />
             </Button>
           </div>
