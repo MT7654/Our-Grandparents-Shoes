@@ -390,7 +390,7 @@ export default function ChatTraining() {
             <img
               src="/elderly-woman-cartoon-avatar-smiling-grandmother.jpg"
               alt={personaName}
-              className={`w-full h-60 sm:h-72 object-cover border-b-4 ${expressionBorder()} transition-colors duration-300`}
+              className={`w-full h-44 sm:h-52 object-cover border-b-4 ${expressionBorder()} transition-colors duration-300`}
             />
             {/* Name + expression overlay */}
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-4 pb-3 pt-8">
@@ -429,7 +429,7 @@ export default function ChatTraining() {
         {/* Scrollable message log */}
         <div
           ref={scrollRef}
-          className="flex-1 overflow-y-auto px-4 py-3 space-y-3 bg-gray-50"
+          className="flex-1 min-h-[300px] overflow-y-auto px-4 py-3 space-y-3 bg-gray-50"
         >
           {messages.map((message) => (
             <div
@@ -444,7 +444,7 @@ export default function ChatTraining() {
                     : "bg-white border border-gray-200 text-gray-900"
                 }`}
               >
-                <p className="text-sm leading-relaxed">{message.text}</p>
+                <p className="text-xs leading-relaxed">{message.text}</p>
                 <span
                   className={`text-xs mt-1 block ${
                     message.sender === "user" ? "text-blue-200" : "text-gray-400"
