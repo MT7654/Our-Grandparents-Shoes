@@ -19,12 +19,14 @@ interface Message {
 
 type Expression = "happy" | "neutral" | "sad" | "angry"
 
-type ScenarioType = "house-visit" | "emotional-listening" | "resolve-task"
+type ScenarioType = "house-visit" | "listening-ear" | "resolve-task"
 
 interface ScenarioConfig {
   type: ScenarioType
   name: string
-  hint: string
+  goal: string
+  focusAreas: string[]
+  guidance: string[]
   color: string
   bgColor: string
   difficulty: "Easy" | "Hard"
@@ -38,33 +40,54 @@ interface EvaluationResult {
   suggestion: string
 }
 
+const SCENARIO_CONFIGS: Record<ScenarioType, Omit<ScenarioConfig, "difficulty" | "maxTurns">> = {
+  "house-visit": {
+    type: "house-visit",
+    name: "House Visit",
+    goal: "Complete a polite and efficient visit with the senior.",
+    focusAreas: ["Clear communication", "Staying on topic", "Respecting time"],
+    guidance: ["Keep conversation short and polite", "Ask clear, practical questions", "Stay focused on the purpose of the visit"],
+    color: "text-blue-700",
+    bgColor: "bg-blue-50",
+  },
+  "listening-ear": {
+    type: "listening-ear",
+    name: "Listening Ear",
+    goal: "Help the senior feel heard and emotionally supported.",
+    focusAreas: ["Empathy", "Validation", "Letting the senior lead"],
+    guidance: ["Encourage sharing", "Validate emotions", "Do not interrupt", "Avoid solving unless asked"],
+    color: "text-purple-700",
+    bgColor: "bg-purple-50",
+  },
+  "resolve-task": {
+    type: "resolve-task",
+    name: "Resolve a Task",
+    goal: "Help the senior complete a specific task successfully.",
+    focusAreas: ["Clear instructions", "Breaking steps down", "Checking understanding"],
+    guidance: ["Explain steps clearly and slowly", "Break tasks into simple parts", "Check understanding frequently", "Be patient and reassuring"],
+    color: "text-green-700",
+    bgColor: "bg-green-50",
+  },
+}
+
 export default function ChatTraining() {
   const params = useParams()
   const router = useRouter()
   const personaId = params.personaId as string
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Scenario configuration - in real app, this would come from backend
-  const [scenario, setScenario] = useState<ScenarioConfig>({
-    type: "emotional-listening",
-    name: "Empathy",
-    hint: "Validate feelings, don't rush",
-    color: "text-purple-700",
-    bgColor: "bg-purple-100",
-    difficulty: "Easy",
-    maxTurns: 10,
-  })
-
+  // Scenario configuration - in real app, this would come from URL params or backend
+  const [scenarioType] = useState<ScenarioType>("listening-ear")
   const [difficulty, setDifficulty] = useState<"Easy" | "Hard">("Easy")
+
+  const scenario: ScenarioConfig = {
+    ...SCENARIO_CONFIGS[scenarioType],
+    difficulty,
+    maxTurns: difficulty === "Hard" ? 8 : 10,
+  }
 
   const handleDifficultyChange = (value: "Easy" | "Hard") => {
     setDifficulty(value)
-    setScenario((prev) => ({
-      ...prev,
-      difficulty: value,
-      // Adjust maxTurns based on difficulty
-      maxTurns: value === "Hard" ? 8 : 10,
-    }))
   }
 
   const [messages, setMessages] = useState<Message[]>([
@@ -78,30 +101,17 @@ export default function ChatTraining() {
   const [inputValue, setInputValue] = useState("")
   const [rapport, setRapport] = useState(50)
   const [expression, setExpression] = useState<Expression>("neutral")
-  const [objective] = useState("Lend a listening ear to the senior's problems")
-  const [suggestion, setSuggestion] = useState("Try asking about their day or showing interest in their well-being")
   const [lastEvaluation, setLastEvaluation] = useState<EvaluationResult | null>(null)
   const [currentTurn, setCurrentTurn] = useState(1)
   const [conversationEnded, setConversationEnded] = useState(false)
+  const [objective, setObjective] = useState<string>("")
+  const [suggestion, setSuggestion] = useState<string>("")
 
-  const personaName = personaId === "margaret" ? "Margaret Thompson" : "Robert Chen"
+  const personaName = "Margaret Chan"
 
   const getPortraitUrl = (expr: Expression) => {
-    const baseQuery =
-      personaId === "margaret"
-        ? "elderly grandmother woman smiling portrait RPG game character art"
-        : "elderly grandfather man portrait RPG game character art"
-
-    const expressionQuery =
-      expr === "happy"
-        ? "smiling happy"
-        : expr === "sad"
-          ? "sad concerned"
-          : expr === "angry"
-            ? "stern upset"
-            : "neutral calm"
-
-    return `/placeholder.svg?height=400&width=300&query=${encodeURIComponent(`${baseQuery} ${expressionQuery}`)}`
+    // Margaret Chan is the only persona
+    return "/elderly-woman-cartoon-avatar-smiling-grandmother.jpg"
   }
 
   // Auto-scroll to latest message
@@ -172,8 +182,7 @@ export default function ChatTraining() {
   function showSystemSuggestions(newSuggestion: string) {
     // TODO: Could add notification or highlight animation here
     console.log("[v0] showSystemSuggestions called with:", newSuggestion)
-
-    setSuggestion(newSuggestion)
+    // Note: Suggestions are now handled by evaluation results, not a separate state
   }
 
   const handleSend = async () => {
@@ -240,12 +249,16 @@ export default function ChatTraining() {
   const turnsRemaining = scenario.maxTurns - currentTurn
   const showTurnWarning = turnsRemaining <= 2 && !conversationEnded
 
+  useEffect(() => {
+    setObjective(scenario.goal)
+  }, [scenarioType]) // Updated to only depend on scenarioType
+
   return (
     <div className="h-screen flex flex-col bg-[#F5F6F8]">
       {/* Persistent Training HUD - Always Visible */}
       <div className="sticky top-0 z-20 bg-white border-b border-gray-300 shadow-md">
         <div className="px-3 py-2">
-          {/* Row 1: Scenario Info + Turn Counter */}
+          {/* Row 1: Scenario Header */}
           <div className="flex items-center justify-between gap-2 mb-2">
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <Link href="/personas">
@@ -253,12 +266,7 @@ export default function ChatTraining() {
                   <ArrowLeft className="w-3.5 h-3.5" />
                 </Button>
               </Link>
-              <Badge className={`${scenario.bgColor} ${scenario.color} border-0 text-xs px-2 py-0.5`}>
-                {scenario.type === "house-visit" && "House Visit"}
-                {scenario.type === "emotional-listening" && "Emotional"}
-                {scenario.type === "resolve-task" && "Task"}
-              </Badge>
-              <span className="text-xs font-bold text-gray-900 truncate">{scenario.name}</span>
+              <span className="text-sm font-bold text-gray-900 truncate">{scenario.name}</span>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               <Select value={difficulty} onValueChange={handleDifficultyChange} disabled={currentTurn > 1}>
@@ -333,38 +341,42 @@ export default function ChatTraining() {
       {/* Scrollable Conversation Area */}
       <div className="flex-1 overflow-y-auto">
         <div className="px-3 py-3 space-y-3 max-w-3xl mx-auto">
-          {/* Objective Card */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-2.5">
-            <div className="flex items-start gap-2">
-              <Target className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <h4 className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-0.5">Goal</h4>
-                <p className="text-sm text-gray-800 leading-snug">{objective}</p>
+          {/* Scenario Objective Panel */}
+          <div className={`${scenario.bgColor} border-2 rounded-lg p-3`}>
+            <div className="space-y-2">
+              <div>
+                <h4 className={`text-xs font-bold ${scenario.color} uppercase tracking-wide mb-1`}>Goal</h4>
+                <p className="text-sm text-gray-900 leading-snug font-medium">{scenario.goal}</p>
+              </div>
+              <div>
+                <h4 className={`text-xs font-bold ${scenario.color} uppercase tracking-wide mb-1`}>Focus</h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {scenario.focusAreas.map((area, index) => (
+                    <span key={index} className="text-xs bg-white px-2 py-0.5 rounded text-gray-700">
+                      {area}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Conversation Log */}
-          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-            <div className="bg-gray-50 px-3 py-1.5 border-b border-gray-200">
-              <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Conversation</h4>
-            </div>
-            <div className="p-3 space-y-2 min-h-[250px]" ref={scrollRef}>
-              {messages.map((message) => (
-                <div key={message.id} className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
-                  <div
-                    className={`max-w-[80%] rounded-2xl px-3 py-2 ${
-                      message.sender === "user" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-900"
-                    }`}
-                  >
-                    <p className="text-sm leading-relaxed">{message.text}</p>
-                    <span className={`text-xs mt-1 block ${message.sender === "user" ? "text-blue-100" : "text-gray-500"}`}>
-                      {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    </span>
-                  </div>
+          {/* Conversation Log - Simplified */}
+          <div className="space-y-2.5 min-h-[250px] py-2" ref={scrollRef}>
+            {messages.map((message) => (
+              <div key={message.id} className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
+                <div
+                  className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 shadow-sm ${
+                    message.sender === "user" ? "bg-blue-600 text-white" : "bg-white border border-gray-200 text-gray-900"
+                  }`}
+                >
+                  <p className="text-sm leading-relaxed">{message.text}</p>
+                  <span className={`text-xs mt-1 block ${message.sender === "user" ? "text-blue-100" : "text-gray-500"}`}>
+                    {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </span>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
 
           {/* End Session Control */}
@@ -390,19 +402,23 @@ export default function ChatTraining() {
             </Button>
           )}
 
-          {/* Bottom spacing for coaching bar + input */}
-          <div className="h-28" />
+          {/* Bottom spacing for guidance bar + input */}
+          <div className="h-36" />
         </div>
       </div>
 
-      {/* Coaching Bar - Sticky Above Input */}
-      {suggestion && !conversationEnded && (
-        <div className="sticky bottom-16 z-10 bg-amber-50 border-t border-amber-200 px-3 py-2 shadow-sm">
-          <div className="flex items-start gap-2 max-w-3xl mx-auto">
-            <Lightbulb className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-            <div className="flex-1 min-w-0">
-              <span className="text-xs font-bold text-amber-700 uppercase tracking-wide">Coach</span>
-              <p className="text-xs text-gray-800 leading-relaxed mt-0.5">{suggestion}</p>
+      {/* Scenario Guidance Bar - Always Visible Above Input */}
+      {!conversationEnded && (
+        <div className={`sticky bottom-16 z-10 ${scenario.bgColor} border-t-2 px-3 py-2.5 shadow-md`}>
+          <div className="max-w-3xl mx-auto">
+            <h4 className={`text-xs font-bold ${scenario.color} uppercase tracking-wide mb-1.5`}>How to Succeed</h4>
+            <div className="space-y-1">
+              {scenario.guidance.map((tip, index) => (
+                <div key={index} className="flex items-start gap-1.5">
+                  <span className={`text-xs ${scenario.color} mt-0.5`}>•</span>
+                  <p className="text-xs text-gray-800 leading-relaxed">{tip}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
