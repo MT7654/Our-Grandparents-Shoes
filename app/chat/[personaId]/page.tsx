@@ -33,11 +33,13 @@ type Expression = "happy" | "neutral" | "sad" | "angry"
 
 type ScenarioType = "house-visit" | "listening-ear" | "resolve-task"
 
+/** Controls where the AI coaching suggestion is shown */
+type GuidanceMode = "inline" | "bottom-bar"
+
 interface ScenarioConfig {
   type: ScenarioType
   label: string
   objective: string
-  focusAreas: string[]
   guidance: string[]
   color: string
   bgColor: string
@@ -59,7 +61,6 @@ const SCENARIOS: Record<ScenarioType, ScenarioConfig> = {
     type: "house-visit",
     label: "House Visit",
     objective: "Complete a polite and efficient home visit with the senior.",
-    focusAreas: ["Clear communication", "Staying on topic", "Respecting time"],
     guidance: [
       "Keep conversation short and polite",
       "Ask clear, practical questions",
@@ -72,7 +73,6 @@ const SCENARIOS: Record<ScenarioType, ScenarioConfig> = {
     type: "listening-ear",
     label: "Listening Ear",
     objective: "Help the senior feel heard and emotionally supported.",
-    focusAreas: ["Empathy", "Validation", "Letting the senior lead"],
     guidance: [
       "Encourage sharing",
       "Validate emotions",
@@ -86,7 +86,6 @@ const SCENARIOS: Record<ScenarioType, ScenarioConfig> = {
     type: "resolve-task",
     label: "Resolve a Task",
     objective: "Help the senior complete a specific task successfully.",
-    focusAreas: ["Clear instructions", "Breaking steps down", "Checking understanding"],
     guidance: [
       "Explain steps clearly and slowly",
       "Break tasks into simple parts",
@@ -114,6 +113,13 @@ export default function ChatTraining() {
 
   // Refs
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  // -----------------------------------------------------------
+  //  Guidance mode: "inline" = tips under each user bubble,
+  //                 "bottom-bar" = persistent bar above input.
+  //  Change this single value to switch between the two modes.
+  // -----------------------------------------------------------
+  const guidanceMode: GuidanceMode = "inline"
 
   // Difficulty & turn limits
   const [difficulty, setDifficulty] = useState<"Easy" | "Hard">("Easy")
@@ -247,7 +253,7 @@ export default function ChatTraining() {
     updateAvatarExpression(evaluation.expression)
     showSystemSuggestions(evaluation.suggestion)
 
-    // Attach the coaching tip to the user message so it renders below it
+    // Attach the coaching tip to the user message (used in "inline" mode)
     setMessages((prev) => {
       const updated = [...prev]
       const lastUserIdx = updated.findLastIndex((m) => m.sender === "user")
@@ -278,6 +284,19 @@ export default function ChatTraining() {
     return "bg-rose-500"
   }
 
+  const expressionBorder = () => {
+    switch (expression) {
+      case "happy":
+        return "border-green-400"
+      case "sad":
+        return "border-blue-400"
+      case "angry":
+        return "border-red-400"
+      default:
+        return "border-gray-300"
+    }
+  }
+
   const expressionBadge = () => {
     switch (expression) {
       case "happy":
@@ -288,19 +307,6 @@ export default function ChatTraining() {
         return "bg-red-100 text-red-700"
       default:
         return "bg-gray-100 text-gray-700"
-    }
-  }
-
-  const expressionDot = () => {
-    switch (expression) {
-      case "happy":
-        return "bg-green-500"
-      case "sad":
-        return "bg-blue-500"
-      case "angry":
-        return "bg-red-500"
-      default:
-        return "bg-gray-400"
     }
   }
 
@@ -375,46 +381,36 @@ export default function ChatTraining() {
         )}
       </header>
 
-      {/* ── Chat Panel (fills remaining space) ─────────────────── */}
+      {/* ── Chat Card (fills remaining space) ──────────────────── */}
       <Card className="flex-1 flex flex-col mx-3 my-3 max-w-3xl w-full self-center overflow-hidden border-gray-200">
-        {/* Fixed avatar + objective inside the chat card */}
-        <div className="border-b border-gray-200 bg-white">
-          {/* Avatar row */}
-          <div className="flex items-center gap-3 px-4 pt-4 pb-3">
-            <div className="relative flex-shrink-0">
-              <img
-                src="/elderly-woman-cartoon-avatar-smiling-grandmother.jpg"
-                alt={personaName}
-                className="w-16 h-16 rounded-full object-cover border-2 border-gray-300"
-              />
-              <div
-                className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white ${expressionDot()}`}
-                title={expression}
-              />
+        {/* Fixed top: Avatar (30% width) + Objective */}
+        <div className="flex-shrink-0 border-b border-gray-200 bg-white p-4">
+          <div className="flex gap-4">
+            {/* Avatar -- ~30% of card width, rectangular */}
+            <div className="w-[30%] flex-shrink-0">
+              <div className="relative">
+                <img
+                  src="/elderly-woman-cartoon-avatar-smiling-grandmother.jpg"
+                  alt={personaName}
+                  className={`w-full aspect-square rounded-xl object-cover border-3 ${expressionBorder()} transition-colors duration-300`}
+                />
+              </div>
+              <div className="mt-2 text-center">
+                <h3 className="text-sm font-bold text-gray-900 leading-tight">{personaName}</h3>
+                <Badge variant="secondary" className={`mt-1 text-xs capitalize ${expressionBadge()}`}>
+                  {expression}
+                </Badge>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-base font-bold text-gray-900">{personaName}</h3>
-              <Badge variant="secondary" className={`text-xs capitalize ${expressionBadge()}`}>
-                {expression}
-              </Badge>
-            </div>
-          </div>
 
-          {/* Objective */}
-          <div className={`mx-4 mb-3 ${scenario.bgColor} border rounded-lg p-2.5`}>
-            <h4 className={`text-xs font-bold ${scenario.color} uppercase tracking-wide mb-0.5`}>
-              Objective
-            </h4>
-            <p className="text-sm text-gray-800 leading-snug">{scenario.objective}</p>
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {scenario.focusAreas.map((area, i) => (
-                <span
-                  key={i}
-                  className="text-xs bg-white/80 px-2 py-0.5 rounded text-gray-700"
-                >
-                  {area}
-                </span>
-              ))}
+            {/* Objective -- remaining ~70% */}
+            <div className="flex-1 min-w-0 flex flex-col justify-center">
+              <div className={`${scenario.bgColor} border rounded-lg p-3`}>
+                <h4 className={`text-xs font-bold ${scenario.color} uppercase tracking-wide mb-1`}>
+                  Objective
+                </h4>
+                <p className="text-sm text-gray-800 leading-relaxed">{scenario.objective}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -450,15 +446,17 @@ export default function ChatTraining() {
                 </span>
               </div>
 
-              {/* Coaching tip below the user message that triggered it */}
-              {message.sender === "user" && message.coachTip && (
-                <div className="flex items-start gap-1.5 mt-1.5 max-w-[80%]">
-                  <Lightbulb className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-amber-700 leading-relaxed italic">
-                    {message.coachTip}
-                  </p>
-                </div>
-              )}
+              {/* Inline coaching tip (only in "inline" mode) */}
+              {guidanceMode === "inline" &&
+                message.sender === "user" &&
+                message.coachTip && (
+                  <div className="flex items-start gap-1.5 mt-1.5 max-w-[80%]">
+                    <Lightbulb className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-amber-700 leading-relaxed italic">
+                      {message.coachTip}
+                    </p>
+                  </div>
+                )}
             </div>
           ))}
         </div>
@@ -466,19 +464,16 @@ export default function ChatTraining() {
 
       {/* ── Bottom controls ────────────────────────────────────── */}
 
-      {/* Scenario guidance */}
-      {!conversationEnded && (
-        <div className={`${scenario.bgColor} border-t px-4 py-2`}>
-          <div className="max-w-3xl mx-auto">
-            <h4 className={`text-xs font-bold ${scenario.color} uppercase tracking-wide mb-1`}>
-              Guidance
-            </h4>
-            <div className="flex flex-wrap gap-x-4 gap-y-0.5">
-              {scenario.guidance.map((tip, i) => (
-                <span key={i} className="text-xs text-gray-700">
-                  - {tip}
-                </span>
-              ))}
+      {/* Bottom-bar guidance (only in "bottom-bar" mode) */}
+      {guidanceMode === "bottom-bar" && !conversationEnded && lastEvaluation && (
+        <div className="bg-amber-50 border-t border-amber-200 px-4 py-2">
+          <div className="max-w-3xl mx-auto flex items-start gap-2">
+            <Lightbulb className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <span className="text-xs font-bold text-amber-700 uppercase tracking-wide">Coach</span>
+              <p className="text-xs text-gray-800 leading-relaxed mt-0.5">
+                {lastEvaluation.suggestion}
+              </p>
             </div>
           </div>
         </div>
