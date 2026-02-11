@@ -429,7 +429,7 @@ export default function ChatTraining() {
         {/* Scrollable message log */}
         <div
           ref={scrollRef}
-          className="flex-1 min-h-[300px] overflow-y-auto px-4 pt-3 pb-52 space-y-3 bg-gray-50"
+          className="flex-1 min-h-[300px] overflow-y-auto px-4 pt-3 pb-[180px] space-y-3 bg-gray-50"
         >
           {messages.map((message) => (
             <div
