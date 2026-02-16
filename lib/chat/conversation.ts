@@ -15,8 +15,14 @@ export const createConversation = async (
         })
         .select()
         .single()
-    
+
     if (error) {
+        // 23505 = unique constraint violation (race condition, e.g. React Strict Mode double-mount)
+        // Fall back to fetching the existing active conversation
+        if (error.code === '23505') {
+            const existing = await getExistingConversationByCID(chatID)
+            if (existing) return existing
+        }
         console.error("Error creating conversation: ", error)
         throw new Error(`Failed to create conversation: ${error.message}`)
     }

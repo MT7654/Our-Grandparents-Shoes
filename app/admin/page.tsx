@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import Link from "next/link"
 import { Users, MessageCircle, TrendingUp, LogOut, BarChart3, Search, Trash2 } from "lucide-react"
 import { format } from "date-fns"
 import { useRouter } from "next/navigation"
@@ -345,9 +346,6 @@ export default function AdminPage() {
                     <TableRow>
                       <TableHead>Name</TableHead>
                       <TableHead>Email</TableHead>
-                      <TableHead>Sessions</TableHead>
-                      <TableHead>Average Score</TableHead>
-                      <TableHead>Completion Rate</TableHead>
                       <TableHead>Joined</TableHead>
                       <TableHead>Last Login</TableHead>
                       <TableHead>Actions</TableHead>
@@ -359,31 +357,12 @@ export default function AdminPage() {
                         key={volunteer.uid}
                         className={isInactiveForTwoWeeks(volunteer.last_active) ? "bg-red-50 hover:bg-red-100" : ""}
                       >
-                        <TableCell className="font-medium">{volunteer.full_name}</TableCell>
+                        <TableCell className="font-medium">
+                          <Link href={`/admin/volunteer/${volunteer.uid}`} className="text-primary hover:underline">
+                            {volunteer.full_name}
+                          </Link>
+                        </TableCell>
                         <TableCell className="text-muted-foreground">{volunteer.email}</TableCell>
-                        <TableCell>{volunteer.total_sessions}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{Math.floor(volunteer.average_score!)}%</span>
-                            <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-primary"
-                                style={{ width: `${volunteer.average_score}%` }}
-                              />
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{Math.floor(volunteer.completion_rate!)}%</span>
-                            <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-primary"
-                                style={{ width: `${volunteer.completion_rate}%` }}
-                              />
-                            </div>
-                          </div>
-                        </TableCell>
                         <TableCell className="text-muted-foreground">
                           {formatDate(volunteer.created_at!)}
                         </TableCell>

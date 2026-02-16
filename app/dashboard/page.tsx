@@ -16,15 +16,6 @@ import { useToast } from "@/hooks/use-toast"
 type PastSession = Database['public']['Views']['conversation_sessions']['Row']
 type Statistic = Database['public']['Views']['statistics']['Row']
 
-// const badges = [
-//   { id: "1", name: "First Conversation", icon: "🎯", unlocked: true },
-//   { id: "2", name: "Empathy Expert", icon: "❤️", unlocked: true },
-//   { id: "3", name: "5 Sessions", icon: "⭐", unlocked: false },
-//   { id: "4", name: "Perfect Score", icon: "🏆", unlocked: false },
-//   { id: "5", name: "Active Listener", icon: "👂", unlocked: true },
-//   { id: "6", name: "10 Sessions", icon: "🌟", unlocked: false },
-// ]
-
 export default function ProgressDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
