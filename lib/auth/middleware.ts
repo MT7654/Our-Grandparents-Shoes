@@ -31,8 +31,39 @@ export async function validatePath(request: NextRequest) {
             return NextResponse.redirect(redirectUrl)
         }
 
-        // Check Role
-        const role = session.access_token ? JSON.parse(atob(session.access_token.split('.')[1]))['user_role'] : null
+        // Check Role - try JWT token first
+        let role: string | null = null
+        try {
+            if (session.access_token) {
+                const payload = JSON.parse(atob(session.access_token.split('.')[1]))
+                role = payload['user_role'] || null
+            }
+        } catch (e) {
+            console.error('Error parsing JWT token in middleware:', e)
+        }
+
+        // If role not in token, fetch from database
+        if (!role && session.user) {
+            try {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('user_id', session.user.id)
+                    .single()
+                
+                if (profile) {
+                    role = profile.role
+                }
+            } catch (e) {
+                console.error('Error fetching role from database in middleware:', e)
+            }
+        }
+
+        // Default to 'user' if role is still null (new users default to user role)
+        if (!role) {
+            role = 'user'
+        }
+
         if (isAdminProtected && role !== 'admin') {
             return NextResponse.redirect(redirectUrl)
         }

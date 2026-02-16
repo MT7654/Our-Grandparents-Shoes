@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { MessageCircle, BarChart3, Shield } from "lucide-react"
+import { MessageCircle, BarChart3, Shield, LogOut } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from "@/hooks/use-toast"
@@ -14,15 +14,132 @@ export default function LandingPage() {
   const { toast } = useToast();
   
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    checkAuthStatus()
+  }, [])
+
+  const checkAuthStatus = async () => {
+    const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    
+    if (session) {
+      setIsLoggedIn(true)
+      
+      // Try to get role from JWT token
+      let role: string | null = null
+      try {
+        if (session.access_token) {
+          const payload = JSON.parse(atob(session.access_token.split('.')[1]))
+          role = payload['user_role'] || null
+        }
+      } catch (e) {
+        console.error('Error parsing JWT token:', e)
+      }
+
+      // If role not in token, fetch from database
+      if (!role && session.user) {
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .single()
+          
+          if (profile) {
+            role = profile.role
+          }
+        } catch (e) {
+          console.error('Error fetching role from database:', e)
+        }
+      }
+      
+      setUserRole(role)
+    } else {
+      setIsLoggedIn(false)
+      setUserRole(null)
+    }
+  }
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch("/api/auth/logout", { method: "POST" })
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to logout")
+      }
+
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out.",
+      })
+
+      setIsLoggedIn(false)
+      setUserRole(null)
+      router.refresh()
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to logout"
+      toast({
+        title: "Logout Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    }
+  }
 
   // For client side redirection
   const verify = async (target: string) => {
     const supabase = createClient()
-    const { data: { session } } = await supabase.auth.getSession()
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
-    const role = session?.access_token ? JSON.parse(atob(session.access_token.split('.')[1]))['user_role'] : null
+    if (!session || sessionError) {
+      return { hasSession: false, actualRole: null, isAuthorized: false }
+    }
 
-    return { hasSession: !!session, actualRole: role, isAuthorized: session && role == target }
+    // Try to get role from JWT token
+    let role: string | null = null
+    try {
+      if (session.access_token) {
+        const payload = JSON.parse(atob(session.access_token.split('.')[1]))
+        role = payload['user_role'] || null
+      }
+    } catch (e) {
+      console.error('Error parsing JWT token:', e)
+    }
+
+    // If role not in token, try to fetch from database
+    if (!role && session.user) {
+      try {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .single()
+        
+        if (profile) {
+          role = profile.role
+        } else if (profileError && profileError.code === 'PGRST116') {
+          // Profile doesn't exist - this shouldn't happen due to trigger, but handle it
+          console.warn('Profile not found for user, defaulting to user role')
+          role = 'user'
+        }
+      } catch (e) {
+        console.error('Error fetching role from database:', e)
+      }
+    }
+
+    // Default to 'user' if role is still null (new users default to user role)
+    if (!role) {
+      role = 'user'
+    }
+
+    const isAuthorized = role === target
+    console.log('Role verification:', { role, target, isAuthorized })
+
+    return { hasSession: true, actualRole: role, isAuthorized }
   }
 
   const navigateWithRole = async ({
@@ -40,15 +157,26 @@ export default function LandingPage() {
 
     const { isAuthorized, hasSession, actualRole } = await verify(role)
 
+    console.log('Navigation check:', { isAuthorized, hasSession, actualRole, targetRole: role, successPath })
+
     if (isAuthorized) {
+      console.log('Authorized, navigating to:', successPath)
       router.push(successPath)
+      // Also use window.location as fallback to ensure navigation happens
+      setTimeout(() => {
+        if (window.location.pathname === '/') {
+          window.location.href = successPath
+        }
+      }, 100)
     } else {
       if (hasSession) {
+        console.log('Has session but wrong role:', { actualRole, targetRole: role })
         toast({
           description: sessionMessage,
           variant: "default",
         });
       } else {
+        console.log('No session, redirecting to auth')
         toast({
           description: accountMessage,
           variant: "default",
@@ -90,6 +218,17 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10">
       <LoadingOverlay isLoading={isLoading} />
+      
+      {/* Logout Button - Top Right */}
+      {isLoggedIn && (
+        <div className="absolute top-4 right-4 z-10">
+          <Button variant="outline" onClick={handleLogout} className="flex items-center gap-2">
+            <LogOut className="h-4 w-4" />
+            Logout
+          </Button>
+        </div>
+      )}
+
       <div className="container mx-auto px-4 py-16 md:py-24">
         <div className="max-w-4xl mx-auto text-center space-y-8">
           {/* Header */}

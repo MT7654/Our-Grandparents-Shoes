@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import type { ChatData, Filters } from '@/lib/types/types'
 
 export const getAdminDashboardData = async (limit: number, highPerformingThreshold: number, filters: Filters) => {
@@ -76,4 +76,23 @@ export const getAdminDashboardData = async (limit: number, highPerformingThresho
         volunteerDetails,
         chatProgressWithAverageScores
     }
+}
+
+export const deleteUser = async (userId: string) => {
+    if (!userId) {
+        throw new Error('User ID is required')
+    }
+
+    // Create admin client with service role
+    const supabaseAdmin = await createServiceClient()
+
+    // Delete user from auth (profiles will cascade delete due to ON DELETE CASCADE)
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
+
+    if (error) {
+        console.error('Error deleting user:', error)
+        throw new Error(`Failed to delete user: ${error.message}`)
+    }
+
+    return { success: true, message: 'User deleted successfully' }
 }

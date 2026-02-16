@@ -1,15 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { guard } from '@/lib/auth/guard'
 
 export async function POST(request: Request) {
   try {
-    const guardResult = await guard('user')
-
-    if (guardResult instanceof NextResponse) {
-      return guardResult
-    }
-
     const supabase = await createClient()
 
     const { error } = await supabase.auth.signOut()

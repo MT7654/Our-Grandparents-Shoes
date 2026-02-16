@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
-import { Users, MessageCircle, TrendingUp, LogOut, BarChart3, Search } from "lucide-react"
+import { Users, MessageCircle, TrendingUp, LogOut, BarChart3, Search, Trash2 } from "lucide-react"
 import { format } from "date-fns"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
@@ -85,7 +86,7 @@ export default function AdminPage() {
         setVolunteerNum(totalVolunteers || 0)
         setChatNum(totalChats || 0)
         setHighPerformNum(highPerformingVolunteers || 0)
-        setVolunteers(volunteerDetails || [])
+        setVolunteers(sortVolunteersByLastActive(volunteerDetails || []))
         setChats(chatProgressWithAverageScores || [])
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Failed to load admin data"
@@ -123,12 +124,99 @@ export default function AdminPage() {
     }
   }
 
-  const formatDate = (dateString: string) => {
+  // Delete user handler
+  async function handleDeleteUser(userId: string) {
+    try {
+      setLoading(true)
+      const response = await fetch("/api/admin", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || "Failed to delete user")
+      }
+
+      toast({
+        title: "User deleted",
+        description: "The user has been successfully removed.",
+      })
+
+      // Refresh data to show updated list
+      const data = await fetch("/api/admin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          limit,
+          highPerformingThreshold: HIGH_PERFORMING_THRESHOLD,
+          filters,
+        }),
+      })
+
+      if (data.ok) {
+        const {
+          totalVolunteers,
+          totalChats,
+          highPerformingVolunteers,
+          volunteerDetails,
+          chatProgressWithAverageScores,
+        } = await data.json()
+
+        setVolunteerNum(totalVolunteers || 0)
+        setChatNum(totalChats || 0)
+        setHighPerformNum(highPerformingVolunteers || 0)
+        setVolunteers(sortVolunteersByLastActive(volunteerDetails || []))
+        setChats(chatProgressWithAverageScores || [])
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to delete user"
+      toast({
+        title: "Error deleting user",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return "N/A"
     try {
       return format(new Date(dateString), "MMM d, yyyy")
     } catch {
       return "N/A"
     }
+  }
+
+  const isInactiveForTwoWeeks = (lastActive: string | null | undefined) => {
+    if (!lastActive) return true // Consider null as inactive
+    try {
+      const lastActiveDate = new Date(lastActive)
+      const twoWeeksAgo = new Date()
+      twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
+      return lastActiveDate < twoWeeksAgo
+    } catch {
+      return true
+    }
+  }
+
+  const sortVolunteersByLastActive = (volunteers: Volunteer[]) => {
+    return [...volunteers].sort((a, b) => {
+      // Handle null values - push them to the end
+      if (!a.last_active && !b.last_active) return 0
+      if (!a.last_active) return 1
+      if (!b.last_active) return -1
+      
+      // Sort by date, most recent first
+      return new Date(b.last_active).getTime() - new Date(a.last_active).getTime()
+    })
   }
 
   const chartConfig = {
@@ -261,11 +349,16 @@ export default function AdminPage() {
                       <TableHead>Average Score</TableHead>
                       <TableHead>Completion Rate</TableHead>
                       <TableHead>Joined</TableHead>
+                      <TableHead>Last Login</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {volunteers.map((volunteer) => (
-                      <TableRow key={volunteer.uid}>
+                      <TableRow 
+                        key={volunteer.uid}
+                        className={isInactiveForTwoWeeks(volunteer.last_active) ? "bg-red-50 hover:bg-red-100" : ""}
+                      >
                         <TableCell className="font-medium">{volunteer.full_name}</TableCell>
                         <TableCell className="text-muted-foreground">{volunteer.email}</TableCell>
                         <TableCell>{volunteer.total_sessions}</TableCell>
@@ -293,6 +386,35 @@ export default function AdminPage() {
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {formatDate(volunteer.created_at!)}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {formatDate(volunteer.last_active)}
+                        </TableCell>
+                        <TableCell>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete User</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete this user {volunteer.full_name}? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  className="bg-destructive hover:bg-destructive/90"
+                                  onClick={() => handleDeleteUser(volunteer.uid!)}
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </TableCell>
                       </TableRow>
                     ))}

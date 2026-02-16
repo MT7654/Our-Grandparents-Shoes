@@ -55,6 +55,8 @@ SELECT
     P.full_name, 
     P.email,
     P.created_at,
+    P.last_active,
+    P.user_id,
     conv.total_sessions, 
     conv.average_score AS average_score, 
     conv.completed_chats / total_chats.total * 100 AS completion_rate

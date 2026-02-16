@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
+import { createClient } from '@/lib/supabase/client'
 
 export default function AuthScreen() {
     const [loginEmail, setLoginEmail] = useState("");
@@ -61,9 +62,48 @@ export default function AuthScreen() {
           description: "Welcome back!",
         });
 
-        const role = result.session.access_token ? JSON.parse(atob(result.session.access_token.split('.')[1]))['user_role'] : null
+        // Refresh the session to get the updated token with role claim
+        const supabase = createClient()
+        await supabase.auth.refreshSession()
 
-        if (role == 'admin') {
+        // Get the role from the refreshed session or database
+        const { data: { session: refreshedSession } } = await supabase.auth.getSession()
+        
+        let role: string | null = null
+        
+        // Try to get role from JWT token
+        try {
+          if (refreshedSession?.access_token) {
+            const payload = JSON.parse(atob(refreshedSession.access_token.split('.')[1]))
+            role = payload['user_role'] || null
+          }
+        } catch (e) {
+          console.error('Error parsing JWT token:', e)
+        }
+
+        // If role not in token, fetch from database
+        if (!role && refreshedSession?.user) {
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('role')
+              .eq('user_id', refreshedSession.user.id)
+              .single()
+            
+            if (profile) {
+              role = profile.role
+            }
+          } catch (e) {
+            console.error('Error fetching role from database:', e)
+          }
+        }
+
+        // Default to 'user' if role is still null
+        if (!role) {
+          role = 'user'
+        }
+
+        if (role === 'admin') {
           router.push('/admin');
         } else {
           router.push("/personas");
