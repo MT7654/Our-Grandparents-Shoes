@@ -16,6 +16,7 @@ export default function AuthScreen() {
     const [registerName, setRegisterName] = useState("");
     const [registerEmail, setRegisterEmail] = useState("");
     const [registerPassword, setRegisterPassword] = useState("");
+    const [consentChecked, setConsentChecked] = useState(false);
   
     const router = useRouter();
     const { toast } = useToast();
@@ -120,7 +121,7 @@ export default function AuthScreen() {
     }
   
     async function register() {
-      if (!registerName || !registerEmail || !registerPassword) {
+      if (!registerName || !registerEmail || !registerPassword || !consentChecked) {
         toast({
           title: "Validation Error",
           description: "Please fill in all fields",
@@ -242,6 +243,20 @@ export default function AuthScreen() {
                     onChange={e => setRegisterPassword(e.target.value)}
                   />
                 </div>
+
+                <div className="flex items-start space-x-2">
+                  <input
+                    id="consent"
+                    type="checkbox"
+                    checked={consentChecked}
+                    onChange={(e) => setConsentChecked(e.target.checked)}
+                    className="mt-1 rounded border-gray-300"
+                  />
+                  <Label htmlFor="consent" className="text-xs text-gray-700">
+                    I consent to TalkBetter: Senior Care collecting and using my personal data in accordance with the app's privacy policy.
+                  </Label>
+                </div>
+
                 <Button className="w-full" onClick={register}>Register</Button>
               </TabsContent>
             </Tabs>
