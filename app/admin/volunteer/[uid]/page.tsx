@@ -207,9 +207,10 @@ export default function VolunteerDetailPage() {
               {pastSessions && pastSessions.length > 0 ? (
                 <div className="space-y-4">
                   {pastSessions.map((session: PastSession) => (
-                    <div
+                    <Link
                       key={session.vid}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-secondary/50 rounded-lg gap-3"
+                      href={`/admin/volunteer/${uid}/chat/${session.vid}`}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-secondary/50 rounded-lg gap-3 hover:bg-secondary/80 transition-colors cursor-pointer"
                     >
                       <div className="flex-1">
                         <h3 className="font-semibold mb-1">{session.name}</h3>
@@ -228,7 +229,7 @@ export default function VolunteerDetailPage() {
                           <div className="text-xs text-muted-foreground">Score</div>
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               ) : (

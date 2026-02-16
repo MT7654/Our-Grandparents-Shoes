@@ -287,8 +287,106 @@ export default function AdminPage() {
           </Card>
         </div>
 
-        {/* Main Content Tabs */}
-        <Tabs defaultValue="volunteers" className="w-full">
+        {/* Search and Limit Controls */}
+        <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search by volunteer name or persona name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="limit-select" className="text-sm text-muted-foreground whitespace-nowrap">
+              Limit:
+            </label>
+            <Select value={limit.toString()} onValueChange={(value) => setLimit(Number(value))}>
+              <SelectTrigger id="limit-select" className="w-[120px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <Card className="border-2">
+          <CardHeader>
+            <CardTitle>Volunteers</CardTitle>
+            <CardDescription>
+              View and track all registered volunteers and their progress
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Joined</TableHead>
+                  <TableHead>Last Login</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {volunteers.map((volunteer) => (
+                  <TableRow 
+                    key={volunteer.uid}
+                    className={isInactiveForTwoWeeks(volunteer.last_active) ? "bg-red-50 hover:bg-red-100" : ""}
+                  >
+                    <TableCell className="font-medium">
+                      <Link href={`/admin/volunteer/${volunteer.uid}`} className="text-primary hover:underline">
+                        {volunteer.full_name}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{volunteer.email}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatDate(volunteer.created_at!)}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatDate(volunteer.last_active)}
+                    </TableCell>
+                    <TableCell>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete User</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete this user {volunteer.full_name}? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction 
+                              className="bg-destructive hover:bg-destructive/90"
+                              onClick={() => handleDeleteUser(volunteer.uid!)}
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+        {/* <Tabs defaultValue="volunteers" className="w-full">
           <TabsList className="mb-6">
             <TabsTrigger value="volunteers" onClick={() => setTab("volunteers")}>
               <Users className="w-4 h-4 mr-2" />
@@ -299,111 +397,12 @@ export default function AdminPage() {
               Chats
             </TabsTrigger>
           </TabsList>
-
-          {/* Search and Limit Controls */}
-          <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search by volunteer name or persona name..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <label htmlFor="limit-select" className="text-sm text-muted-foreground whitespace-nowrap">
-                Limit:
-              </label>
-              <Select value={limit.toString()} onValueChange={(value) => setLimit(Number(value))}>
-                <SelectTrigger id="limit-select" className="w-[120px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">5</SelectItem>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                  <SelectItem value="100">100</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Volunteers Tab */}
+          
           <TabsContent value="volunteers" className="space-y-4">
-            <Card className="border-2">
-              <CardHeader>
-                <CardTitle>Volunteers</CardTitle>
-                <CardDescription>
-                  View and track all registered volunteers and their progress
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Joined</TableHead>
-                      <TableHead>Last Login</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {volunteers.map((volunteer) => (
-                      <TableRow 
-                        key={volunteer.uid}
-                        className={isInactiveForTwoWeeks(volunteer.last_active) ? "bg-red-50 hover:bg-red-100" : ""}
-                      >
-                        <TableCell className="font-medium">
-                          <Link href={`/admin/volunteer/${volunteer.uid}`} className="text-primary hover:underline">
-                            {volunteer.full_name}
-                          </Link>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">{volunteer.email}</TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {formatDate(volunteer.created_at!)}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {formatDate(volunteer.last_active)}
-                        </TableCell>
-                        <TableCell>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete User</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete this user {volunteer.full_name}? This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction 
-                                  className="bg-destructive hover:bg-destructive/90"
-                                  onClick={() => handleDeleteUser(volunteer.uid!)}
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+            
           </TabsContent>
 
-          {/* Chats Tab */}
+          Chats Tab
           <TabsContent value="chats" className="space-y-4">
             <Card className="border-2">
               <CardHeader>
@@ -492,7 +491,7 @@ export default function AdminPage() {
               </CardContent>
             </Card>
           </TabsContent>
-        </Tabs>
+        </Tabs> */}
       </div>
     </div>
   )
