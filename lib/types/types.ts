@@ -1,4 +1,6 @@
 import type { Database } from '@/supabase/types'
+import scenarios from '../scenarios.json'
+import personas from '../personas.json'
 
 type Conversation = Database['public']['Tables']['conversations']['Row']
 type DBScore = Database['public']['Tables']['scores']['Row']
@@ -6,13 +8,12 @@ type Evaluation = Database['public']['Tables']['evaluations']['Row']
 type Badge = Database['public']['Tables']['badges']['Row']
 type Achievement = Database['public']['Tables']['achievements']['Row']
 
-export interface FullPersona {
-    pid: string,
+export interface Persona {
     name: string,
     age: number,
     personality: string,
     interests: string[],
-    avatar_url: string
+    avatar: string
 }
 
 export interface Score {
@@ -29,7 +30,7 @@ export type EndConversationEvaluation = {
 
 export type CompleteParams = {
   scores: Record<DBScore['metric_name'], DBScore['metric_value']>,
-  cid: Conversation['cid'],
+  scenario_name: Conversation['scenario_name'],
   completed: Conversation['completed'],
   created_at: Conversation['created_at'],
   feedback: Conversation['feedback'],
@@ -55,17 +56,34 @@ export type DisplayBadge = {
   awarded: Achievement['awarded_at']
 }
 
-export interface ChatData {
-  cid: string,
-  persona_name: string
-  chat_objective: string
-  triesAgainstScore: {
-      tries: number
-      averageScore: number
-  }[]
-}
-
 export interface Filters {
   volunteer_name?: string
   persona_name?: string
 }
+
+type Design = {
+    icon: string;
+    iconColor: string;
+    bgColor: string;
+    borderColor: string;
+    textColor: string;
+    buttonCta: string;
+
+}
+
+export interface Scenario {
+    id: string,
+    name: string,
+    description: string,
+    objective: string,
+    instructions: string[],
+    guidance: string[],
+    design: Design,
+    persona: string,
+    max_turns: number,
+}
+
+export type ScenarioKeys = keyof typeof scenarios
+export type PersonaKeys = keyof typeof personas
+export type Guidance = "inline" | "bottom-bar"
+export type Difficulty = "Easy" | "Hard"

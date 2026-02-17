@@ -1,7 +1,7 @@
 "use server"
 
 import Groq from "groq-sdk"
-import { type FullPersona } from "../types/types"
+import { type Persona } from "../types/types"
 import { type Database } from '@/supabase/types'
 
 type Message = Database['public']['Tables']['messages']['Row']
@@ -47,7 +47,7 @@ const systemPrompt = `
 const DEFAULT_RESPONSE = "Aiyo... I don't understand leh..."
 
 export async function talkToPersona(
-    personaProfile: FullPersona,
+    personaProfile: Persona,
     conversationHistory: Message[],
     latestUserMessage: string,
     temperature: number = 0.8,
@@ -98,7 +98,7 @@ export async function talkToPersona(
 }
 
 function generateConversationPrompt(
-    personaProfile: FullPersona,
+    personaProfile: Persona,
     conversationHistory: Message[]
 ): string {
 
@@ -106,12 +106,11 @@ function generateConversationPrompt(
         const senderLabel = msg.sender === "user" ? "User" : "Persona"
         return `[${msg.sent_at}] ${senderLabel}: ${msg.content}`
     }).join("\n")
-
-    const { pid, ...rest } = personaProfile
+    
     const personaText = `
-        Name: ${rest.name}
-        Age: ${rest.age}
-        Personality: ${rest.personality}
+        Name: ${personaProfile.name}
+        Age: ${personaProfile.age}
+        Personality: ${personaProfile.personality}
         Interests: ${personaProfile.interests.join(' ')}
     `
 

@@ -1,17 +1,22 @@
 import { createClient } from '@/lib/supabase/server'
 import type { Database } from '@/supabase/types'
+import scenarios from '@/lib/scenarios.json'
+import { type ScenarioKeys } from '@/lib/types/types'
 
 type Conversation = Database['public']['Tables']['conversations']['Row']
 
 export const createConversation = async (
-    chatID: Conversation['cid'],
+    scenario: Conversation['scenario_name'],
+    difficulty_level: Conversation['difficulty']
 ) => {
     const supabase = await createClient()
 
     const { data, error } = await supabase
         .from('conversations')
         .insert({
-            cid: chatID
+            scenario_name: scenario,
+            turns: scenarios[scenario as ScenarioKeys].max_turns,
+            difficulty: difficulty_level
         })
         .select()
         .single()
@@ -28,6 +33,78 @@ export const createConversation = async (
     }
 
     return data as Conversation
+}
+
+export const checkForCompletion = async (
+    converseID: Conversation['vid']
+) => {
+    const supabase = await createClient()
+
+    // Read the number of turns remaining and whether the conversation has ended
+    const { data, error } = await supabase
+        .from('conversations')
+        .select('turns, completed')
+        .eq('vid', converseID)
+        .single()
+    
+    // Check for errors or null data
+    if (error) {
+        console.error('Error fetching conversation details: ', error)
+        // PGRST116 means no rows found
+        if (error.code === 'PGRST116') {
+            throw new Error(`Conversation with ID "${converseID}" not found`)
+        }
+        throw new Error(`Failed to fetch conversation details: ${error.message}`)
+    }
+
+    if (!data) {
+        console.error('Error fetching conversation details: No conversation found for conversation ID "${converseID}"')
+        throw new Error(`No conversation found for conversation ID "${converseID}"`)
+    }
+
+    if (data['completed'] && data['turns'] <= 0) {
+        throw new Error(`Conversation ${converseID} has already ended due to exceeded turn limit`)
+    } else if (data['completed']) {
+        throw new Error(`Conversation ${converseID} has already ended`)
+    } else {
+        return {
+            completed: data['completed'],
+            turns: data['turns']
+        }
+    }
+}
+
+export const reduceTurns = async (
+    converseID: Conversation['vid'],
+    currentTurns: number
+) => {
+    const supabase = await createClient()
+
+    const turns: number = currentTurns - 1
+
+    const { data: updateData, error: updateError } = await supabase
+        .from('conversations')
+        .update({
+            turns: turns,
+            completed: turns <= 0
+        })
+        .eq('vid', converseID)
+        .select()
+        .single()
+
+    if (updateError) {
+        console.error('Error reduce conversation turns: ', updateError)
+        // PGRST116 means no rows found
+        if (updateError.code === 'PGRST116') {
+            throw new Error(`Conversation with ID "${converseID}" not found`)
+        }
+        throw new Error(`Failed to reduce conversation turns: ${updateError.message}`)
+    }
+
+    return { 
+        turns: updateData['turns'],
+        completed: updateData['completed']
+    }
 }
 
 export const saveConversation = async (
@@ -59,15 +136,15 @@ export const saveConversation = async (
     return data as Conversation
 }
 
-export const getExistingConversationByCID = async (
-    chatID: Conversation['cid'] 
+export const getExistingConversationByScenario = async (
+    scenario: Conversation['scenario_name']
 ) => {
     const supabase = await createClient()
 
     const { data, error } = await supabase
         .from('conversations')
         .select('*')
-        .eq('cid', chatID)
+        .eq('scenario_name', scenario)
         .eq('completed', false)
         .single()
     

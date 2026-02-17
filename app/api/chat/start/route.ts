@@ -1,9 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { startConversation } from '@/lib/chat/service'
-import type { Database } from '@/supabase/types'
+import { type ScenarioKeys } from '@/lib/types/types'
 import { guard } from '@/lib/auth/guard'
+import scenarios from '@/lib/scenarios.json'
+import type { Database } from '@/supabase/types'
 
-type Persona = Database['public']['Tables']['personas']['Row']
+type Conversation = Database['public']['Tables']['conversations']['Row']
 
 export async function POST(request: NextRequest) {
     try {
@@ -14,16 +16,24 @@ export async function POST(request: NextRequest) {
         }
         
         const body = await request.json()
-        const personaId: Persona['pid'] | undefined = body?.personaId
+        const scenario_name: ScenarioKeys | undefined = body?.scenario_name
+        const difficulty_level: Conversation['difficulty'] | undefined = body?.difficulty_level
 
-        if (!personaId) {
+        if (!scenario_name || !difficulty_level) {
             return NextResponse.json(
-                { error: 'Persona ID is required'},
+                { error: 'Scenario name and difficulty level are required'},
                 { status: 400 }
             )
         }
 
-        const conversation = await startConversation(personaId)
+        if (!(scenario_name in scenarios) || !(difficulty_level == 'Easy' || difficulty_level == 'Hard')) {
+            return NextResponse.json(
+                { error: "Scenario name and/or difficulty level invalid"},
+                { status: 404 }
+            )
+        } 
+
+        const conversation = await startConversation(scenario_name, difficulty_level)
 
         return NextResponse.json(
             {

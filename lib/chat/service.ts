@@ -2,44 +2,44 @@ import {
     createConversation, 
     saveConversation, 
     getConversationByConversationID, 
-    getExistingConversationByCID, 
-    getUserConversations 
+    getExistingConversationByScenario, 
+    getUserConversations,
+    checkForCompletion,
+    reduceTurns
 } from './conversation'
-import { getChatByPersonaID, getChatByChatID } from './chat'
 import { saveEvaluation, getEvaluation } from './evaluation'
 import { saveMessage, getMessages } from './message'
 import { saveScores, getScores } from './score'
-import { fetchPersona } from '../personas/personas'
 import { evaluateCompletion } from '@/lib/llm/completion'
 import { talkToPersona } from '../llm/chat'
 import { evaluateResponse } from '../llm/evaluate'
 import type { Database } from '@/supabase/types'
-import { type EndConversationEvaluation } from '@/lib/types/types'
+import { type EndConversationEvaluation, ScenarioKeys, PersonaKeys, Persona } from '@/lib/types/types'
+import scenarios from '../scenarios.json'
+import personas from '../personas.json'
 
-type Persona = Database['public']['Tables']['personas']['Row']
 type Conversation = Database['public']['Tables']['conversations']['Row']
 
 const DEFAULT_MESSAGE = "Hello dear! It's so nice to have someone to talk to. How are you doing today?"
+const DEFAULT_CHAT_ERROR_MESSAGE = "Sorry something went wrong. Please try again later."
 
 export { getUserConversations, saveMessage, saveEvaluation }
 
 export const startConversation = async (
-    personaID: Persona['pid']
-) => {
-    const chat = await getChatByPersonaID(personaID)
-
-    if (!chat) {
-        throw new Error(`No chat found for persona ID "${personaID}"`)
-    }
-    
-    const conversation = await getExistingConversationByCID(chat.cid)
+    scenario_name: Conversation['scenario_name'],
+    difficulty_level: Conversation['difficulty']
+) => {    
+    const scenario = scenarios[scenario_name as ScenarioKeys]
+    const persona = personas[scenario.persona as PersonaKeys]
+    const conversation = await getExistingConversationByScenario(scenario_name)
 
     if (!conversation) {
-        const new_conversation = await createConversation(chat.cid)
+        const new_conversation = await createConversation(scenario_name, difficulty_level)
         const new_message = await saveMessage(new_conversation.vid, 'persona', DEFAULT_MESSAGE)
 
         return {
-            chat,
+            scenario,
+            persona,
             conversation: new_conversation,
             messages: new_message ? [new_message] : [],
             evaluation: null,
@@ -47,7 +47,8 @@ export const startConversation = async (
     } else {
         const full_conversation = await fetchFullConversation(conversation.vid)
         return {
-            chat,
+            scenario,
+            persona,
             ...full_conversation
         }
     }
@@ -56,7 +57,11 @@ export const startConversation = async (
 export const endConversation = async (
     converseID: Conversation['vid']
 ) => {
-    const { messages } = await fetchFullConversation(converseID)
+    const { conversation, messages } = await fetchFullConversation(converseID)
+
+    if (!conversation) {
+        throw new Error(`No conversation found for conversation ID ${converseID}`)
+    }
 
     if (!messages || messages.length === 0) {
         throw new Error(`No messages found for conversation ID "${converseID}"`)
@@ -64,7 +69,7 @@ export const endConversation = async (
 
     const evaluation: EndConversationEvaluation = await evaluateCompletion(messages)
 
-    const conversation = await saveConversation(converseID, evaluation.completed, evaluation.feedback)
+    const final_conversation = await saveConversation(converseID, conversation.completed ? conversation.completed : evaluation.completed, evaluation.feedback)
     const scores = await saveScores(converseID, evaluation.scores)
 
     if (!scores) {
@@ -72,7 +77,7 @@ export const endConversation = async (
     }
 
     return {
-        ...conversation,
+        ...final_conversation,
         scores,
     }
 }
@@ -105,14 +110,10 @@ export const fetchCompleteConversation = async (
         return null // Not found is a valid state, not an error
     }
 
+    const scenario = scenarios[conversation.scenario_name as ScenarioKeys]
+
     if (!scores || scores.length === 0) {
         throw new Error(`No scores found for conversation ID "${converseID}"`)
-    }
-
-    const chat = await getChatByChatID(conversation.cid)
-
-    if (!chat) {
-        throw new Error(`Chat not found for conversation ID "${converseID}"`)
     }
 
     const values = scores.map(s => s.metric_value)
@@ -129,16 +130,17 @@ export const fetchCompleteConversation = async (
         ...conversation,
         scores: formatted_scores,
         average,
-        objective: chat.objective
+        objective: scenario.description
     }
 }
-
-const DEFAULT_CHAT_ERROR_MESSAGE = "Sorry something went wrong. Please try again later."
 
 export const converse = async (
     converseID: Conversation['vid'],
     latestMessage: string,
 ) => {
+    // Check whether the conversation has ended
+    const { turns } = await checkForCompletion(converseID)
+
     // Fetch Conversation, Existing Messages and Existing Evaluation
     const { conversation, messages, evaluation } = await fetchFullConversation(converseID)
 
@@ -147,33 +149,16 @@ export const converse = async (
             user_message: null,
             persona_message: DEFAULT_CHAT_ERROR_MESSAGE,
             evaluation: null,
-            rapport_change: null
+            rapport_change: null,
+            turns
         }
     }
 
-    // Fetch Chat and Persona
-    const chat = await getChatByChatID(conversation.cid)
+    // Fetch Scenario
+    const scenario = scenarios[conversation.scenario_name as ScenarioKeys]
 
-    if (!chat) {
-        return {
-            user_message: null,
-            persona_message: DEFAULT_CHAT_ERROR_MESSAGE,
-            evaluation: null,
-            rapport_change: null
-        }
-    }
-
-    // Fetch Persona by Persona ID
-    const persona = await fetchPersona(chat.pid)
-
-    if (!persona) {
-        return {
-            user_message: null,
-            persona_message: DEFAULT_CHAT_ERROR_MESSAGE,
-            evaluation: null,
-            rapport_change: null
-        }
-    }
+    // Fetch Persona
+    const persona: Persona = personas[scenario.persona as PersonaKeys]
 
     // Save User Message
     const user_message = await saveMessage(converseID, 'user', latestMessage)
@@ -183,14 +168,15 @@ export const converse = async (
             user_message: null,
             persona_message: DEFAULT_CHAT_ERROR_MESSAGE,
             evaluation: null,
-            rapport_change: null
+            rapport_change: null,
+            turns,
         }
     }
 
     // LLM (Parallel) (lastest message sent separately)
     const [ reply, verdict ] = await Promise.all([
         talkToPersona(persona, messages, latestMessage),
-        evaluateResponse(persona, latestMessage, messages, chat.objective)
+        evaluateResponse(persona, latestMessage, messages, scenario.description)
     ])
 
     // Update Rapport (Clamped)
@@ -214,14 +200,19 @@ export const converse = async (
             user_message: user_message,
             persona_message: DEFAULT_CHAT_ERROR_MESSAGE,
             evaluation: null,
-            rapport_change: null
+            rapport_change: null,
+            turns,
         }
     }
+
+    // If all successful, reduce turns by one
+    const { turns: newTurns } = await reduceTurns(converseID, turns)
 
     return {
         user_message: user_message,
         persona_message: persona_reply,
         evaluation: new_eval,
-        rapport_change: verdict.rapportChange
+        rapport_change: verdict.rapportChange,
+        turns: newTurns,
     }
 }

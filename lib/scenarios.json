@@ -1,0 +1,89 @@
+{
+    "House Visit" : {
+        "id": "House-Visit",
+        "name": "House Visit",
+        "description": "Practice short, polite social visits with practical conversations",
+        "objective": "Complete a polite and efficient home visit with the senior.",
+        "instructions": [
+            "Keep conversation short and polite",
+            "Ask clear, practical questions",
+            "Stay focused on the purpose of the visit"
+        ],
+        "guidance": [
+            "Keep conversation short and polite",
+            "Ask clear, practical questions",
+            "Stay focused on the purpose of the visit"
+        ],
+        "design": {
+            "icon": "Home",
+            "iconColor": "text-blue-600",
+            "bgColor": "bg-blue-50",
+            "borderColor": "border-blue-200",
+            "textColor": "text-blue-700",
+            "buttonCta": "Start House Visit"
+        },
+        "persona": "Margaret",
+        "max_turns": 3,
+        "turn_end_message": "Thanks for checking in, I am going to rest now."
+    },
+    
+    "Emotional Listening Ear": {
+        "id": "Emotional-Listening-Ear",
+        "name": "Listening Ear",
+        "description": "Learn to provide emotional support and validation",
+        "objective": "Help the senior feel heard and emotionally supported.",
+        "instructions": [
+            "Encourage the senior to talk",
+            "Validate emotions and feelings",
+            "Do not rush or interrupt",
+            "Avoid giving solutions unless asked"
+        ],
+        "guidance": [
+            "Encourage sharing",
+            "Validate emotions",
+            "Do not interrupt",
+            "Avoid solving unless asked"
+        ],
+        "design": {
+            "icon": "Heart",
+            "iconColor": "text-purple-600",
+            "bgColor": "bg-purple-50",
+            "borderColor": "border-purple-200",
+            "textColor": "text-purple-700",
+            "buttonCta": "Start Listening Session"
+        },
+        "persona": "Margaret",
+        "max_turns": 20,
+        "turn_end_message": "I am feeling tired now, thank you for listening."
+    }, 
+
+    "Resolve a Task": {
+        "id": "Resolve-a-Task",
+        "name": "Resolve a Task",
+        "description": "Practice helping seniors complete practical tasks with patience",
+        "objective": "Help the senior complete a specific task successfully.",
+        "instructions": [
+            "Explain steps clearly and slowly",
+            "Break tasks into simple parts",
+            "Check understanding frequently",
+            "Be patient and reassuring"
+        ],
+        "guidance": [
+            "Explain steps clearly and slowly",
+            "Break tasks into simple parts",
+            "Check understanding frequently",
+            "Be patient and reassuring"
+        ],
+        "design": {
+            "icon": "CheckSquare",
+            "iconColor": "text-green-600",
+            "bgColor": "bg-green-50",
+            "borderColor": "border-green-200",
+            "textColor": "text-green-700",
+            "buttonCta": "Start Task Training"
+        },
+        "persona": "Margaret",
+        "max_turns": 50,
+        "turn_end_message": "Thanks for checking in, I am going to rest now."
+    }
+}

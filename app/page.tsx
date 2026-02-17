@@ -191,7 +191,7 @@ export default function LandingPage() {
   const startTraining = async () => {
     await navigateWithRole({
       role: 'user',
-      successPath: '/personas',
+      successPath: '/scenarios',
       sessionMessage: "Please log out and log in as a user to start your training session.",
       accountMessage: "This feature requires a user account. Please log in with your user credentials.",
     })

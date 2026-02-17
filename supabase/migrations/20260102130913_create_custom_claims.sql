@@ -6,7 +6,7 @@ stable
 as $$
   declare
     claims jsonb;
-    user_role public."Roles";
+    user_role public."roles";
   begin
     -- Fetch the user role in the profiles table
     select role into user_role from public.profiles where user_id = (event->>'user_id')::uuid;
@@ -15,7 +15,7 @@ as $$
 
     if user_role is not null then
       -- Set the claim
-      claims := jsonb_set(claims, '{user_role}', to_jsonb(user_role));
+      claims := jsonb_set(claims, '{user_role}', to_jsonb(user_role::text));
     else
       claims := jsonb_set(claims, '{user_role}', 'null');
     end if;

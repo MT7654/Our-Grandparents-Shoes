@@ -1,7 +1,7 @@
 "use server"
 
 import Groq from "groq-sdk"
-import { MidConversationEvaluation, type FullPersona } from "../types/types"
+import { MidConversationEvaluation, type Persona } from "../types/types"
 import { type Database } from '@/supabase/types'
 
 type Message = Database['public']['Tables']['messages']['Row']
@@ -37,7 +37,7 @@ const systemPrompt = `
 `
 
 export async function evaluateResponse(
-    persona: FullPersona,
+    persona: Persona,
     lastMessage: string,
     history: Message[],
     objective: string,
@@ -106,7 +106,7 @@ export async function evaluateResponse(
 }
 
 function generateEvaluationPrompt(
-    persona: FullPersona,
+    persona: Persona,
     history: Message[],
     objective: string
 ): string {
@@ -117,12 +117,11 @@ function generateEvaluationPrompt(
     }).join("\n")
 
     const interests = Array.isArray(persona.interests) ? persona.interests.join(' ') : ""
-
-    const { pid, ...rest } = persona
+    
     const personaText = `
-        Name: ${rest.name}
-        Age: ${rest.age}
-        Personality: ${rest.personality}
+        Name: ${persona.name}
+        Age: ${persona.age}
+        Personality: ${persona.personality}
         Interests: ${interests}
     `
 

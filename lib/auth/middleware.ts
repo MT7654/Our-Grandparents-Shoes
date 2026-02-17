@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
-const userPaths = ['/personas', '/dashboard', '/complete', '/chat']
+const userPaths = ['/scenarios', '/dashboard', '/complete', '/chat']
 const adminPaths = ['/admin']
 
 export async function validatePath(request: NextRequest) {

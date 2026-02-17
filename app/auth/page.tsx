@@ -107,7 +107,7 @@ export default function AuthScreen() {
         if (role === 'admin') {
           router.push('/admin');
         } else {
-          router.push("/personas");
+          router.push("/scenarios");
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred"
@@ -159,7 +159,7 @@ export default function AuthScreen() {
           description: "Account created! Redirecting...",
         });
 
-        router.push("/personas");
+        router.push("/scenarios");
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred"
         
