@@ -62,13 +62,21 @@ export interface Filters {
 }
 
 type Design = {
-    icon: string;
-    iconColor: string;
-    bgColor: string;
-    borderColor: string;
-    textColor: string;
-    buttonCta: string;
+  icon: string;
+  iconColor: string;
+  bgColor: string;
+  borderColor: string;
+  textColor: string;
+  buttonCta: string;
+}
 
+type Constraints = {
+  starting_score: number;
+  min_turns: number,
+  max_turns: number;
+  character_limit: number;
+  score_bottom_limit: number;
+  score_upper_limit: number;
 }
 
 export interface Scenario {
@@ -79,11 +87,15 @@ export interface Scenario {
     instructions: string[],
     guidance: string[],
     design: Design,
+    constraints: Constraints,
     persona: string,
-    max_turns: number,
+    turn_end_message: string,
+    score_end_message: string,
+    starting_messages: string[]
 }
 
 export type ScenarioKeys = keyof typeof scenarios
 export type PersonaKeys = keyof typeof personas
 export type Guidance = "inline" | "bottom-bar"
 export type Difficulty = "Easy" | "Hard"
+export type Prompts = Record<string, Record<string, string[]>>

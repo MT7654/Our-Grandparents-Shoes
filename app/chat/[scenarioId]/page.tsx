@@ -37,7 +37,7 @@ const default_persona: Persona = {
 
 export default function ChatTraining() {
     const params = useParams()
-    const scenario_name = (params.scenarioId as string).replace("-", " ")
+    const scenario_name = (params.scenarioId as string).replaceAll("-", " ")
     const router = useRouter()
     const { toast } = useToast()
 
@@ -69,6 +69,7 @@ export default function ChatTraining() {
     const [lastEvaluation, setLastEvaluation] = useState(false)
     const [turnsRemain, setTurnsRemain] = useState<number>(0)
     const [conversationEnded, setConversationEnded] = useState(false) 
+    const [messageError, setMessageError] = useState<string | null>(null)
 
     // Start Conversation (Load Data)
     useEffect(() => {
@@ -102,11 +103,21 @@ export default function ChatTraining() {
                 }
 
                 const { scenario, persona, conversation, messages, evaluation } = data
-                setScenario(scenario)
-                setPersona(persona)
-                setVerseId(conversation.vid)
-                setTurnsRemain(conversation.turns)
-                setDifficulty(conversation.difficulty)
+
+                if (scenario) {
+                    setRapport(scenario.constraints.starting_score)
+                    setScenario(scenario)
+                }
+
+                if (persona) {
+                    setPersona(persona)
+                }
+
+                if (conversation) {
+                    setVerseId(conversation.vid)
+                    setTurnsRemain(conversation.turns)
+                    setDifficulty(conversation.difficulty)
+                }
 
                 if (messages) {
                     setMessages(messages)
@@ -170,7 +181,7 @@ export default function ChatTraining() {
                 throw new Error(data.error)
             }
 
-            const { user_message, persona_message, evaluation, turns } = data
+            const { user_message, persona_message, evaluation, turns, completed } = data
 
             // Set Variables
             if (user_message) {
@@ -179,7 +190,6 @@ export default function ChatTraining() {
                 setMessages(prev => [...prev, persona_message])
             }
             
-
             if (evaluation) {
                 // Update Avatar Expression
                 setExpression(evaluation.expression)
@@ -190,6 +200,7 @@ export default function ChatTraining() {
                 // Update Rapport
                 setRapport(evaluation.rapport)
 
+                // Update Sentiment
                 setSentiment(evaluation.sentiment)
                 setLastEvaluation(true)
             }
@@ -198,9 +209,14 @@ export default function ChatTraining() {
                 setTurnsRemain(turns)
                 setConversationEnded(turns <= 0 ? true : false)
             }
+
+            if (completed) {
+                setConversationEnded((prev) => (prev || completed))
+            }
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Failed to send message'
             console.error('Converse Error: ', error)
+            setMessageError(errorMessage)
             toast({
                 title: "Error sending message",
                 description: errorMessage,
@@ -251,18 +267,6 @@ export default function ChatTraining() {
     }
 
     /* ---------------------------------------------------------------- */
-    /*  Auto-end conversation                                           */
-    /* ---------------------------------------------------------------- */
-
-    useEffect(() => {
-        if (!conversationEnded) return
-
-        const timer = setTimeout(end, 2000)
-
-        return () => clearTimeout(timer)
-    }, [conversationEnded])
-
-    /* ---------------------------------------------------------------- */
     /*  Auto-scroll on new messages                                     */
     /* ---------------------------------------------------------------- */
 
@@ -291,7 +295,7 @@ export default function ChatTraining() {
     /* ---------------------------------------------------------------- */
 
     const handleEndEarly = () => {
-        router.push("/complete")
+        end()
     }
 
     const handleDifficultyChange = (value: "Easy" | "Hard") => {
@@ -517,13 +521,36 @@ export default function ChatTraining() {
             </div>
         </Card>
 
+        {/* Message send error popup */}
+        <Dialog
+            open={!!messageError}
+            onOpenChange={(open) => {
+                if (!open) setMessageError(null)
+            }}
+        >
+            <DialogContent>
+            <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-500" />
+                Message not sent
+                </DialogTitle>
+                <DialogDescription>
+                We couldn&apos;t send your message or fetch a response from the server.
+                </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+                <Button onClick={() => setMessageError(null)}>OK</Button>
+            </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
         {/* ── Bottom controls ────────────────────────────────────── */}
 
         {/* Guidance + End session / View results */}
         <div className="bg-white border-t border-gray-200 px-4 py-2">
             <div className="max-w-3xl mx-auto space-y-2">
             {conversationEnded ? (
-                <Link href="/complete">
+                <Link href={`/complete/${verseId}`}>
                 <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold h-9 text-sm">
                     View Results
                 </Button>

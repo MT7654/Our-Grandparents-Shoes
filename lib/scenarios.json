@@ -22,9 +22,28 @@
             "textColor": "text-blue-700",
             "buttonCta": "Start House Visit"
         },
+        "constraints": {
+            "starting_score": 0,
+            "min_turns": 10,
+            "max_turns": 10, 
+            "character_limit": 200,
+            "score_bottom_limit": -1000,
+            "score_upper_limit": 1000
+        },
+        "behaviour": [
+            "Neutral", 
+            "Slightly Guarded",
+            "Cooperative but not overly chatty"
+        ],
         "persona": "Margaret",
-        "max_turns": 3,
-        "turn_end_message": "Thanks for checking in, I am going to rest now."
+        "turn_end_message": "Anyway, thanks for checking in, I am going to rest now.",
+        "score_end_message": "I am feeling tired now, thank you for listening.",
+        "starting_messages": [
+            "Ah, it's nice to see someone new. How's your day going?",
+            "Hello! I was just sitting down. Mind if we chat for a bit?",
+            "Hello! You look familiar. Do I know you from around the neighbourhood?",
+            "Ah, it's good to see a friendly face. How are you today?"
+        ]
     },
     
     "Emotional Listening Ear": {
@@ -52,9 +71,23 @@
             "textColor": "text-purple-700",
             "buttonCta": "Start Listening Session"
         },
+        "constraints": {
+            "starting_score": 100,
+            "min_turns": 20,
+            "max_turns": 30, 
+            "character_limit": 200,
+            "score_bottom_limit": 10,
+            "score_upper_limit": 1000
+        },
         "persona": "Margaret",
-        "max_turns": 20,
-        "turn_end_message": "I am feeling tired now, thank you for listening."
+        "turn_end_message": "I am feeling tired now, thank you for listening.",
+        "score_end_message": "I do not want to talk to you any longer.",
+        "starting_messages": [
+            "Oh, it's nice to meet you. Lately, I've been having some disagreements with my family, and it's been really stressful for me.",
+            "Hello, it's good to see someone new. I've been feeling quite lonely recently and could use someone to talk to.",
+            "Hi, I'm glad you're here. I've been misplacing things a lot lately, and it's starting to worry me.",
+            "Hello, it's nice to meet you. I've been having some health concerns and small daily tasks are feeling harder than usual."
+        ]
     }, 
 
     "Resolve a Task": {
@@ -82,8 +115,19 @@
             "textColor": "text-green-700",
             "buttonCta": "Start Task Training"
         },
+        "constraints": {
+            "starting_score": 0,
+            "min_turns": 50,
+            "max_turns": 50, 
+            "character_limit": 200,
+            "score_bottom_limit": -1000,
+            "score_upper_limit": 90
+        },
         "persona": "Margaret",
-        "max_turns": 50,
-        "turn_end_message": "Thanks for checking in, I am going to rest now."
+        "turn_end_message": "Thanks for checking in, I am going to rest now.",
+        "score_end_message": "I understand how to perform this task now, thank you.",
+        "starting_messages": [
+            "Hello dear! It's so nice to have someone to talk to. How are you doing today?"
+        ]
     }
 }

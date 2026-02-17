@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
                 { status: 400 }
             )
         }
-
+        
         if (!(scenario_name in scenarios) || !(difficulty_level == 'Easy' || difficulty_level == 'Hard')) {
             return NextResponse.json(
                 { error: "Scenario name and/or difficulty level invalid"},

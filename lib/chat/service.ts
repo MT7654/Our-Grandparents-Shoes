@@ -5,6 +5,7 @@ import {
     getExistingConversationByScenario, 
     getUserConversations,
     checkForCompletion,
+    updateCompletion,
     reduceTurns
 } from './conversation'
 import { saveEvaluation, getEvaluation } from './evaluation'
@@ -14,14 +15,11 @@ import { evaluateCompletion } from '@/lib/llm/completion'
 import { talkToPersona } from '../llm/chat'
 import { evaluateResponse } from '../llm/evaluate'
 import type { Database } from '@/supabase/types'
-import { type EndConversationEvaluation, ScenarioKeys, PersonaKeys, Persona } from '@/lib/types/types'
+import { type EndConversationEvaluation, ScenarioKeys, PersonaKeys, Persona, Scenario } from '@/lib/types/types'
 import scenarios from '../scenarios.json'
 import personas from '../personas.json'
 
 type Conversation = Database['public']['Tables']['conversations']['Row']
-
-const DEFAULT_MESSAGE = "Hello dear! It's so nice to have someone to talk to. How are you doing today?"
-const DEFAULT_CHAT_ERROR_MESSAGE = "Sorry something went wrong. Please try again later."
 
 export { getUserConversations, saveMessage, saveEvaluation }
 
@@ -29,13 +27,19 @@ export const startConversation = async (
     scenario_name: Conversation['scenario_name'],
     difficulty_level: Conversation['difficulty']
 ) => {    
-    const scenario = scenarios[scenario_name as ScenarioKeys]
+    const scenario = scenarios[scenario_name as ScenarioKeys] as Scenario
     const persona = personas[scenario.persona as PersonaKeys]
     const conversation = await getExistingConversationByScenario(scenario_name)
+    const first_message = scenario.starting_messages[Math.floor(Math.random() * scenario.starting_messages.length)]
+
+       
+    const max_turns = scenarios[scenario_name as ScenarioKeys].constraints.max_turns
+    const min_turns = scenarios[scenario_name as ScenarioKeys].constraints.min_turns
+    const turns = min_turns === max_turns ? min_turns : Math.floor(Math.random() * (max_turns - min_turns + 1)) + min_turns;
 
     if (!conversation) {
-        const new_conversation = await createConversation(scenario_name, difficulty_level)
-        const new_message = await saveMessage(new_conversation.vid, 'persona', DEFAULT_MESSAGE)
+        const new_conversation = await createConversation(scenario_name, difficulty_level, turns)
+        const new_message = await saveMessage(new_conversation.vid, 'persona', first_message)
 
         return {
             scenario,
@@ -130,7 +134,7 @@ export const fetchCompleteConversation = async (
         ...conversation,
         scores: formatted_scores,
         average,
-        objective: scenario.description
+        objective: scenario.objective
     }
 }
 
@@ -139,19 +143,13 @@ export const converse = async (
     latestMessage: string,
 ) => {
     // Check whether the conversation has ended
-    const { turns } = await checkForCompletion(converseID)
+    const { completed, turns } = await checkForCompletion(converseID)
 
     // Fetch Conversation, Existing Messages and Existing Evaluation
     const { conversation, messages, evaluation } = await fetchFullConversation(converseID)
 
     if (!conversation || !messages ) {
-        return {
-            user_message: null,
-            persona_message: DEFAULT_CHAT_ERROR_MESSAGE,
-            evaluation: null,
-            rapport_change: null,
-            turns
-        }
+        throw new Error('Failed to fetch conversation or messages')
     }
 
     // Fetch Scenario
@@ -160,32 +158,41 @@ export const converse = async (
     // Fetch Persona
     const persona: Persona = personas[scenario.persona as PersonaKeys]
 
+    // Check character limit
+    const character_limit = scenario.constraints.character_limit
+
+    if (latestMessage.length > character_limit) {
+        throw new Error('Message exceed character limit')
+    }
+
     // Save User Message
     const user_message = await saveMessage(converseID, 'user', latestMessage)
 
     if (!user_message) {
-        return {
-            user_message: null,
-            persona_message: DEFAULT_CHAT_ERROR_MESSAGE,
-            evaluation: null,
-            rapport_change: null,
-            turns,
-        }
+        throw new Error('Failed to save user message')
     }
 
     // LLM (Parallel) (lastest message sent separately)
     const [ reply, verdict ] = await Promise.all([
-        talkToPersona(persona, messages, latestMessage),
-        evaluateResponse(persona, latestMessage, messages, scenario.description)
+        talkToPersona(conversation.scenario_name, conversation.difficulty, persona, messages, latestMessage),
+        evaluateResponse(conversation.scenario_name, persona, latestMessage, messages, evaluation, conversation.difficulty, scenario.objective)
     ])
 
     // Update Rapport (Clamped)
-    const original_rapport = evaluation ? evaluation.rapport : 50
+    const original_rapport = evaluation ? evaluation.rapport : scenario.constraints.starting_score
     const new_rapport = Math.min(100, Math.max(0, (original_rapport + verdict.rapportChange)))
+
+    // Check completion
+    let custom_reply = ""
+    if (completed && turns <= 0) {
+        custom_reply = scenario.turn_end_message
+    } else if (completed) {
+        custom_reply = scenario.score_end_message
+    }
 
     // Save Persona Reply and Evaluation
     const [ persona_reply, new_eval ] = await Promise.all([
-        saveMessage(converseID, 'persona', reply),
+        saveMessage(converseID, 'persona', (custom_reply !== "" ? custom_reply : reply)),
         saveEvaluation(
             converseID, 
             verdict.sentiment, 
@@ -196,17 +203,26 @@ export const converse = async (
     ])
 
     if (!persona_reply || !new_eval) {
-        return {
-            user_message: user_message,
-            persona_message: DEFAULT_CHAT_ERROR_MESSAGE,
-            evaluation: null,
-            rapport_change: null,
-            turns,
-        }
+        throw new Error("Unable to save persona and evaluation results")
+    }
+
+    // Update completion status based on score
+    let updated_completion = false
+    if (new_rapport < scenario.constraints.score_bottom_limit || new_rapport > scenario.constraints.score_upper_limit) {
+        const { completed: new_update } = await updateCompletion(converseID, true)
+        updated_completion = new_update
+    }
+
+    if (updated_completion) {
+        persona_reply.content = persona_reply.content + " " + scenario.score_end_message
     }
 
     // If all successful, reduce turns by one
-    const { turns: newTurns } = await reduceTurns(converseID, turns)
+    const { turns: newTurns } = await reduceTurns(converseID, turns, updated_completion)
+
+    if (newTurns === 0) {
+        persona_reply.content = persona_reply.content + " " + scenario.turn_end_message
+    }
 
     return {
         user_message: user_message,
@@ -214,5 +230,6 @@ export const converse = async (
         evaluation: new_eval,
         rapport_change: verdict.rapportChange,
         turns: newTurns,
+        completed: completed || updated_completion
     }
 }

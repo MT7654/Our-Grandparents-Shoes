@@ -1,10 +1,12 @@
 "use server"
 
 import Groq from "groq-sdk"
-import { MidConversationEvaluation, type Persona } from "../types/types"
+import { MidConversationEvaluation, type Persona, ScenarioKeys, Prompts, Difficulty } from "../types/types"
 import { type Database } from '@/supabase/types'
+import prompts from '@/lib/prompts.json'
 
 type Message = Database['public']['Tables']['messages']['Row']
+type Evaluation = Database['public']['Tables']['evaluations']['Row']
 
 const apiKey = process.env.GROQ_API_KEY
 if (!apiKey) throw new Error("GROQ_API_KEY not set")
@@ -17,16 +19,11 @@ const modelNames = [
     "llama-3.3-70b-versatile",   // Newer 70B model (if available)
 ]
 
-const systemPrompt = `
-    You are an expert conversation coach evaluating a conversation between a user and a senior persona. 
-    Analyze the user's message and the persona's response.
+const easyMood = "Calm, warm, friendly, forgiving and reassuring."
+const hardMood = "Sharp, tense, assertive, quick to anger, slow to forgive and slightly irritable."
 
-    Instructions:
-        1. Sentiment: "positive", "neutral", or "negative" — based on how the user's message would make the senior feel
-        2. Expression: "happy", "neutral", "sad", or "angry" — the emotional expression the senior would show
-        3. Rapport change: a number between -10 and +15 indicating how much the rapport improved or worsened
-        4. Suggestion: a helpful coaching tip (1-2 sentences) for the user to improve their conversation skills
-
+const outputFormat = 
+`
     Respond ONLY with a valid JSON object in this exact format:
         {
             "sentiment": "positive|neutral|negative",
@@ -35,17 +32,20 @@ const systemPrompt = `
             "suggestion": "<coaching tip>"
         }
 `
-
 export async function evaluateResponse(
+    scenarioName: string,
     persona: Persona,
     lastMessage: string,
     history: Message[],
+    lastEvaluation: Evaluation | null,
+    difficulty_level: Difficulty,
     objective: string,
     temperature = 0.3,
     max_tokens = 200
 ): Promise<MidConversationEvaluation> {
 
-    const evaluationPrompt = generateEvaluationPrompt(persona, history, objective)
+    const evaluationPrompt = generateEvaluationPrompt(persona, history, objective, lastEvaluation, difficulty_level)
+    const systemPrompt = generateSystemPrmopt(scenarioName, difficulty_level)
 
     let completion: any = null
     let lastError: Error | null = null
@@ -80,14 +80,16 @@ export async function evaluateResponse(
     let result: MidConversationEvaluation
     try {
         result = JSON.parse(text) as MidConversationEvaluation
+        result.rapportChange = Number(result.rapportChange)
     } catch (err) {
         console.error("Failed to parse LLM response as JSON:", text)
         throw new Error("Failed to parse LLM response as JSON")
     }
 
-    // Clamp rapportChange to [-10, 15]
+    // Clamp rapportChange to depending on difficulty level
+    const clamp = difficulty_level === 'Easy' ? 10 : 20
     if (typeof result.rapportChange === "number") {
-        result.rapportChange = Math.min(15, Math.max(-10, result.rapportChange))
+        result.rapportChange = Math.min(clamp, Math.max(-clamp, result.rapportChange))
     } else {
         result.rapportChange = 0
     }
@@ -108,7 +110,9 @@ export async function evaluateResponse(
 function generateEvaluationPrompt(
     persona: Persona,
     history: Message[],
-    objective: string
+    objective: string,
+    evaluation: Evaluation | null,
+    difficulty_level: Difficulty
 ): string {
 
     const conversationText = history.map(msg => {
@@ -123,7 +127,16 @@ function generateEvaluationPrompt(
         Age: ${persona.age}
         Personality: ${persona.personality}
         Interests: ${interests}
+        Initial Mood: ${difficulty_level === 'Easy' ? easyMood : hardMood}
     `
+
+    const evaluationText = (evaluation ? `
+            Sentiment: ${evaluation.sentiment}
+            Expression: ${evaluation.expression}
+            Rapport: ${evaluation.rapport}
+            Suggestion: ${evaluation.suggestion}
+        ` : 'None (Brand New Conversation)'
+    )
 
     return `
         Objective:
@@ -134,5 +147,38 @@ function generateEvaluationPrompt(
 
         Conversation History:
         ${conversationText}
+
+        Last Evaluation:
+        ${evaluationText}
     `
+}
+
+function generateSystemPrmopt(
+    scenarioName: string,
+    difficulty_level: Difficulty
+): string {
+    const prompt: Prompts = prompts[scenarioName as ScenarioKeys]
+    const conversationalPrompt: Record<string, string[]> = prompt['Evaluation_Prompt']
+
+    let result = ''
+
+    Object.entries(conversationalPrompt).forEach(([key, values]) => {
+        result += `${key.replace('_', ' ')}\n`
+
+        values.forEach(value => {
+            result += `\t${value}\n`
+        })
+
+        result += "\n"
+    })
+    
+    result += outputFormat
+
+    // Change <score> based on difficulty level
+    result.replace('<score>', difficulty_level === "Easy" ? '10' : '20')
+
+    // Change <rater> based on difficulty level
+    result.replaceAll('<rate>', difficulty_level === "Easy" ? 'monotonic' : 'exponential')
+
+    return result
 }

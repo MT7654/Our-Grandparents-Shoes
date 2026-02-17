@@ -1,8 +1,10 @@
 "use server"
 
 import Groq from "groq-sdk"
-import { type Persona } from "../types/types"
+import { type Persona, ScenarioKeys, Prompts, Difficulty, Scenario } from "../types/types"
 import { type Database } from '@/supabase/types'
+import prompts from '@/lib/prompts.json'
+import scenarios from '@/lib/scenarios.json'
 
 type Message = Database['public']['Tables']['messages']['Row']
 
@@ -15,38 +17,24 @@ const modelNames = [
     "llama-3.1-8b-instant",      // Fast, smaller model
     "mixtral-8x7b-32768",        // Mixtral model
     "llama-3.3-70b-versatile",   // Newer 70B model (if available)
-    "llama-3.1-70b-versatile",    // Fallback (may be deprecated)
 ]
 
-const systemPrompt = `
-    You are a typical Singaporean elderly. 
-    You can speak Singlish with a mix of English, Mandarin, and Hokkien words. 
-    You are shy, hesitant, and respond with awkward pauses using "..." when unsure. 
-    Keep responses SHORT (1-2 sentences, 20-40 words) and avoid oversharing.
-
-    Examples of your speech:
-    - "Oh... hello ah. You... you want to talk to me is it?"
-    - "Erm... okay lah. What you want to know?"
-    - "Aiyoh... I don't know what to say leh..."
-    - "Hmm... let me think ah..."
-    - "Aiyo... cannot lah, don't know leh..."
-
-    Remember to:
-    - Use "lah", "leh", "lor", "ah", "meh" naturally
-    - Show shyness and hesitation, especially at first
-    - Be brief and sometimes a bit awkward
-
+const outputFormat = 
+`
     Respond ONLY with a valid JSON object in this exact format:
         {
             "Response": "your response here"
         }
-    No backticks, no explanations, no additional fields.
-
 `
+
+const easyMood = "Calm, warm, friendly, forgiving and reassuring."
+const hardMood = "Sharp, tense, assertive, quick to anger, slow to forgive and slightly irritable."
 
 const DEFAULT_RESPONSE = "Aiyo... I don't understand leh..."
 
 export async function talkToPersona(
+    scenarioName: string,
+    difficulty_level: Difficulty,
     personaProfile: Persona,
     conversationHistory: Message[],
     latestUserMessage: string,
@@ -54,7 +42,8 @@ export async function talkToPersona(
     max_tokens: number = 50
 ): Promise<string> {
 
-    const conversationalPrompt = generateConversationPrompt(personaProfile, conversationHistory)
+    const conversationalPrompt = generateConversationPrompt(personaProfile, conversationHistory, difficulty_level)
+    const systemPrompt = generateSystemPrmopt(scenarioName, difficulty_level)
 
     let completion: any = null
     let lastError: Error | null = null
@@ -99,7 +88,8 @@ export async function talkToPersona(
 
 function generateConversationPrompt(
     personaProfile: Persona,
-    conversationHistory: Message[]
+    conversationHistory: Message[],
+    difficulty_level: Difficulty,
 ): string {
 
     const conversationText = conversationHistory.map(msg => {
@@ -112,6 +102,7 @@ function generateConversationPrompt(
         Age: ${personaProfile.age}
         Personality: ${personaProfile.personality}
         Interests: ${personaProfile.interests.join(' ')}
+        Initial Mood: ${difficulty_level === 'Easy' ? easyMood : hardMood}
     `
 
     return `
@@ -121,4 +112,31 @@ function generateConversationPrompt(
         Conversation History:
         ${conversationText}
     `
+}
+
+function generateSystemPrmopt(
+    scenarioName: string,
+    difficulty_level: Difficulty
+): string {
+    const prompt: Prompts = prompts[scenarioName as ScenarioKeys]
+    const conversationalPrompt: Record<string, string[]> = prompt['Conversational_Prompt']
+
+    let result = ''
+
+    Object.entries(conversationalPrompt).forEach(([key, values]) => {
+        result += `${key.replaceAll('_', ' ')}\n`
+
+        values.forEach(value => {
+            result += `\t${value}\n`
+        })
+
+        result += "\n"
+    })
+    
+    result += outputFormat
+
+    // Change <rater> based on difficulty level
+    result.replaceAll('<rate>', difficulty_level === "Easy" ? 'monotonic' : 'exponential')
+
+    return result
 }

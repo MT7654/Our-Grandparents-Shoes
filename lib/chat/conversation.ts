@@ -1,13 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import type { Database } from '@/supabase/types'
-import scenarios from '@/lib/scenarios.json'
-import { type ScenarioKeys } from '@/lib/types/types'
 
 type Conversation = Database['public']['Tables']['conversations']['Row']
 
 export const createConversation = async (
     scenario: Conversation['scenario_name'],
-    difficulty_level: Conversation['difficulty']
+    difficulty_level: Conversation['difficulty'],
+    number_of_turns: number,
 ) => {
     const supabase = await createClient()
 
@@ -15,7 +14,7 @@ export const createConversation = async (
         .from('conversations')
         .insert({
             scenario_name: scenario,
-            turns: scenarios[scenario as ScenarioKeys].max_turns,
+            turns: number_of_turns,
             difficulty: difficulty_level
         })
         .select()
@@ -62,21 +61,16 @@ export const checkForCompletion = async (
         throw new Error(`No conversation found for conversation ID "${converseID}"`)
     }
 
-    if (data['completed'] && data['turns'] <= 0) {
-        throw new Error(`Conversation ${converseID} has already ended due to exceeded turn limit`)
-    } else if (data['completed']) {
-        throw new Error(`Conversation ${converseID} has already ended`)
-    } else {
-        return {
-            completed: data['completed'],
-            turns: data['turns']
-        }
+    return {
+        completed: data['completed'],
+        turns: data['turns']
     }
 }
 
 export const reduceTurns = async (
     converseID: Conversation['vid'],
-    currentTurns: number
+    currentTurns: number,
+    score_completion: boolean
 ) => {
     const supabase = await createClient()
 
@@ -86,7 +80,7 @@ export const reduceTurns = async (
         .from('conversations')
         .update({
             turns: turns,
-            completed: turns <= 0
+            completed: turns <= 0 || score_completion
         })
         .eq('vid', converseID)
         .select()
@@ -104,6 +98,35 @@ export const reduceTurns = async (
     return { 
         turns: updateData['turns'],
         completed: updateData['completed']
+    }
+}
+
+export const updateCompletion = async (
+    converseID: Conversation['vid'],
+    completion_status: Conversation['completed']
+) => {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+        .from('conversations')
+        .update({
+            completed: completion_status
+        })
+        .eq('vid', converseID)
+        .select()
+        .single()
+
+    if (error) {
+        console.error('Error updating conversation completion status: ', error)
+        // PGRST116 means no rows found
+        if (error.code === 'PGRST116') {
+            throw new Error(`Conversation with ID "${converseID}" not found`)
+        }
+        throw new Error(`Failed to update conversation status: ${error.message}`)
+    }
+
+    return { 
+        completed: data['completed'] as boolean
     }
 }
 
