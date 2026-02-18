@@ -1,4 +1,10 @@
--- Remove unnecessaru columns from badges
+-- Remove unnecessary triggers and functions
+DROP TRIGGER IF EXISTS award_progression_badges ON conversations;
+DROP TRIGGER IF EXISTS award_skill_badges ON scores;
+DROP FUNCTION IF EXISTS insert_skill_achievements();
+DROP FUNCTION IF EXISTS award_skill_badges();
+
+-- Remove unnecessary columns from badges
 ALTER TABLE badges
 DROP COLUMN category, 
 DROP COLUMN criteria_type, 

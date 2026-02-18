@@ -96,10 +96,10 @@ export default function ConversationComplete() {
                             </AlertDescription>
                         </Alert>
                         <div className="flex flex-col sm:flex-row gap-3">
-                            <Link href="/personas" className="flex-1">
+                            <Link href="/scenarios" className="flex-1">
                                 <Button variant="outline" className="w-full">
                                     <RotateCcw className="w-4 h-4 mr-2" />
-                                    Try Another Persona
+                                    Try Another Scenario
                                 </Button>
                             </Link>
                             <Link href="/dashboard" className="flex-1">
