@@ -2,6 +2,7 @@
     "Margaret": {
         "name": "Margaret Chan",
         "age": 78,
+        "gender": "female",
         "personality": "A warm and friendly senior who enjoys conversation.",
         "interests": [
             "Gardening",

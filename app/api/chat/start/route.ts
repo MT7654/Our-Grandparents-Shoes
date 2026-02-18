@@ -7,6 +7,11 @@ import type { Database } from '@/supabase/types'
 
 type Conversation = Database['public']['Tables']['conversations']['Row']
 
+/**
+ * POST /api/chat/start
+ * Body: { scenario_name, difficulty_level }
+ * Starts a new conversation or returns existing in-progress conversation for the scenario.
+ */
 export async function POST(request: NextRequest) {
     try {
         const guardResult = await guard('user')
@@ -28,13 +33,13 @@ export async function POST(request: NextRequest) {
 
         if (!(scenario_name in scenarios)) {
             return NextResponse.json(
-                { error: "Scenario name invalid" },
+                { error: 'Scenario name invalid' },
                 { status: 404 }
             )
         }
         if (difficulty_level !== 'Easy' && difficulty_level !== 'Hard') {
             return NextResponse.json(
-                { error: "Difficulty level must be 'Easy' or 'Hard'" },
+                { error: 'Difficulty level must be Easy or Hard' },
                 { status: 400 }
             )
         }

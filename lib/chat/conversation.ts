@@ -3,6 +3,9 @@ import type { Database } from '@/supabase/types'
 
 type Conversation = Database['public']['Tables']['conversations']['Row']
 
+/**
+ * Creates a new conversation record for a scenario with the given difficulty and turn count.
+ */
 export const createConversation = async (
     scenario: Conversation['scenario_name'],
     difficulty_level: Conversation['difficulty'],
@@ -34,6 +37,10 @@ export const createConversation = async (
     return data as Conversation
 }
 
+/**
+ * Fetches the current turns remaining and completion status for a conversation.
+ * @throws Error if conversation is not found or fetch fails
+ */
 export const checkForCompletion = async (
     converseID: Conversation['vid']
 ) => {
@@ -67,6 +74,9 @@ export const checkForCompletion = async (
     }
 }
 
+/**
+ * Decrements the conversation turn count and optionally marks as completed.
+ */
 export const reduceTurns = async (
     converseID: Conversation['vid'],
     currentTurns: number,
@@ -101,6 +111,9 @@ export const reduceTurns = async (
     }
 }
 
+/**
+ * Updates the completed flag for a conversation.
+ */
 export const updateCompletion = async (
     converseID: Conversation['vid'],
     completion_status: Conversation['completed']
@@ -125,11 +138,14 @@ export const updateCompletion = async (
         throw new Error(`Failed to update conversation status: ${error.message}`)
     }
 
-    return { 
+    return {
         completed: data['completed'] as boolean
     }
 }
 
+/**
+ * Persists conversation completion status and feedback (e.g. after end-conversation evaluation).
+ */
 export const saveConversation = async (
     converseID: Conversation['vid'],
     completed: Conversation['completed'],
@@ -159,6 +175,10 @@ export const saveConversation = async (
     return data as Conversation
 }
 
+/**
+ * Gets the current user's in-progress conversation for a scenario, if any.
+ * Returns null when no active conversation exists (PGRST116).
+ */
 export const getExistingConversationByScenario = async (
     scenario: Conversation['scenario_name']
 ) => {
@@ -183,6 +203,9 @@ export const getExistingConversationByScenario = async (
     return data as Conversation
 }
 
+/**
+ * Fetches a single conversation by its vid. Returns null if not found.
+ */
 export const getConversationByConversationID = async (
     converseID: Conversation['vid']
 ) => {
@@ -206,6 +229,9 @@ export const getConversationByConversationID = async (
     return data as Conversation
 }
 
+/**
+ * Returns all conversations for the currently authenticated user.
+ */
 export const getUserConversations = async () => {
     const supabase = await createClient()
 

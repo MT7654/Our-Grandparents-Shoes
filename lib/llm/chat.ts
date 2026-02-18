@@ -32,6 +32,10 @@ const hardMood = "Sharp, tense, assertive, quick to anger, slow to forgive and s
 
 const DEFAULT_RESPONSE = "Aiyo... I don't understand leh..."
 
+/**
+ * Calls the LLM to generate the persona's reply given conversation history and the latest user message.
+ * Tries multiple models in order until one succeeds. Returns JSON with "Response" field.
+ */
 export async function talkToPersona(
     scenarioName: string,
     difficulty_level: Difficulty,
@@ -43,7 +47,7 @@ export async function talkToPersona(
 ): Promise<string> {
 
     const conversationalPrompt = generateConversationPrompt(personaProfile, conversationHistory, difficulty_level)
-    const systemPrompt = generateSystemPrmopt(scenarioName, difficulty_level)
+    const systemPrompt = generateSystemPrompt(scenarioName, difficulty_level)
 
     let completion: any = null
     let lastError: Error | null = null
@@ -86,10 +90,11 @@ export async function talkToPersona(
     }
 }
 
+/** Builds the assistant-side prompt with persona profile and conversation history. */
 function generateConversationPrompt(
     personaProfile: Persona,
     conversationHistory: Message[],
-    difficulty_level: Difficulty,
+    difficulty_level: Difficulty
 ): string {
 
     const conversationText = conversationHistory.map(msg => {
@@ -100,6 +105,7 @@ function generateConversationPrompt(
     const personaText = `
         Name: ${personaProfile.name}
         Age: ${personaProfile.age}
+        Gender: ${personaProfile.gender}
         Personality: ${personaProfile.personality}
         Interests: ${personaProfile.interests.join(' ')}
         Initial Mood: ${difficulty_level === 'Easy' ? easyMood : hardMood}
@@ -114,7 +120,8 @@ function generateConversationPrompt(
     `
 }
 
-function generateSystemPrmopt(
+/** Builds the system prompt for persona conversation from scenario prompts and difficulty. */
+function generateSystemPrompt(
     scenarioName: string,
     difficulty_level: Difficulty
 ): string {
@@ -130,13 +137,9 @@ function generateSystemPrmopt(
             result += `\t${value}\n`
         })
 
-        result += "\n"
+        result += '\n'
     })
-    
+
     result += outputFormat
-
-    // Change <rater> based on difficulty level
-    result.replaceAll('<rate>', difficulty_level === "Easy" ? 'monotonic' : 'exponential')
-
     return result
 }

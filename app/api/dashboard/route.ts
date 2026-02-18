@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import { getPastConversations, getOverallStatistics, getUserAchievements } from '@/lib/dashboard/dashboard'
 import { guard } from '@/lib/auth/guard'
 
+/**
+ * GET /api/dashboard
+ * Returns past conversations, overall statistics, and user achievements for the authenticated user.
+ */
 export async function GET() {
     try {
         const guardResult = await guard('user')
@@ -22,8 +26,8 @@ export async function GET() {
             user_achievements: user_achievements || []
         })
     } catch (error) {
-        console.error("GET /dashboard error: ", error)
-        const errorMessage = error instanceof Error ? error.message : "Failed to load dashboard data"
+        console.error('GET /dashboard error: ', error)
+        const errorMessage = error instanceof Error ? error.message : 'Failed to load dashboard data'
         return NextResponse.json(
             { error: errorMessage },
             { status: 500 }

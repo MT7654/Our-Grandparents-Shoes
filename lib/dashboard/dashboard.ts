@@ -5,8 +5,10 @@ import type { DisplayBadge } from '@/lib/types/types'
 type PastSession = Database['public']['Views']['conversation_sessions']['Row']
 type Statistic = Database['public']['Views']['statistics']['Row']
 
-export const getPastConversations = async (
-) => {
+/**
+ * Fetches the current user's past conversation sessions (for dashboard list).
+ */
+export const getPastConversations = async () => {
     const supabase = await createClient()
 
     const { data, error } = await supabase
@@ -23,6 +25,9 @@ export const getPastConversations = async (
     return (data || []) as PastSession[]
 }
 
+/**
+ * Fetches aggregate statistics for the current user (from statistics view).
+ */
 export const getOverallStatistics = async () => {
     const supabase = await createClient()
 
@@ -43,6 +48,9 @@ export const getOverallStatistics = async () => {
     return data as Statistic
 }
 
+/**
+ * Fetches all badges with unlocked/awarded state for the current user.
+ */
 export const getUserAchievements = async () => {
     const supabase = await createClient()
 

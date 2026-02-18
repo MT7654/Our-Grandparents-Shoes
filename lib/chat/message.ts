@@ -3,6 +3,9 @@ import type { Database } from '@/supabase/types'
 
 type Message = Database['public']['Tables']['messages']['Row']
 
+/**
+ * Saves a single message to a conversation (user or persona).
+ */
 export const saveMessage = async (
     converseID: Message['vid'],
     sender: Message['sender'],
@@ -28,6 +31,9 @@ export const saveMessage = async (
     return data as Message
 }
 
+/**
+ * Fetches all messages for a conversation, ordered by sent_at.
+ */
 export const getMessages = async (
     converseID: Message['vid']
 ) => {

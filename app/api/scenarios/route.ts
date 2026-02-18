@@ -4,7 +4,11 @@ import scenarios from '@/lib/scenarios.json'
 import personas from '@/lib/personas.json'
 import { type ScenarioKeys, PersonaKeys, Scenario, Persona } from '@/lib/types/types'
 
-
+/**
+ * GET /api/scenarios
+ * Query: optional name=<scenarioKey>
+ * Returns list of all scenarios, or single scenario + persona when name is provided.
+ */
 export async function GET(request: NextRequest) {
     try {
         const guardResult = await guard('user')
@@ -25,7 +29,7 @@ export async function GET(request: NextRequest) {
             } else {
                 console.error("GET /scenarios error: No Scenario Found")
                 return NextResponse.json(
-                    { error: "No Scenario Found"},
+                    { error: 'No Scenario Found' },
                     { status: 404 }
                 )
             }
@@ -40,8 +44,8 @@ export async function GET(request: NextRequest) {
         }
         
     } catch (error) {
-        console.error("GET /scenarios error: ", error)
-        const errorMessage = error instanceof Error ? error.message : "Failed to fetch scenario"
+        console.error('GET /scenarios error: ', error)
+        const errorMessage = error instanceof Error ? error.message : 'Failed to fetch scenario'
         return NextResponse.json(
             { error: errorMessage },
             { status: 500 }

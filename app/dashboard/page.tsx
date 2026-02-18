@@ -99,7 +99,7 @@ export default function ProgressDashboard() {
                 <h1 className="text-4xl font-bold mb-2">Your Progress</h1>
                 <p className="text-lg text-muted-foreground">Track your conversation training journey</p>
               </div>
-              <Link href="/personas">
+              <Link href="/scenarios">
                 <Button size="lg">
                   <MessageCircle className="w-4 h-4 mr-2" />
                   Continue Training

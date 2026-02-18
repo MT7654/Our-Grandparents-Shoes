@@ -31,6 +31,7 @@ type Sentiment = Database['public']['Enums']['eval_sentiment']
 const default_persona: Persona = {
     name: "Margaret Chan",
     age: 78,
+    gender: 'Female',
     personality: "A warm and friendly senior who enjoys conversation.",
     interests: ["Gardening", "Baking", "Family History"],
     avatar: "/elderly-woman-cartoon-avatar-smiling-grandmother.jpg"
@@ -100,7 +101,7 @@ export default function ChatTraining() {
                     setShowDifficultyPopup(true)
                     setLoading(false)
                     return
-                } else {
+                } else {                    
                     if (scenario) {
                         setRapport(scenario.constraints.starting_score)
                         setScenario(scenario)
@@ -109,6 +110,7 @@ export default function ChatTraining() {
                     if (conversation) {
                         setVerseId(conversation.vid)
                         setTurnsRemain(conversation.turns)
+                        setDifficulty(conversation.difficulty)
                     }
                     if (messages) setMessages(messages)
                     if (evaluation) {
@@ -168,6 +170,7 @@ export default function ChatTraining() {
                 if (conversation) {
                     setVerseId(conversation.vid)
                     setTurnsRemain(conversation.turns)
+                    setDifficulty(conversation.difficulty)
                 }
                 if (messages) setMessages(messages)
                 if (evaluation) {

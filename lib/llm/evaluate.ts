@@ -32,6 +32,11 @@ const outputFormat =
             "suggestion": "<coaching tip>"
         }
 `
+
+/**
+ * Evaluates the user's latest message: sentiment, expression, rapport change, and coaching suggestion.
+ * Tries multiple models; clamps and validates the JSON response.
+ */
 export async function evaluateResponse(
     scenarioName: string,
     persona: Persona,
@@ -45,7 +50,7 @@ export async function evaluateResponse(
 ): Promise<MidConversationEvaluation> {
 
     const evaluationPrompt = generateEvaluationPrompt(persona, history, objective, lastEvaluation, difficulty_level)
-    const systemPrompt = generateSystemPrmopt(scenarioName, difficulty_level)
+    const systemPrompt = generateSystemPrompt(scenarioName, difficulty_level)
 
     let completion: any = null
     let lastError: Error | null = null
@@ -107,6 +112,7 @@ export async function evaluateResponse(
     return result
 }
 
+/** Builds the prompt for mid-conversation evaluation (objective, persona, history, last evaluation). */
 function generateEvaluationPrompt(
     persona: Persona,
     history: Message[],
@@ -125,6 +131,7 @@ function generateEvaluationPrompt(
     const personaText = `
         Name: ${persona.name}
         Age: ${persona.age}
+        Gender: ${persona.gender}
         Personality: ${persona.personality}
         Interests: ${interests}
         Initial Mood: ${difficulty_level === 'Easy' ? easyMood : hardMood}
@@ -153,7 +160,8 @@ function generateEvaluationPrompt(
     `
 }
 
-function generateSystemPrmopt(
+/** Builds the system prompt for mid-conversation evaluation from scenario prompts and difficulty. */
+function generateSystemPrompt(
     scenarioName: string,
     difficulty_level: Difficulty
 ): string {
@@ -163,22 +171,17 @@ function generateSystemPrmopt(
     let result = ''
 
     Object.entries(conversationalPrompt).forEach(([key, values]) => {
-        result += `${key.replace('_', ' ')}\n`
+        result += `${key.replaceAll('_', ' ')}\n`
 
         values.forEach(value => {
             result += `\t${value}\n`
         })
 
-        result += "\n"
+        result += '\n'
     })
-    
+
     result += outputFormat
-
-    // Change <score> based on difficulty level
-    result.replace('<score>', difficulty_level === "Easy" ? '10' : '20')
-
-    // Change <rater> based on difficulty level
-    result.replaceAll('<rate>', difficulty_level === "Easy" ? 'monotonic' : 'exponential')
+    result = result.replace('<score>', difficulty_level === 'Easy' ? '10' : '20')
 
     return result
 }

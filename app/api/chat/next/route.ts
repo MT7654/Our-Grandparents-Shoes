@@ -6,7 +6,12 @@ import { guard } from '@/lib/auth/guard'
 type Conversation = Database['public']['Tables']['conversations']['Row']
 type Message = Database['public']['Tables']['messages']['Row']
 
-export async function POST(request:NextRequest) {
+/**
+ * POST /api/chat/next
+ * Body: { converseId, latestMessage }
+ * Processes one user message: saves it, gets persona reply and evaluation, returns new state.
+ */
+export async function POST(request: NextRequest) {
     try {
         const guardResult = await guard('user')
 
@@ -22,14 +27,14 @@ export async function POST(request:NextRequest) {
 
         if (!converseId || latestMessage === null || latestMessage === undefined) {
             return NextResponse.json(
-                { error: 'Conversation ID and message are required'},
+                { error: 'Conversation ID and message are required' },
                 { status: 400 }
             )
         }
 
         if (typeof latestMessage !== 'string' || latestMessage.trim().length === 0) {
             return NextResponse.json(
-                { error: 'Message cannot be empty'},
+                { error: 'Message cannot be empty' },
                 { status: 400 }
             )
         }
@@ -38,7 +43,7 @@ export async function POST(request:NextRequest) {
 
         if (!data) {
             return NextResponse.json(
-                { error: "Failed to generate response. Please try again." },
+                { error: 'Failed to generate response. Please try again.' },
                 { status: 422 }
             )
         }

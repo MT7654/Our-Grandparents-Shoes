@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+/**
+ * Ensures the request has an authenticated session. Returns a NextResponse (error) or { session }.
+ * Use: if (guardResult instanceof NextResponse) return guardResult
+ */
 export async function guard(role: 'user' | 'admin') {
     const supabase = await createClient()
 
@@ -11,7 +15,7 @@ export async function guard(role: 'user' | 'admin') {
     }
 
     if (!session) {
-        return NextResponse.json({ error: "Unauthorized Access" }, { status: 401 })
+        return NextResponse.json({ error: 'Unauthorized Access' }, { status: 401 })
     }
 
     // Get user's role from profile

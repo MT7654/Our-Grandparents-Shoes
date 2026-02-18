@@ -1,8 +1,8 @@
-import { 
-    createConversation, 
-    saveConversation, 
-    getConversationByConversationID, 
-    getExistingConversationByScenario, 
+import {
+    createConversation,
+    saveConversation,
+    getConversationByConversationID,
+    getExistingConversationByScenario,
     getUserConversations,
     checkForCompletion,
     updateCompletion,
@@ -23,6 +23,10 @@ type Conversation = Database['public']['Tables']['conversations']['Row']
 
 export { getUserConversations, saveMessage, saveEvaluation }
 
+/**
+ * Resumes an existing in-progress conversation for a scenario.
+ * Returns null if no active conversation exists for that scenario.
+ */
 export const resumeConversation = async (
     scenario_name: Conversation['scenario_name']
 ) => {
@@ -42,19 +46,22 @@ export const resumeConversation = async (
     }
 }
 
+/**
+ * Starts or resumes a conversation: creates a new one with a random starting message and turn count,
+ * or returns full state if an in-progress conversation already exists for the scenario.
+ */
 export const startConversation = async (
     scenario_name: Conversation['scenario_name'],
     difficulty_level: Conversation['difficulty']
-) => {    
+) => {
     const scenario = scenarios[scenario_name as ScenarioKeys] as Scenario
     const persona = personas[scenario.persona as PersonaKeys]
     const conversation = await getExistingConversationByScenario(scenario_name)
     const first_message = scenario.starting_messages[Math.floor(Math.random() * scenario.starting_messages.length)]
 
-       
     const max_turns = scenarios[scenario_name as ScenarioKeys].constraints.max_turns
     const min_turns = scenarios[scenario_name as ScenarioKeys].constraints.min_turns
-    const turns = min_turns === max_turns ? min_turns : Math.floor(Math.random() * (max_turns - min_turns + 1)) + min_turns;
+    const turns = min_turns === max_turns ? min_turns : Math.floor(Math.random() * (max_turns - min_turns + 1)) + min_turns
 
     if (!conversation) {
         const new_conversation = await createConversation(scenario_name, difficulty_level, turns)
@@ -65,8 +72,8 @@ export const startConversation = async (
             persona,
             conversation: new_conversation,
             messages: new_message ? [new_message] : [],
-            evaluation: null,
-        } 
+            evaluation: null
+        }
     } else {
         const full_conversation = await fetchFullConversation(conversation.vid)
         return {
@@ -77,6 +84,9 @@ export const startConversation = async (
     }
 }
 
+/**
+ * Ends a conversation: runs completion evaluation, saves feedback and scores, and returns the saved result.
+ */
 export const endConversation = async (
     converseID: Conversation['vid']
 ) => {
@@ -105,6 +115,9 @@ export const endConversation = async (
     }
 }
 
+/**
+ * Fetches conversation record, messages, and current evaluation for a conversation (parallel).
+ */
 export const fetchFullConversation = async (
     converseID: Conversation['vid']
 ) => {
@@ -121,6 +134,9 @@ export const fetchFullConversation = async (
     }
 }
 
+/**
+ * Fetches a completed conversation with its scores and scenario objective for the results/complete page.
+ */
 export const fetchCompleteConversation = async (
     converseID: Conversation['vid']
 ) => {
@@ -148,7 +164,6 @@ export const fetchCompleteConversation = async (
         return acc
     }, {} as Record<string, number>)
 
-
     return {
         ...conversation,
         scores: formatted_scores,
@@ -157,17 +172,21 @@ export const fetchCompleteConversation = async (
     }
 }
 
+/**
+ * Handles one user message: saves it, gets persona reply and mid-conversation evaluation,
+ * updates rapport and completion/turns, and returns the new messages and state.
+ */
 export const converse = async (
     converseID: Conversation['vid'],
-    latestMessage: string,
+    latestMessage: string
 ) => {
-    // Check whether the conversation has ended
+    // Check whether the conversation has already ended
     const { completed, turns } = await checkForCompletion(converseID)
 
     // Fetch Conversation, Existing Messages and Existing Evaluation
     const { conversation, messages, evaluation } = await fetchFullConversation(converseID)
 
-    if (!conversation || !messages ) {
+    if (!conversation || !messages) {
         throw new Error('Failed to fetch conversation or messages')
     }
 
@@ -191,7 +210,7 @@ export const converse = async (
         throw new Error('Failed to save user message')
     }
 
-    // LLM (Parallel) (lastest message sent separately)
+    // LLM: persona reply and evaluation in parallel (latest message sent separately)
     const [ reply, verdict ] = await Promise.all([
         talkToPersona(conversation.scenario_name, conversation.difficulty, persona, messages, latestMessage),
         evaluateResponse(conversation.scenario_name, persona, latestMessage, messages, evaluation, conversation.difficulty, scenario.objective)
@@ -209,9 +228,9 @@ export const converse = async (
         custom_reply = scenario.score_end_message
     }
 
-    // Save Persona Reply and Evaluation
-    const [ persona_reply, new_eval ] = await Promise.all([
-        saveMessage(converseID, 'persona', (custom_reply !== "" ? custom_reply : reply)),
+    // Save persona reply and evaluation
+    const [persona_reply, new_eval] = await Promise.all([
+        saveMessage(converseID, 'persona', (custom_reply !== '' ? custom_reply : reply)),
         saveEvaluation(
             converseID, 
             verdict.sentiment, 
@@ -222,7 +241,7 @@ export const converse = async (
     ])
 
     if (!persona_reply || !new_eval) {
-        throw new Error("Unable to save persona and evaluation results")
+        throw new Error('Unable to save persona and evaluation results')
     }
 
     // Update completion status based on score
@@ -233,14 +252,14 @@ export const converse = async (
     }
 
     if (updated_completion) {
-        persona_reply.content = persona_reply.content + " " + scenario.score_end_message
+        persona_reply.content = persona_reply.content + ' ' + scenario.score_end_message
     }
 
     // If all successful, reduce turns by one
     const { turns: newTurns } = await reduceTurns(converseID, turns, updated_completion)
 
     if (newTurns === 0) {
-        persona_reply.content = persona_reply.content + " " + scenario.turn_end_message
+        persona_reply.content = persona_reply.content + ' ' + scenario.turn_end_message
     }
 
     return {

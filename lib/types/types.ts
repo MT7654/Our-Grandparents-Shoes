@@ -2,20 +2,24 @@ import type { Database } from '@/supabase/types'
 import scenarios from '../scenarios.json'
 import personas from '../personas.json'
 
+/** DB row types used for typing only */
 type Conversation = Database['public']['Tables']['conversations']['Row']
 type DBScore = Database['public']['Tables']['scores']['Row']
 type Evaluation = Database['public']['Tables']['evaluations']['Row']
 type Badge = Database['public']['Tables']['badges']['Row']
 type Achievement = Database['public']['Tables']['achievements']['Row']
 
+/** Senior persona used in scenarios (name, age, personality, interests, avatar) */
 export interface Persona {
     name: string,
     age: number,
+    gender: string,
     personality: string,
     interests: string[],
     avatar: string
 }
 
+/** Single metric score (name + value) for end-of-conversation evaluation */
 export interface Score {
     name: string,
     value: number
@@ -79,6 +83,7 @@ type Constraints = {
   score_upper_limit: number;
 }
 
+/** Scenario definition: objective, instructions, constraints, persona, design, messages */
 export interface Scenario {
     id: string,
     name: string,

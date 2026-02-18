@@ -4,6 +4,11 @@ import { type ScenarioKeys } from '@/lib/types/types'
 import { guard } from '@/lib/auth/guard'
 import scenarios from '@/lib/scenarios.json'
 
+/**
+ * POST /api/chat/resume
+ * Body: { scenario_name }
+ * Resumes the user's in-progress conversation for the given scenario, or returns not-found payload.
+ */
 export async function POST(request: NextRequest) {
     try {
         const guardResult = await guard('user')
@@ -33,20 +38,14 @@ export async function POST(request: NextRequest) {
 
         if (conversation == null) {
             return NextResponse.json(
-                {
-                    message: 'User Conversation not found'
-                },
-                { status: 200 }
-            )
-        } else {
-            return NextResponse.json(
-                {
-                    message: 'User Conversation Loaded',
-                    ...conversation
-                },
+                { message: 'User Conversation not found' },
                 { status: 200 }
             )
         }
+        return NextResponse.json(
+            { message: 'User Conversation Loaded', ...conversation },
+            { status: 200 }
+        )
     } catch (error) {
         console.error('POST /chat/resume error: ', error)
         const errorMessage = error instanceof Error ? error.message : 'Failed to resume conversation'
