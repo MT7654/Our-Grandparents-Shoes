@@ -1,9 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import type { Database } from '@/supabase/types'
-import type { DisplayBadge } from '@/lib/types/types'
+import type { DisplayBadge, Review } from '@/lib/types/types'
 
 type PastSession = Database['public']['Views']['conversation_sessions']['Row']
-type Statistic = Database['public']['Views']['statistics']['Row']
+type ReviewSession = Database['public']['Views']['review_sessions']['Row']
+type Conversation = Database['public']['Tables']['conversations']['Row']
 
 /**
  * Fetches the current user's past conversation sessions (for dashboard list).
@@ -26,26 +27,56 @@ export const getPastConversations = async () => {
 }
 
 /**
- * Fetches aggregate statistics for the current user (from statistics view).
+ * Fetches review for a conversation: one Review with scenario, difficulty, date,
+ * objective_met, and messages grouped into goodPrompts and needsImprovement.
  */
-export const getOverallStatistics = async () => {
+export const getConversationReviews = async (
+    converseID: ReviewSession['vid']
+): Promise<Review | null> => {
     const supabase = await createClient()
 
-    const { data, error } = await supabase
-        .from('statistics') 
-        .select('*')
-        .single()
+    const [reviewResult, convoResult] = await Promise.all([
+        supabase.from('review_sessions').select('*').eq('vid', converseID),
+        supabase.from('conversations').select('*').eq('vid', converseID).single(),
+    ]);
 
-    if (error) {
-        // If no rows found, that's not an error - just no statistics yet
-        if (error.code === 'PGRST116') {
-            return null
-        }
-        console.error("Error fetching user statistics: ", error)
-        throw new Error(`Failed to fetch user statistics: ${error.message}`)
+    const reviewData = reviewResult.data as ReviewSession[]
+    const convoData = convoResult.data as Conversation
+
+    if (reviewResult.error) {
+        console.error("Error fetching conversation reviews: ", reviewResult.error)
+        throw new Error(`Failed to fetch conversation reviews: ${reviewResult.error.message}`)
     }
 
-    return data as Statistic
+    if (convoResult.error) {
+        console.error("Error fetching conversation: ", convoResult.error)
+        throw new Error(`Failed to fetch conversation: ${convoResult.error.message}`)
+    }
+
+    if (!convoData) {
+        console.error("Error fetching conversation: Conversation not found")
+        throw new Error('Failed to fetch conversation: Conversation not found')
+    }
+
+    const rows = (reviewData || []) as ReviewSession[]
+
+    const goodPrompts = rows
+        .filter((r) => r.status === 'good' && r.content != null && r.feedback != null)
+        .map((r) => ({ userMessage: r.content!, explanation: r.feedback! }))
+    const needsImprovement = rows
+        .filter((r) => r.status === 'needs improvement' && r.content != null && r.feedback != null)
+        .map((r) => ({ userMessage: r.content!, explanation: r.feedback! }))
+
+    const review: Review = {
+        scenario: convoData.scenario_name,
+        difficulty: convoData.difficulty,
+        date: convoData.created_at,
+        objective_met: convoData.objective_met,
+        goodPrompts,
+        needsImprovement,
+    }
+
+    return review
 }
 
 /**

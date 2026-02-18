@@ -57,6 +57,7 @@ export type MidConversationEvaluation = {
 export type DisplayBadge = {
   bid: Badge['bid'],
   name: Badge['name'],
+  label: Badge['label'],
   unlocked: boolean,
   awarded: Achievement['awarded_at']
 }
@@ -105,3 +106,17 @@ export type PersonaKeys = keyof typeof personas
 export type Guidance = "inline" | "bottom-bar"
 export type Difficulty = "Easy" | "Hard"
 export type Prompts = Record<string, Record<string, string[]>>
+
+interface Feedback {
+  userMessage: Message['content'],
+  explanation: Message['feedback']
+}
+
+export interface Review {
+  scenario: Conversation['scenario_name'],
+  difficulty: Conversation['difficulty'],
+  date: Conversation['created_at'],
+  objective_met: Conversation['objective_met'],
+  goodPrompts: Feedback[],
+  needsImprovement: Feedback[],
+}

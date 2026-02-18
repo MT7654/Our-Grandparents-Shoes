@@ -40,7 +40,6 @@
         "score_end_message": "I am feeling tired now, thank you for listening.",
         "starting_messages": [
             "Ah, it's nice to see someone new. How's your day going?",
-            "Hello! I was just sitting down. Mind if we chat for a bit?",
             "Hello! You look familiar. Do I know you from around the neighbourhood?",
             "Ah, it's good to see a friendly face. How are you today?"
         ]

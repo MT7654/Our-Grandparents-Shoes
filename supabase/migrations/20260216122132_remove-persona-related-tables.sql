@@ -28,11 +28,6 @@ DROP COLUMN cid;
 -- Drop unique active conversation index
 DROP INDEX IF EXISTS unique_active_conversation;
 
--- Create unique active conversation index
-CREATE UNIQUE INDEX IF NOT EXISTS unique_active_conversation
-ON conversations(uID, scenario_name)
-WHERE completed = false;
-
 -- Create Scenario_name type
 CREATE TYPE scenario_name as ENUM (
     'House Visit',
@@ -40,9 +35,17 @@ CREATE TYPE scenario_name as ENUM (
     'Resolve a Task'
 );
 
+-- Delete all fields from conversations (in case)
+DELETE FROM conversations;
+
 -- Add scenario_name column
 ALTER TABLE conversations
 ADD COLUMN scenario_name scenario_name NOT NULL;
+
+-- Create unique active conversation index
+CREATE UNIQUE INDEX IF NOT EXISTS unique_active_conversation
+ON conversations(uID, scenario_name)
+WHERE completed = false;
 
 
 
