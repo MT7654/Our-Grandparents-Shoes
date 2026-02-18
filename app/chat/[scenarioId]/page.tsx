@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import Link from "next/link"
-import { ArrowLeft, Send, Lightbulb, AlertCircle, Activity } from "lucide-react"
+import { ArrowLeft, Send, Lightbulb, AlertCircle, Target } from "lucide-react"
 import { useParams, useRouter } from "next/navigation"
 import type { Database } from '@/supabase/types'
 import { Guidance, Difficulty, Scenario, Persona } from '@/lib/types/types'
@@ -21,7 +23,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Spinner } from "@/components/ui/spinner"
-import { resume } from "react-dom/server"
 
 
 type Message = Database['public']['Tables']['messages']['Row']
@@ -443,7 +444,43 @@ export default function ChatTraining() {
                     <ArrowLeft className="w-4 h-4" />
                 </Button>
                 </Link>
-                <span className="text-sm font-bold text-gray-900">{scenario?.name}</span>
+                <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-bold text-gray-900">{scenario?.name}</span>
+                    {!!scenario?.objective && (
+                        <Popover>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-7 w-7 text-gray-600 hover:text-gray-900 bg-transparent"
+                                            aria-label="View objective"
+                                        >
+                                            <Target className="h-4 w-4" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                </TooltipTrigger>
+                                <TooltipContent sideOffset={6}>
+                                    {"Objective"}
+                                </TooltipContent>
+                            </Tooltip>
+                            <PopoverContent align="start" className="w-[360px] p-0">
+                                <div className={`${scenario?.design.bgColor} border rounded-md px-3 py-2`}>
+                                    <div className="flex items-center gap-2">
+                                        <Target className={`h-4 w-4 ${scenario?.design.textColor}`} />
+                                        <h4 className={`text-xs font-bold ${scenario?.design.textColor} uppercase tracking-wide`}>
+                                            Objective
+                                        </h4>
+                                    </div>
+                                    <p className="mt-1 text-sm text-gray-800 leading-relaxed">
+                                        {scenario?.objective}
+                                    </p>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                    )}
+                </div>
             </div>
 
             <div className="flex items-center gap-3">
@@ -451,20 +488,6 @@ export default function ChatTraining() {
                     {difficulty ?? "Difficulty"}
                 </Badge>
             </div>
-            </div>
-
-            {/* Rapport bar */}
-            <div className="max-w-3xl mx-auto mt-2 flex items-center gap-3">
-            <span className="text-xs font-semibold text-gray-600">Rapport</span>
-            <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                className={`h-full ${getHealthBarColor()} transition-all duration-500`}
-                style={{ width: `${rapport}%` }}
-                />
-            </div>
-            <span className="text-xs font-bold text-gray-900 tabular-nums w-8 text-right">
-                {rapport}%
-            </span>
             </div>
 
             {/* Turn warning */}
@@ -480,47 +503,50 @@ export default function ChatTraining() {
 
         {/* ── Chat Card (fills remaining space) ──────────────────── */}
         <Card className="flex-1 min-h-0 flex flex-col mx-3 my-3 max-w-3xl w-full self-center overflow-hidden border-gray-200">
-            {/* Fixed top: Full-width avatar + name overlay + objective */}
+            {/* Fixed top: Full-width avatar + name overlay */}
             <div className="flex-shrink-0 border-b border-gray-200 bg-white">
-            {/* Full-width avatar banner */}
-            <div className="relative w-full">
-                <img
-                src={persona.avatar}
-                alt={persona.name}
-                className={`w-full h-32 sm:h-40 object-cover object-center border-b-4 ${expressionBorder()} transition-colors duration-300`}
-                />
-                {/* Name + expression overlay */}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-4 pb-3 pt-8">
-                <div className="flex items-end justify-between">
-                    <h3 className="text-base font-bold text-white drop-shadow-sm">{persona.name}</h3>
-                    <Badge variant="secondary" className={`text-xs capitalize ${expressionBadge()}`}>
-                    {expression}
-                    </Badge>
+                {/* Full-width avatar banner */}
+                <div className="relative w-full">
+                    <img
+                        src={persona.avatar}
+                        alt={persona.name}
+                        className={`w-full h-32 sm:h-40 object-cover object-center border-b-4 ${expressionBorder()} transition-colors duration-300`}
+                    />
+                    {/* Name + expression overlay */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-4 pb-3 pt-8">
+                        <div className="flex items-end justify-between">
+                            <h3 className="text-base font-bold text-white drop-shadow-sm">{persona.name}</h3>
+                            <Badge variant="secondary" className={`text-xs capitalize ${expressionBadge()}`}>
+                                {expression}
+                            </Badge>
+                        </div>
+                    </div>
                 </div>
-                </div>
-            </div>
 
-            {/* Objective */}
-            <div className="px-3 py-1">
-                <div className={`${scenario?.design.bgColor} border rounded-lg px-2.5 py-1`}>
-                <h4 className={`text-[10px] font-bold ${scenario?.design.textColor} uppercase tracking-wide mb-0.5`}>
-                    Objective
-                </h4>
-                <p className="text-xs text-gray-800 leading-tight">{scenario?.objective}</p>
-                </div>
-            </div>
+                {/* Tip + Rapport directly under picture */}
+                <div className="px-4 pt-3 pb-3 space-y-2 bg-white">
+                    <div className="flex items-center gap-3">
+                        <span className="text-xs font-semibold text-gray-600">Rapport</span>
+                        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div
+                                className={`h-full ${getHealthBarColor()} transition-all duration-500`}
+                                style={{ width: `${rapport}%` }}
+                            />
+                        </div>
+                        <span className="text-xs font-bold text-gray-900 tabular-nums w-8 text-right">
+                            {rapport}%
+                        </span>
+                    </div>
 
-            {/* Coaching tip - fixed below objective */}
-            {lastEvaluation && !conversationEnded && (
-                <div className="px-3 pb-2">
-                <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 flex items-start gap-2">
-                    <Lightbulb className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-amber-700 leading-relaxed">
-                    {suggestion}
-                    </p>
+                    {lastEvaluation && !conversationEnded && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex items-start gap-2">
+                            <Lightbulb className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
+                            <p className="text-xs text-amber-700 leading-relaxed">
+                                {`Tip: ${suggestion}`}
+                            </p>
+                        </div>
+                    )}
                 </div>
-                </div>
-            )}
             </div>
 
             {/* Scrollable message log */}
@@ -592,53 +618,49 @@ export default function ChatTraining() {
         </Dialog>
 
         {/* ── Bottom controls ────────────────────────────────────── */}
-
-        {/* Guidance + End session / View results */}
-        <div className="bg-white border-t border-gray-200 px-4 py-2">
-            <div className="max-w-3xl mx-auto space-y-2">
-            {conversationEnded ? (
-                <Link href={`/complete/${verseId}`}>
-                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold h-9 text-sm">
-                    View Results
-                </Button>
-                </Link>
-            ) : (
-                <Button
-                onClick={handleEndEarly}
-                variant="outline"
-                size="sm"
-                className="w-full text-gray-500 hover:text-gray-900 border-gray-300 bg-transparent h-8 text-xs"
-                >
-                End Session Early
-                </Button>
-            )}
-            </div>
-        </div>
-
-        {/* Input bar */}
         <div className="bg-white border-t border-gray-300 shadow-lg px-4 py-2.5">
-            <div className="flex gap-2 max-w-3xl mx-auto">
-            <Input
-                placeholder={conversationEnded ? "Session ended" : "Type your message..."}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault()
-                    converse()
-                }
-                }}
-                disabled={conversationEnded || botLoading}
-                className="flex-1 h-10 text-sm bg-gray-50 border-gray-300 disabled:opacity-50"
-            />
-            <Button
-                onClick={converse}
-                size="icon"
-                disabled={conversationEnded || botLoading}
-                className="h-10 w-10 bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-            >
-                <Send className="w-4 h-4" />
-            </Button>
+            <div className="max-w-3xl mx-auto space-y-2">
+                {conversationEnded ? (
+                    <Link href={`/complete/${verseId}`}>
+                        <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold h-9 text-sm">
+                            View Results
+                        </Button>
+                    </Link>
+                ) : (
+                    <div className="flex gap-2 items-center">
+                        <Button
+                            onClick={handleEndEarly}
+                            variant="outline"
+                            size="sm"
+                            className="h-10 px-3 text-xs whitespace-nowrap text-gray-600 hover:text-gray-900 border-gray-300 bg-transparent"
+                        >
+                            End Early
+                        </Button>
+
+                        <Input
+                            placeholder="Type your message..."
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                    e.preventDefault()
+                                    converse()
+                                }
+                            }}
+                            disabled={botLoading}
+                            className="flex-1 h-10 text-sm bg-gray-50 border-gray-300 disabled:opacity-50"
+                        />
+
+                        <Button
+                            onClick={converse}
+                            size="icon"
+                            disabled={botLoading}
+                            className="h-10 w-10 bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                        >
+                            <Send className="w-4 h-4" />
+                        </Button>
+                    </div>
+                )}
             </div>
         </div>
     </div>
