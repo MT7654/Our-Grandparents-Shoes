@@ -14,24 +14,30 @@ export async function POST(request: NextRequest) {
         if (guardResult instanceof NextResponse) {
             return guardResult
         }
-        
+
         const body = await request.json()
         const scenario_name: ScenarioKeys | undefined = body?.scenario_name
         const difficulty_level: Conversation['difficulty'] | undefined = body?.difficulty_level
 
         if (!scenario_name || !difficulty_level) {
             return NextResponse.json(
-                { error: 'Scenario name and difficulty level are required'},
+                { error: 'Scenario name and difficulty level are required' },
                 { status: 400 }
             )
         }
-        
-        if (!(scenario_name in scenarios) || !(difficulty_level == 'Easy' || difficulty_level == 'Hard')) {
+
+        if (!(scenario_name in scenarios)) {
             return NextResponse.json(
-                { error: "Scenario name and/or difficulty level invalid"},
+                { error: "Scenario name invalid" },
                 { status: 404 }
             )
-        } 
+        }
+        if (difficulty_level !== 'Easy' && difficulty_level !== 'Hard') {
+            return NextResponse.json(
+                { error: "Difficulty level must be 'Easy' or 'Hard'" },
+                { status: 400 }
+            )
+        }
 
         const conversation = await startConversation(scenario_name, difficulty_level)
 

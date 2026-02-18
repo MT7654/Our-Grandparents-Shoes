@@ -9,7 +9,7 @@ import Link from "next/link"
 import { ArrowLeft, Send, Lightbulb, AlertCircle, Activity } from "lucide-react"
 import { useParams, useRouter } from "next/navigation"
 import type { Database } from '@/supabase/types'
-import { type ScenarioKeys, Guidance, Difficulty, Scenario, Persona } from '@/lib/types/types'
+import { Guidance, Difficulty, Scenario, Persona } from '@/lib/types/types'
 import LoadingOverlay from "@/components/loading-overlay"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -21,6 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Spinner } from "@/components/ui/spinner"
+import { resume } from "react-dom/server"
 
 
 type Message = Database['public']['Tables']['messages']['Row']
@@ -53,6 +54,7 @@ export default function ChatTraining() {
     // -----------------------------------------------------------
     const [guidance, setGuidance] = useState<Guidance>('bottom-bar')
     const [difficulty, setDifficulty] = useState<Difficulty | null>(null)
+    const [showDifficultyPopup, setShowDifficultyPopup] = useState(false)
 
     // Scenario & Persona
     const [scenario, setScenario] = useState<Scenario | null>(null)
@@ -71,64 +73,51 @@ export default function ChatTraining() {
     const [conversationEnded, setConversationEnded] = useState(false) 
     const [messageError, setMessageError] = useState<string | null>(null)
 
-    // Start Conversation (Load Data)
+    // Initial load: try to resume active session; if none, we'll show difficulty popup
     useEffect(() => {
-        const begin = async () => {
+        const resumeCheck = async () => {
             setLoading(true)
             try {
-                const response = await fetch('/api/chat/start', {
+                const response = await fetch('/api/chat/resume', {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        scenario_name,
-                        difficulty_level: difficulty
-                    }), 
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ scenario_name }),
                 })
 
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}))
-                    throw new Error(errorData.error || `Failed to start conversation (${response.status})`)
+                    throw new Error(errorData.error || `Failed to load (${response.status})`)
                 }
 
                 const data = await response.json()
-
-                if (data.error) {
-                    throw new Error(data.error)
-                }
-
-                if (!data) {
-                    throw new Error('Failed to initialize conversation')
-                }
+                if (data.error) throw new Error(data.error)
 
                 const { scenario, persona, conversation, messages, evaluation } = data
 
-                if (scenario) {
-                    setRapport(scenario.constraints.starting_score)
-                    setScenario(scenario)
-                }
+                console.log(scenario, persona)
 
-                if (persona) {
-                    setPersona(persona)
-                }
-
-                if (conversation) {
-                    setVerseId(conversation.vid)
-                    setTurnsRemain(conversation.turns)
-                    setDifficulty(conversation.difficulty)
-                }
-
-                if (messages) {
-                    setMessages(messages)
-                }
-                
-                if (evaluation) {
-                    setSentiment(evaluation.sentiment)
-                    setRapport(evaluation.rapport)
-                    setExpression(evaluation.expression)
-                    setSuggestion(evaluation.suggestion)
-                    setLastEvaluation(true)
+                if (scenario === undefined || persona === undefined || conversation === undefined || messages === undefined || evaluation === undefined) {
+                    setShowDifficultyPopup(true)
+                    setLoading(false)
+                    return
+                } else {
+                    if (scenario) {
+                        setRapport(scenario.constraints.starting_score)
+                        setScenario(scenario)
+                    }
+                    if (persona) setPersona(persona)
+                    if (conversation) {
+                        setVerseId(conversation.vid)
+                        setTurnsRemain(conversation.turns)
+                    }
+                    if (messages) setMessages(messages)
+                    if (evaluation) {
+                        setSentiment(evaluation.sentiment)
+                        setRapport(evaluation.rapport)
+                        setExpression(evaluation.expression)
+                        setSuggestion(evaluation.suggestion)
+                        setLastEvaluation(true)
+                    }
                 }
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : 'Failed to load conversation'
@@ -138,17 +127,72 @@ export default function ChatTraining() {
                     description: errorMessage,
                     variant: "destructive",
                 })
-                // Redirect back to personas page after a short delay
-                setTimeout(() => {
-                    router.push('/scenarios')
-                }, 2000)
+                setTimeout(() => router.push('/scenarios'), 2000)
             } finally {
                 setLoading(false)
             }
         }
 
-        if (difficulty) { begin() }
-    }, [scenario_name, difficulty, router, toast])
+        resumeCheck()
+    }, [scenario_name, router, toast])
+
+    // Start new conversation after user selects difficulty (only when no active session)
+    useEffect(() => {
+        if (difficulty === null || verseId !== "") return
+
+        const begin = async () => {
+            setLoading(true)
+            try {
+                const response = await fetch('/api/chat/start', {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ scenario_name, difficulty_level: difficulty }),
+                })
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}))
+                    throw new Error(errorData.error || `Failed to start conversation (${response.status})`)
+                }
+
+                const data = await response.json()
+                if (data.error) throw new Error(data.error)
+                if (!data) throw new Error('Failed to initialize conversation')
+
+                const { scenario, persona, conversation, messages, evaluation } = data
+
+                if (scenario) {
+                    setRapport(scenario.constraints.starting_score)
+                    setScenario(scenario)
+                }
+                if (persona) setPersona(persona)
+                if (conversation) {
+                    setVerseId(conversation.vid)
+                    setTurnsRemain(conversation.turns)
+                }
+                if (messages) setMessages(messages)
+                if (evaluation) {
+                    setSentiment(evaluation.sentiment)
+                    setRapport(evaluation.rapport)
+                    setExpression(evaluation.expression)
+                    setSuggestion(evaluation.suggestion)
+                    setLastEvaluation(true)
+                }
+            } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'Failed to start conversation'
+                console.error("Start error: ", error)
+                toast({
+                    title: "Error starting conversation",
+                    description: errorMessage,
+                    variant: "destructive",
+                })
+                setTimeout(() => router.push('/scenarios'), 2000)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        begin()
+    }, [scenario_name, difficulty, verseId, router, toast])
 
     // Converse 
     const converse = async () => {
@@ -299,6 +343,7 @@ export default function ChatTraining() {
     }
 
     const handleDifficultyChange = (value: "Easy" | "Hard") => {
+        setShowDifficultyPopup(false)
         setDifficulty(value)
     }
 
@@ -348,8 +393,8 @@ export default function ChatTraining() {
         <div className="h-dvh flex flex-col bg-[#F5F6F8]">
         <LoadingOverlay isLoading={loading} />
 
-        {/* Difficulty must be chosen before starting */}
-        <Dialog open={difficulty === null}>
+        {/* Difficulty popup only when starting a new conversation (no active session) */}
+        <Dialog open={showDifficultyPopup}>
             <DialogContent
                 showCloseButton={false}
                 onEscapeKeyDown={(e) => e.preventDefault()}
@@ -359,8 +404,7 @@ export default function ChatTraining() {
                 <DialogHeader>
                     <DialogTitle>Select difficulty</DialogTitle>
                     <DialogDescription>
-                        You must choose a difficulty level before the conversation begins. <br /> <br />
-                        Note that if an existing conversation exist, the difficulty level will follow the existing conversation.
+                        Choose a difficulty level to start a new conversation.
                     </DialogDescription>
                 </DialogHeader>
 

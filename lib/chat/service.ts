@@ -23,6 +23,25 @@ type Conversation = Database['public']['Tables']['conversations']['Row']
 
 export { getUserConversations, saveMessage, saveEvaluation }
 
+export const resumeConversation = async (
+    scenario_name: Conversation['scenario_name']
+) => {
+    const scenario = scenarios[scenario_name as ScenarioKeys] as Scenario
+    const persona = personas[scenario.persona as PersonaKeys] as Persona
+    const conversation = await getExistingConversationByScenario(scenario_name)
+
+    if (!conversation) {
+        return null
+    }
+
+    const full_conversation = await fetchFullConversation(conversation.vid)
+    return {
+        scenario,
+        persona,
+        ...full_conversation
+    }
+}
+
 export const startConversation = async (
     scenario_name: Conversation['scenario_name'],
     difficulty_level: Conversation['difficulty']
