@@ -7,13 +7,19 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Link from "next/link"
 import { ArrowLeft, Award, AlertCircle } from "lucide-react"
-import type { Database } from '@/supabase/types'
 import type { DisplayBadge } from '@/lib/types/types'
 import LoadingOverlay from '@/components/loading-overlay'
 import { useToast } from "@/hooks/use-toast"
 import { useParams } from 'next/navigation'
 
-type PastSession = Database['public']['Views']['conversation_sessions']['Row']
+interface PastSession {
+  vid: string | null
+  name: string | null
+  created_at: string | null
+  score: number | null
+  objective: string | null
+  completed: boolean | null
+}
 
 interface VolunteerStatistics {
   total_sessions: number

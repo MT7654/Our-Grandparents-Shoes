@@ -1,79 +1,32 @@
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import type { ChatData, DisplayBadge, Filters } from '@/lib/types/types'
+import type { DisplayBadge, Filters, ScenarioKeys } from '@/lib/types/types'
+import scenarios from '@/lib/scenarios.json'
 
-export const getAdminDashboardData = async (limit: number, highPerformingThreshold: number, filters: Filters) => {
-    const supabase = await createClient()   
+export const getAdminDashboardData = async (limit: number, _highPerformingThreshold: number, filters: Filters) => {
+    const supabase = await createClient()
     const volunteerNameFilter = filters.volunteer_name ? filters.volunteer_name : ''
-    const personaNameFilter = filters.persona_name ? filters.persona_name : ''
 
     const [
         { count: totalVolunteers, error: totalVolunteersError },
-        { count: totalChats, error: totalChatsError },
+        { count: totalConversations, error: totalConversationsError },
         { data: volunteerDetails, error: volunteerDetailsError },
-        { data: chatProgression, error: chatProgressionError },
     ] = await Promise.all([
         supabase.from('profiles').select('id', { count: 'exact' }).eq('role', 'user'),
-        supabase.from('chats').select('cid', { count: 'exact' }),
-        supabase.from('statistics_by_volunteers').select('*').ilike('full_name', `%${volunteerNameFilter}%`).limit(limit),
-        supabase.from('volunteer_chat_progression').select('*').ilike('persona_name', `%${personaNameFilter}%`).limit(limit),
+        supabase.from('conversations').select('vid', { count: 'exact' }),
+        supabase.from('profiles').select('*').eq('role', 'user').ilike('full_name', `%${volunteerNameFilter}%`).limit(limit),
     ])
 
-    const error = totalVolunteersError || totalChatsError || volunteerDetailsError || chatProgressionError
+    const error = totalVolunteersError || totalConversationsError || volunteerDetailsError
     if (error) {
         console.error('Error fetching admin dashboard data:', error)
         throw new Error(`Failed to fetch admin dashboard data: ${error.message}`)
     }
 
-    const highPerformingVolunteers = volunteerDetails?.filter(volunteer => volunteer.average_score > highPerformingThreshold).length || 0
-
-    const grouped = chatProgression?.reduce<Record<string, any[]>>((acc, row) => {
-        const key = `${row.cid},${row.uid}`
-        acc[key] ??= []
-        acc[key].push(row)
-        return acc
-    }, {} as Record<string, any[]>)
-
-    Object.values(grouped).forEach(rows => 
-        rows.sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at))
-    )
-    
-    const chatProgressWithRawScores = Object.values(grouped).reduce<Record<string, any[][]>>(
-        (acc, rows) => {
-            rows.forEach((row, index) => {
-                acc[row.cid] ??= []
-                acc[row.cid][index] ??= []
-                acc[row.cid][index].push({
-                    persona_name: row.persona_name,
-                    chat_objective: row.chat_objective,
-                    score: row.score
-                })
-            })
-            return acc
-        }, {} as Record<string, any[][]>
-    )
-
-    const chatProgressWithAverageScores: ChatData[] = []
-
-    for (const [cid, attempts] of Object.entries(chatProgressWithRawScores)) { 
-        const triesAgainstScore = attempts.map((scores, i) => ({
-            tries: i + 1, 
-            averageScore: scores.reduce((sum, s) => sum + s.score, 0) / scores.length
-        }))
-
-        chatProgressWithAverageScores.push({
-            cid,
-            persona_name: attempts[0][0].persona_name,
-            chat_objective: attempts[0][0].chat_objective,
-            triesAgainstScore,
-        })
-    }
-
     return {
         totalVolunteers: totalVolunteers || 0,
-        totalChats: totalChats || 0,
-        highPerformingVolunteers,
-        volunteerDetails,
-        chatProgressWithAverageScores
+        totalChats: totalConversations || 0,
+        highPerformingVolunteers: 0,
+        volunteerDetails
     }
 }
 
@@ -101,16 +54,14 @@ export const getVolunteerDashboardData = async (uid: string) => {
 
     const [
         { data: profile, error: profileError },
-        { data: volunteerStats, error: statsError },
         { data: pastSessions, error: sessionsError },
         { data: achievements, error: achievementsError },
         { data: badges, error: badgesError },
     ] = await Promise.all([
         supabase.from('profiles').select('full_name').eq('user_id', uid).single(),
-        supabase.from('statistics_by_volunteers').select('*').eq('uid', uid).single(),
         supabase
             .from('conversations')
-            .select('vid, cid, created_at, completed')
+            .select('vid, scenario_name, created_at, completed, objective_met')
             .eq('uid', uid)
             .order('created_at', { ascending: false }),
         supabase.from('achievements').select('*').eq('uid', uid),
@@ -126,59 +77,40 @@ export const getVolunteerDashboardData = async (uid: string) => {
         throw new Error(`Failed to fetch volunteer data: ${err!.message}`)
     }
 
-    // Build past sessions with scores by joining with average_score_conversations, chats, and personas
+    // Build past sessions with scores from the scores table
     const vids = (pastSessions || []).map(s => s.vid)
 
-    let enrichedSessions: { vid: string | null; name: string | null; created_at: string | null; score: number | null; objective: string | null; completed: boolean | null }[] = []
+    let enrichedSessions: { vid: string; name: string; created_at: string; score: number | null; objective: string | null; completed: boolean }[] = []
 
     if (vids.length > 0) {
-        const [
-            { data: scores, error: scoresError },
-        ] = await Promise.all([
-            supabase.from('average_score_conversations').select('*').in('vid', vids),
-        ])
+        const { data: scores, error: scoresError } = await supabase
+            .from('scores')
+            .select('vid, metric_value')
+            .in('vid', vids)
 
         if (scoresError) {
             console.error('Error fetching scores:', scoresError)
         }
 
-        const scoreMap = (scores || []).reduce((acc, s) => {
-            if (s.vid) acc[s.vid] = s.score
-            return acc
-        }, {} as Record<string, number | null>)
-
-        // Get chat details for cids
-        const cids = [...new Set((pastSessions || []).map(s => s.cid))]
-        const { data: chats } = await supabase
-            .from('chats')
-            .select('cid, pid, objective')
-            .in('cid', cids)
-
-        const chatMap = (chats || []).reduce((acc, c) => {
-            acc[c.cid] = c
-            return acc
-        }, {} as Record<string, { cid: string; pid: string; objective: string }>)
-
-        // Get persona names
-        const pids = [...new Set((chats || []).map(c => c.pid))]
-        const { data: personas } = await supabase
-            .from('personas')
-            .select('pid, name')
-            .in('pid', pids)
-
-        const personaMap = (personas || []).reduce((acc, p) => {
-            acc[p.pid] = p.name
-            return acc
-        }, {} as Record<string, string>)
+        // Compute average score per conversation
+        const scoreMap: Record<string, { total: number; count: number }> = {}
+        for (const s of scores || []) {
+            scoreMap[s.vid] ??= { total: 0, count: 0 }
+            scoreMap[s.vid].total += s.metric_value
+            scoreMap[s.vid].count += 1
+        }
 
         enrichedSessions = (pastSessions || []).map(s => {
-            const chat = chatMap[s.cid]
+            const avg = scoreMap[s.vid]
+                ? scoreMap[s.vid].total / scoreMap[s.vid].count
+                : null
+            const scenario = scenarios[s.scenario_name as ScenarioKeys]
             return {
                 vid: s.vid,
-                name: chat ? personaMap[chat.pid] || null : null,
+                name: s.scenario_name,
                 created_at: s.created_at,
-                score: scoreMap[s.vid] || null,
-                objective: chat?.objective || null,
+                score: avg,
+                objective: scenario?.objective || null,
                 completed: s.completed,
             }
         })
@@ -190,22 +122,28 @@ export const getVolunteerDashboardData = async (uid: string) => {
         return acc
     }, {} as Record<string, string>)
 
-    const displayBadges: DisplayBadge[] = (badges || []).map(badge => {
-        const awarded = achievementsMap[badge.bid]
-        const { criteria_type, criteria_value, ...rest } = badge
-        return {
-            ...rest,
-            unlocked: !!awarded,
-            awarded: awarded || null,
-        }
-    })
+    const displayBadges: DisplayBadge[] = (badges || []).map(badge => ({
+        ...badge,
+        category: badge.label as DisplayBadge['category'],
+        unlocked: !!achievementsMap[badge.bid],
+        awarded: achievementsMap[badge.bid] || null,
+    }))
 
-    // Build statistics object matching the dashboard format
-    const userStatistics = statsError ? null : {
-        total_sessions: volunteerStats?.total_sessions || 0,
-        average_score: volunteerStats?.average_score || null,
-        completion_rate: volunteerStats?.completion_rate || null,
-        best_category: null as string | null,
+    // Build statistics from conversations data
+    const totalSessions = pastSessions?.length || 0
+    const completedSessions = pastSessions?.filter(s => s.completed).length || 0
+    const completionRate = totalSessions > 0 ? (completedSessions / totalSessions) * 100 : null
+
+    // Compute overall average score
+    const allScores = enrichedSessions.filter(s => s.score !== null).map(s => s.score!)
+    const averageScore = allScores.length > 0
+        ? allScores.reduce((sum, s) => sum + s, 0) / allScores.length
+        : null
+
+    const userStatistics = {
+        total_sessions: totalSessions,
+        average_score: averageScore,
+        completion_rate: completionRate,
     }
 
     return {

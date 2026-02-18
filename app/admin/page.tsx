@@ -17,10 +17,9 @@ import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts"
 import LoadingOverlay from "@/components/loading-overlay"
-import { ChatData, Filters } from "@/lib/types/types"
-import type { Database } from "@/supabase/types"
+import { Filters, User } from "@/lib/types/types"
 
-type Volunteer = Database['public']['Views']['statistics_by_volunteers']['Row']
+type Volunteer = User
 const HIGH_PERFORMING_THRESHOLD = 80
 
 export default function AdminPage() {
@@ -32,7 +31,6 @@ export default function AdminPage() {
   const [chatNum, setChatNum] = useState<number>(0)
   const [highPerformNum, setHighPerformNum] = useState<number>(0)
   const [volunteers, setVolunteers] = useState<Volunteer[]>([])
-  const [chats, setChats] = useState<ChatData[]>([])
 
   // User Changeable Variables
   const [tab, setTab] = useState<"volunteers" | "chats">("volunteers")
@@ -80,15 +78,13 @@ export default function AdminPage() {
           totalVolunteers, 
           totalChats, 
           highPerformingVolunteers, 
-          volunteerDetails, 
-          chatProgressWithAverageScores 
+          volunteerDetails
         } = await data.json()
 
         setVolunteerNum(totalVolunteers || 0)
         setChatNum(totalChats || 0)
         setHighPerformNum(highPerformingVolunteers || 0)
         setVolunteers(sortVolunteersByLastActive(volunteerDetails || []))
-        setChats(chatProgressWithAverageScores || [])
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Failed to load admin data"
         console.error("Load error: " + error)
@@ -173,7 +169,6 @@ export default function AdminPage() {
         setChatNum(totalChats || 0)
         setHighPerformNum(highPerformingVolunteers || 0)
         setVolunteers(sortVolunteersByLastActive(volunteerDetails || []))
-        setChats(chatProgressWithAverageScores || [])
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to delete user"
@@ -338,12 +333,12 @@ export default function AdminPage() {
               </TableHeader>
               <TableBody>
                 {volunteers.map((volunteer) => (
-                  <TableRow 
-                    key={volunteer.uid}
+                  <TableRow
+                    key={volunteer.user_id}
                     className={isInactiveForTwoWeeks(volunteer.last_active) ? "bg-red-50 hover:bg-red-100" : ""}
                   >
                     <TableCell className="font-medium">
-                      <Link href={`/admin/volunteer/${volunteer.uid}`} className="text-primary hover:underline">
+                      <Link href={`/admin/volunteer/${volunteer.user_id}`} className="text-primary hover:underline">
                         {volunteer.full_name}
                       </Link>
                     </TableCell>
@@ -372,7 +367,7 @@ export default function AdminPage() {
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction 
                               className="bg-destructive hover:bg-destructive/90"
-                              onClick={() => handleDeleteUser(volunteer.uid!)}
+                              onClick={() => handleDeleteUser(volunteer.user_id!)}
                             >
                               Delete
                             </AlertDialogAction>

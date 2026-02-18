@@ -9,6 +9,10 @@ type DBScore = Database['public']['Tables']['scores']['Row']
 type Evaluation = Database['public']['Tables']['evaluations']['Row']
 type Badge = Database['public']['Tables']['badges']['Row']
 type Achievement = Database['public']['Tables']['achievements']['Row']
+type Profile = Database['public']['Tables']['profiles']['Row']
+
+/** User profile from profiles table */
+export type User = Profile
 
 /** Senior persona used in scenarios (name, age, personality, interests, avatar) */
 export interface Persona {
@@ -58,6 +62,7 @@ export type DisplayBadge = {
   bid: Badge['bid'],
   name: Badge['name'],
   label: Badge['label'],
+  category: Database['public']['Enums']['badge_category'],
   unlocked: boolean,
   awarded: Achievement['awarded_at']
 }
