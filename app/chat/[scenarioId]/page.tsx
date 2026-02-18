@@ -692,9 +692,9 @@ export default function ChatTraining() {
         <div className="bg-white border-t border-gray-300 shadow-lg px-4 py-2.5">
             <div className="max-w-3xl mx-auto space-y-2">
                 {conversationEnded ? (
-                    <Button
-                        onClick={end}
+                    <Button 
                         className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold h-9 text-sm"
+                        onClick={end}
                     >
                         View Results
                     </Button>
