@@ -49,7 +49,9 @@
                 "Sentiment: How the senior would feel — 'positive', 'neutral, or 'negative.",
                 "Expression: Emotional display of the senior — 'happy, 'neutral, 'sad, or 'angry.",
                 "Rapport change: monotonic fixed step, either +<score> (rapport improved) or -<score> (rapport worsened), according to scenario logic.",
-                "Suggestion: A 1-2 sentence coaching tip to help the user improve their conversation skills. Maximum character limit "
+                "Suggestion: A 1-2 sentence coaching tip to help the user improve their conversation skills.",
+                "Feedback: A 1-2 sentence feedback that explains why the user message were effective or not.",
+                "Status: How is the latest user message classified - 'good', 'normal', 'needs improvement'."
             ],
             "Analysis Instruction": [
                 "Focus on the user's impact on rapport, not judging the senior's persona.",
@@ -116,10 +118,12 @@
                 "Neutral or exploratory questions (e.g., “Can you tell me more?”) are not penalized (i.e rapport change is 0, sentiment and expression remains the same as previous evaluation)."
             ],
             "Output_Guidelines": [
-                "Sentiment: How the senior would feel — 'positive', 'neutral, or 'negative.",
+                "Sentiment: How the senior would feel — 'positive', 'neutral, or 'negative'.",
                 "Expression: Emotional display of the senior — 'happy, 'neutral, 'sad, or 'angry.",
                 "Rapport change: monotonic fixed step, either +<score> (rapport improved) or -<score> (rapport worsened), according to scenario logic.",
-                "Suggestion: A 1-2 sentence coaching tip to help the user improve their conversation skills. Maximum character limit "
+                "Suggestion: A 1-2 sentence coaching tip to help the user improve their conversation skills.",
+                "Feedback: A 1-2 sentence feedback that explains why the user message were effective or not.",
+                "Status: How is the latest user message classified - 'good', 'normal', 'needs improvement'."
             ],
             "Analysis Instruction": [
                 "Focus on the user's impact on rapport, not judging the senior's persona.",

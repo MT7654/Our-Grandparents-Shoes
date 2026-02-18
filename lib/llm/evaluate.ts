@@ -30,6 +30,8 @@ const outputFormat =
             "expression": "happy|neutral|sad|angry",
             "rapportChange": <number>,
             "suggestion": "<coaching tip>"
+            "feedback": "<latest message feedback>"
+            "status": "good|normal|needs improvement"
         }
 `
 

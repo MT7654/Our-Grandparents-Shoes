@@ -4,11 +4,41 @@ import type { Database } from '@/supabase/types'
 type Message = Database['public']['Tables']['messages']['Row']
 
 /**
- * Saves a single message to a conversation (user or persona).
+ * Saves a single user message to a conversation.
  */
-export const saveMessage = async (
+export const saveUserMessage = async (
     converseID: Message['vid'],
-    sender: Message['sender'],
+    content: Message['content'],
+    feedback: Message['feedback'],
+    status: Message['status']
+) => {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+        .from('messages')
+        .insert({
+            vid: converseID,
+            sender: 'user',
+            content,
+            feedback,
+            status,
+        })
+        .select()
+        .single()
+    
+    if (error) {
+        console.error("Error saving user message: ", error)
+        throw new Error(`Failed to save user message: ${error.message}`)
+    }
+
+    return data as Message
+}
+
+/**
+ * Saves a single persona message to a conversation.
+ */
+export const savePersonaMessage = async (
+    converseID: Message['vid'],
     content: Message['content']
 ) => {
     const supabase = await createClient()
@@ -17,15 +47,15 @@ export const saveMessage = async (
         .from('messages')
         .insert({
             vid: converseID,
-            sender,
+            sender: 'persona',
             content
         })
         .select()
         .single()
     
     if (error) {
-        console.error("Error saving message: ", error)
-        throw new Error(`Failed to save message: ${error.message}`)
+        console.error("Error saving persona message: ", error)
+        throw new Error(`Failed to save persona message: ${error.message}`)
     }
 
     return data as Message

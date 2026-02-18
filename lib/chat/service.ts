@@ -9,7 +9,7 @@ import {
     reduceTurns
 } from './conversation'
 import { saveEvaluation, getEvaluation } from './evaluation'
-import { saveMessage, getMessages } from './message'
+import { savePersonaMessage, getMessages, saveUserMessage } from './message'
 import { saveScores, getScores } from './score'
 import { evaluateCompletion } from '@/lib/llm/completion'
 import { talkToPersona } from '../llm/chat'
@@ -21,7 +21,7 @@ import personas from '../personas.json'
 
 type Conversation = Database['public']['Tables']['conversations']['Row']
 
-export { getUserConversations, saveMessage, saveEvaluation }
+export { getUserConversations, saveUserMessage, savePersonaMessage, saveEvaluation }
 
 /**
  * Resumes an existing in-progress conversation for a scenario.
@@ -65,7 +65,7 @@ export const startConversation = async (
 
     if (!conversation) {
         const new_conversation = await createConversation(scenario_name, difficulty_level, turns)
-        const new_message = await saveMessage(new_conversation.vid, 'persona', first_message)
+        const new_message = await savePersonaMessage(new_conversation.vid, first_message)
 
         return {
             scenario,
@@ -203,18 +203,18 @@ export const converse = async (
         throw new Error('Message exceed character limit')
     }
 
-    // Save User Message
-    const user_message = await saveMessage(converseID, 'user', latestMessage)
-
-    if (!user_message) {
-        throw new Error('Failed to save user message')
-    }
-
     // LLM: persona reply and evaluation in parallel (latest message sent separately)
     const [ reply, verdict ] = await Promise.all([
         talkToPersona(conversation.scenario_name, conversation.difficulty, persona, messages, latestMessage),
         evaluateResponse(conversation.scenario_name, persona, latestMessage, messages, evaluation, conversation.difficulty, scenario.objective)
     ])
+
+    // Save User Message + Feedback
+    const user_message = await saveUserMessage(converseID, latestMessage, verdict.feedback, verdict.status)
+
+    if (!user_message) {
+        throw new Error('Failed to save user message')
+    }
 
     // Update Rapport (Clamped)
     const original_rapport = evaluation ? evaluation.rapport : scenario.constraints.starting_score
@@ -230,7 +230,7 @@ export const converse = async (
 
     // Save persona reply and evaluation
     const [persona_reply, new_eval] = await Promise.all([
-        saveMessage(converseID, 'persona', (custom_reply !== '' ? custom_reply : reply)),
+        savePersonaMessage(converseID, (custom_reply !== '' ? custom_reply : reply)),
         saveEvaluation(
             converseID, 
             verdict.sentiment, 

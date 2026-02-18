@@ -4,6 +4,7 @@ import personas from '../personas.json'
 
 /** DB row types used for typing only */
 type Conversation = Database['public']['Tables']['conversations']['Row']
+type Message = Database['public']['Tables']['messages']['Row']
 type DBScore = Database['public']['Tables']['scores']['Row']
 type Evaluation = Database['public']['Tables']['evaluations']['Row']
 type Badge = Database['public']['Tables']['badges']['Row']
@@ -48,14 +49,14 @@ export type MidConversationEvaluation = {
   sentiment: Evaluation['sentiment'],
   expression: Evaluation['expression'],
   rapportChange: Evaluation['rapport'],
-  suggestion: Evaluation['suggestion']
+  suggestion: Evaluation['suggestion'],
+  feedback: Message['feedback'],
+  status: Message['status']
 }
 
 export type DisplayBadge = {
   bid: Badge['bid'],
   name: Badge['name'],
-  description: Badge['description'],
-  category: Badge['category'],
   unlocked: boolean,
   awarded: Achievement['awarded_at']
 }
