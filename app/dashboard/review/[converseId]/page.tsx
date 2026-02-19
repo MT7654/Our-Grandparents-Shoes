@@ -13,6 +13,8 @@ import {
   Home,
   Heart,
   CheckSquare,
+  MessageSquare,
+  MessageCircle,
 } from "lucide-react"
 import { useParams } from "next/navigation"
 import type { Review } from '@/lib/types/types'
@@ -227,6 +229,35 @@ export default function SessionReviewPage() {
             </div>
           </div>
         )}
+
+        {/* Overall Feedback */}
+        {review.feedback && (
+          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-3 bg-blue-50 border-b border-blue-200">
+              <MessageCircle className="w-4 h-4 text-blue-700" />
+              <h2 className="text-sm font-bold text-blue-800">Overall Feedback</h2>
+            </div>
+            <div className="p-4">
+              <p className="text-sm text-gray-700 leading-relaxed">{review.feedback}</p>
+            </div>
+          </div>
+        )}
+
+        {/* View Conversation History */}
+        <Link href={`/dashboard/review/${converseId}/chat`}>
+          <div className="bg-white border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <MessageSquare className="w-5 h-5 text-blue-600" />
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">View Conversation History</p>
+                  <p className="text-xs text-gray-500">Review the full conversation log</p>
+                </div>
+              </div>
+              <ArrowLeft className="w-4 h-4 text-gray-400 rotate-180" />
+            </div>
+          </div>
+        </Link>
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-3 pt-2">

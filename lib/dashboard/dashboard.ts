@@ -72,6 +72,7 @@ export const getConversationReviews = async (
         difficulty: convoData.difficulty,
         date: convoData.created_at,
         objective_met: convoData.objective_met,
+        feedback: convoData.feedback,
         goodPrompts,
         needsImprovement,
     }
