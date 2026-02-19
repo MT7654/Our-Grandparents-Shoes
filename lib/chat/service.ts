@@ -178,13 +178,28 @@ export const fetchCompleteConversation = async (
  */
 export const converse = async (
     converseID: Conversation['vid'],
-    latestMessage: string
+    latestMessage: string,
+    clientMessages?: Database['public']['Tables']['messages']['Row'][]
 ) => {
     // Check whether the conversation has already ended
     const { completed, turns } = await checkForCompletion(converseID)
 
-    // Fetch Conversation, Existing Messages and Existing Evaluation
-    const { conversation, messages, evaluation } = await fetchFullConversation(converseID)
+    // Use client-provided messages if available, otherwise fetch from DB
+    let conversation, messages, evaluation
+    if (clientMessages && clientMessages.length > 0) {
+        const [conv, eval_] = await Promise.all([
+            getConversationByConversationID(converseID),
+            getEvaluation(converseID)
+        ])
+        conversation = conv
+        messages = clientMessages
+        evaluation = eval_
+    } else {
+        const full = await fetchFullConversation(converseID)
+        conversation = full.conversation
+        messages = full.messages
+        evaluation = full.evaluation
+    }
 
     if (!conversation || !messages) {
         throw new Error('Failed to fetch conversation or messages')
@@ -244,15 +259,27 @@ export const converse = async (
         throw new Error('Unable to save persona and evaluation results')
     }
 
-    // Update completion status based on score
+    // Update completion status based on score or task completion
     let updated_completion = false
-    if (new_rapport < scenario.constraints.score_bottom_limit || new_rapport > scenario.constraints.score_upper_limit) {
-        const { completed: new_update } = await updateCompletion(converseID, true)
+    if (verdict.taskCompleted) {
+        const { completed: new_update } = await updateCompletion(converseID, true, true)
+        updated_completion = new_update
+    } else if (new_rapport > scenario.constraints.score_upper_limit) {
+        const { completed: new_update } = await updateCompletion(converseID, true, true)
+        updated_completion = new_update
+    } else if (new_rapport < scenario.constraints.score_bottom_limit) {
+        const { completed: new_update } = await updateCompletion(converseID, true, false)
         updated_completion = new_update
     }
 
     if (updated_completion) {
-        persona_reply.content = persona_reply.content + ' ' + scenario.score_end_message
+        // For task-based scenarios, replace the reply entirely so the persona
+        // doesn't ask follow-up questions after the task is done.
+        if (verdict.taskCompleted) {
+            persona_reply.content = scenario.score_end_message
+        } else {
+            persona_reply.content = persona_reply.content + ' ' + scenario.score_end_message
+        }
     }
 
     // If all successful, reduce turns by one

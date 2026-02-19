@@ -19,11 +19,12 @@ export async function POST(request: NextRequest) {
             return guardResult
         }
         
-        const body = (await request.json()) as { 
-            converseId: Conversation['vid'], 
-            latestMessage: Message['content']
+        const body = (await request.json()) as {
+            converseId: Conversation['vid'],
+            latestMessage: Message['content'],
+            history?: Message[]
         }
-        const { converseId, latestMessage } = body
+        const { converseId, latestMessage, history } = body
 
         if (!converseId || latestMessage === null || latestMessage === undefined) {
             return NextResponse.json(
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        const data = await converse(converseId, latestMessage)
+        const data = await converse(converseId, latestMessage, history)
 
         if (!data) {
             return NextResponse.json(
