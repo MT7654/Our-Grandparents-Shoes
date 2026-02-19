@@ -108,9 +108,9 @@ export async function evaluateResponse(
     }
 
     // Clamp rapportChange to depending on difficulty level
-    const clamp = difficulty_level === 'Easy' ? 10 : 20
+    const clamp = difficulty_level === 'Easy' ? 5 : 10
     if (typeof result.rapportChange === "number") {
-        result.rapportChange = Math.min(clamp, Math.max(-clamp, result.rapportChange))
+        result.rapportChange = Math.min(clamp, Math.max(-clamp, Math.round(result.rapportChange / clamp) * clamp))
     } else {
         result.rapportChange = 0
     }
@@ -202,7 +202,7 @@ function generateSystemPrompt(
     })
 
     result += scenarioName === 'Resolve a Task' ? taskOutputFormat : outputFormat
-    result = result.replaceAll('<score>', difficulty_level === 'Easy' ? '10' : '20')
+    result = result.replaceAll('<score>', difficulty_level === 'Easy' ? '5' : '10')
 
     return result
 }
