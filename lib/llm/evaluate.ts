@@ -22,16 +22,30 @@ const modelNames = [
 const easyMood = "Calm, warm, friendly, forgiving and reassuring."
 const hardMood = "Sharp, tense, assertive, quick to anger, slow to forgive and slightly irritable."
 
-const outputFormat = 
+const outputFormat =
 `
     Respond ONLY with a valid JSON object in this exact format:
         {
             "sentiment": "positive|neutral|negative",
             "expression": "happy|neutral|sad|angry",
             "rapportChange": <number>,
-            "suggestion": "<coaching tip>"
-            "feedback": "<latest message feedback>"
+            "suggestion": "<coaching tip>",
+            "feedback": "<latest message feedback>",
             "status": "good|normal|needs improvement"
+        }
+`
+
+const taskOutputFormat =
+`
+    Respond ONLY with a valid JSON object in this exact format:
+        {
+            "sentiment": "positive|neutral|negative",
+            "expression": "happy|neutral|sad|angry",
+            "rapportChange": <number>,
+            "suggestion": "<coaching tip>",
+            "feedback": "<latest message feedback>",
+            "status": "good|normal|needs improvement",
+            "taskCompleted": true|false
         }
 `
 
@@ -111,6 +125,11 @@ export async function evaluateResponse(
     // Ensure suggestion is string
     if (typeof result.suggestion !== "string") result.suggestion = "No suggestion available."
 
+    // Validate taskCompleted for task-based scenarios
+    if (scenarioName === 'Resolve a Task') {
+        result.taskCompleted = result.taskCompleted === true || result.taskCompleted === 'true' as any
+    }
+
     return result
 }
 
@@ -182,8 +201,8 @@ function generateSystemPrompt(
         result += '\n'
     })
 
-    result += outputFormat
-    result = result.replace('<score>', difficulty_level === 'Easy' ? '10' : '20')
+    result += scenarioName === 'Resolve a Task' ? taskOutputFormat : outputFormat
+    result = result.replaceAll('<score>', difficulty_level === 'Easy' ? '10' : '20')
 
     return result
 }

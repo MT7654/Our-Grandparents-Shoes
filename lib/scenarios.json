@@ -120,7 +120,7 @@
             "max_turns": 50, 
             "character_limit": 200,
             "score_bottom_limit": -1000,
-            "score_upper_limit": 90
+            "score_upper_limit": 1000
         },
         "persona": "Margaret",
         "turn_end_message": "Thanks for checking in, I am going to rest now.",

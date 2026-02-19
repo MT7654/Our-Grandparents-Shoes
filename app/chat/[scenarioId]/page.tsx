@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import Link from "next/link"
-import { ArrowLeft, Send, Lightbulb, AlertCircle, Target } from "lucide-react"
+import { ArrowLeft, Send, Lightbulb, AlertCircle, Target, ClipboardList } from "lucide-react"
 import { useParams, useRouter } from "next/navigation"
 import type { Database } from '@/supabase/types'
 import { Guidance, Difficulty, Scenario, Persona } from '@/lib/types/types'
@@ -74,6 +74,7 @@ export default function ChatTraining() {
     const [turnsRemain, setTurnsRemain] = useState<number>(0)
     const [conversationEnded, setConversationEnded] = useState(false) 
     const [messageError, setMessageError] = useState<string | null>(null)
+    const [showSteps, setShowSteps] = useState(false)
 
     // Initial load: try to resume active session; if none, we'll show difficulty popup
     useEffect(() => {
@@ -198,12 +199,26 @@ export default function ChatTraining() {
         begin()
     }, [scenario_name, difficulty, verseId, router, toast])
 
-    // Converse 
+    // Converse
     const converse = async () => {
         if (!inputValue.trim() || conversationEnded) {
             return
         }
 
+        const userText = inputValue
+        setInputValue("")
+
+        // Optimistic: add user message to local state immediately
+        const optimisticUserMsg: Message = {
+            mid: `optimistic-${Date.now()}`,
+            vid: verseId as string,
+            sender: 'user',
+            content: userText,
+            sent_at: new Date().toISOString(),
+            feedback: null,
+            status: null,
+        }
+        setMessages(prev => [...prev, optimisticUserMsg])
         setBotLoading(true)
 
         try {
@@ -214,7 +229,8 @@ export default function ChatTraining() {
                 },
                 body: JSON.stringify({
                     converseId: verseId,
-                    latestMessage: inputValue
+                    latestMessage: userText,
+                    history: messages
                 })
             })
 
@@ -231,13 +247,15 @@ export default function ChatTraining() {
 
             const { user_message, persona_message, evaluation, turns, completed } = data
 
-            // Set Variables
-            if (user_message) {
-                setMessages(prev => [...prev, user_message, persona_message])
-            } else {
-                setMessages(prev => [...prev, persona_message])
-            }
-            
+            // Replace optimistic user message with the real one from the server, then add persona message
+            setMessages(prev => {
+                const withoutOptimistic = prev.filter(m => m.mid !== optimisticUserMsg.mid)
+                if (user_message) {
+                    return [...withoutOptimistic, user_message, persona_message]
+                }
+                return [...withoutOptimistic, persona_message]
+            })
+
             if (evaluation) {
                 // Update Avatar Expression
                 setExpression(evaluation.expression)
@@ -264,6 +282,8 @@ export default function ChatTraining() {
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Failed to send message'
             console.error('Converse Error: ', error)
+            // Remove the optimistic message on error
+            setMessages(prev => prev.filter(m => m.mid !== optimisticUserMsg.mid))
             setMessageError(errorMessage)
             toast({
                 title: "Error sending message",
@@ -271,7 +291,6 @@ export default function ChatTraining() {
                 variant: "destructive",
             })
         } finally {
-            setInputValue("")
             setBotLoading(false)
         }
     }
@@ -297,7 +316,7 @@ export default function ChatTraining() {
             }
 
             // Successfully ended, navigate to completion page
-            router.push(`/complete/${verseId}`)
+            router.push(`/dashboard/review/${verseId}`)
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Failed to end conversation'
             console.error('Save Error: ', error)
@@ -308,7 +327,7 @@ export default function ChatTraining() {
             })
             // Still navigate to completion page even if save failed
             // The completion page will handle the error state
-            router.push(`/complete/${verseId}`)
+            router.push(`/dashboard/review/${verseId}`)
         } finally {
             setLoading(false)
         }
@@ -545,6 +564,17 @@ export default function ChatTraining() {
                                 {`Tip: ${suggestion}`}
                             </p>
                         </div>
+                    )}  
+                    {scenario_name === "Resolve a Task" && (
+                        <button
+                            onClick={() => setShowSteps(true)}
+                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 flex items-center gap-2 hover:bg-gray-50 transition-colors cursor-pointer"
+                        >
+                            <ClipboardList className="w-3.5 h-3.5 text-gray-700 flex-shrink-0" />
+                            <p className="text-xs text-gray-900 font-medium">
+                                View Steps to Book HealthHub Appointment
+                            </p>
+                        </button>
                     )}
                 </div>
             </div>
@@ -617,15 +647,57 @@ export default function ChatTraining() {
             </DialogContent>
         </Dialog>
 
+        {/* Steps modal for Resolve a Task */}
+        <Dialog open={showSteps} onOpenChange={setShowSteps}>
+            <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                    <DialogTitle>Steps to Book HealthHub Appointment</DialogTitle>
+                    <DialogDescription>
+                        Follow these steps to help the senior make a Healthier SG appointment.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 mt-2">
+                    <div>
+                        <p className="text-sm font-semibold text-gray-900">Step 1: Log in</p>
+                        <p className="text-sm text-gray-600">Open the HealthHub app and log in using Singpass.</p>
+                    </div>
+                    <div>
+                        <p className="text-sm font-semibold text-gray-900">Step 2: Start enrolment</p>
+                        <p className="text-sm text-gray-600">Tap the Healthier SG banner to begin your enrolment.</p>
+                    </div>
+                    <div>
+                        <p className="text-sm font-semibold text-gray-900">Step 3: Select profile</p>
+                        <p className="text-sm text-gray-600">Choose your user profile for self-enrolment, and tap Enrol in Healthier SG to proceed.</p>
+                    </div>
+                    <div>
+                        <p className="text-sm font-semibold text-gray-900">Step 4: Choose your clinic</p>
+                        <p className="text-sm text-gray-600">Tap Select preferred clinic. You will be shown up to 3 clinics based on your past visits and residential address. To select other clinics, tap Search/Filters and search by postal code or keyword, then tap Apply filters.</p>
+                    </div>
+                    <div>
+                        <p className="text-sm font-semibold text-gray-900">Step 5: Confirm your enrolment</p>
+                        <p className="text-sm text-gray-600">Tap Confirm enrolment to complete your enrolment with your preferred clinic.</p>
+                    </div>
+                    <div>
+                        <p className="text-sm font-semibold text-gray-900">Step 6: Book your appointment</p>
+                        <p className="text-sm text-gray-600">After selecting your clinic, you will be prompted to book your first Healthier SG appointment. Follow the on-screen instructions or contact your clinic directly if prompted. You can also tap Book/Manage appointment on the Health Plan tab to schedule your consultation.</p>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button onClick={() => setShowSteps(false)}>Close</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
         {/* ── Bottom controls ────────────────────────────────────── */}
         <div className="bg-white border-t border-gray-300 shadow-lg px-4 py-2.5">
             <div className="max-w-3xl mx-auto space-y-2">
                 {conversationEnded ? (
-                    <Link href={`/complete/${verseId}`}>
-                        <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold h-9 text-sm">
-                            View Results
-                        </Button>
-                    </Link>
+                    <Button
+                        onClick={end}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold h-9 text-sm"
+                    >
+                        View Results
+                    </Button>
                 ) : (
                     <div className="flex gap-2 items-center">
                         <Button

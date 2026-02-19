@@ -116,14 +116,16 @@ export const reduceTurns = async (
  */
 export const updateCompletion = async (
     converseID: Conversation['vid'],
-    completion_status: Conversation['completed']
+    completion_status: Conversation['completed'],
+    objective_met: Conversation['objective_met'] = false
 ) => {
     const supabase = await createClient()
 
     const { data, error } = await supabase
         .from('conversations')
         .update({
-            completed: completion_status
+            completed: completion_status,
+            objective_met
         })
         .eq('vid', converseID)
         .select()

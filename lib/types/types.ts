@@ -55,7 +55,8 @@ export type MidConversationEvaluation = {
   rapportChange: Evaluation['rapport'],
   suggestion: Evaluation['suggestion'],
   feedback: Message['feedback'],
-  status: Message['status']
+  status: Message['status'],
+  taskCompleted?: boolean
 }
 
 export type DisplayBadge = {
@@ -122,6 +123,7 @@ export interface Review {
   difficulty: Conversation['difficulty'],
   date: Conversation['created_at'],
   objective_met: Conversation['objective_met'],
+  feedback: Conversation['feedback'],
   goodPrompts: Feedback[],
   needsImprovement: Feedback[],
 }
