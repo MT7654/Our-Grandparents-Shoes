@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import Link from "next/link"
-import { ArrowLeft, Send, Lightbulb, AlertCircle, Target, ClipboardList } from "lucide-react"
+import { ArrowLeft, Send, Lightbulb, AlertCircle, Target, X, ClipboardList } from "lucide-react"
 import { useParams, useRouter } from "next/navigation"
 import type { Database } from '@/supabase/types'
 import { Guidance, Difficulty, Scenario, Persona } from '@/lib/types/types'
@@ -61,6 +61,7 @@ export default function ChatTraining() {
     // Scenario & Persona
     const [scenario, setScenario] = useState<Scenario | null>(null)
     const [persona, setPersona] = useState<Persona>(default_persona)
+    const [objectiveOpen, setObjectiveOpen] = useState(false)
     
     // Conversation State
     const [verseId, setVerseId] = useState<String>("")
@@ -466,7 +467,7 @@ export default function ChatTraining() {
                 <div className="flex items-center gap-1.5">
                     <span className="text-sm font-bold text-gray-900">{scenario?.name}</span>
                     {!!scenario?.objective && (
-                        <Popover>
+                    <Popover open={objectiveOpen} onOpenChange={setObjectiveOpen}>
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <PopoverTrigger asChild>
@@ -486,12 +487,23 @@ export default function ChatTraining() {
                             </Tooltip>
                             <PopoverContent align="start" className="w-[360px] p-0">
                                 <div className={`${scenario?.design.bgColor} border rounded-md px-3 py-2`}>
+                                <div className="flex items-center justify-between gap-2">
                                     <div className="flex items-center gap-2">
-                                        <Target className={`h-4 w-4 ${scenario?.design.textColor}`} />
-                                        <h4 className={`text-xs font-bold ${scenario?.design.textColor} uppercase tracking-wide`}>
-                                            Objective
-                                        </h4>
+                                    <Target className={`h-4 w-4 ${scenario?.design.textColor}`} />
+                                    <h4 className={`text-xs font-bold ${scenario?.design.textColor} uppercase tracking-wide`}>
+                                        Objective
+                                    </h4>
                                     </div>
+                                    <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 text-gray-500 hover:text-gray-900 hover:bg-white/60"
+                                    aria-label="Close objective"
+                                    onClick={() => setObjectiveOpen(false)}
+                                    >
+                                    <X className="h-3.5 w-3.5" />
+                                    </Button>
+                                </div>
                                     <p className="mt-1 text-sm text-gray-800 leading-relaxed">
                                         {scenario?.objective}
                                     </p>
@@ -529,7 +541,7 @@ export default function ChatTraining() {
                     <img
                         src={persona.avatar}
                         alt={persona.name}
-                        className={`w-full h-32 sm:h-40 object-cover object-center border-b-4 ${expressionBorder()} transition-colors duration-300`}
+                        className={`w-full h-60 sm:h-68 object-cover object-center border-b-4 ${expressionBorder()} transition-colors duration-300`}
                     />
                     {/* Name + expression overlay */}
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-4 pb-3 pt-8">
