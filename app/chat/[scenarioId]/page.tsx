@@ -26,7 +26,7 @@ import { Spinner } from "@/components/ui/spinner"
 
 
 type Message = Database['public']['Tables']['messages']['Row']
-type Expression = Database['public']['Enums']['eval_expression']
+type Expression = Database['public']['Enums']['eval_new_expression']
 type Sentiment = Database['public']['Enums']['eval_sentiment']
 
 const default_persona: Persona = {
@@ -35,7 +35,15 @@ const default_persona: Persona = {
     gender: 'Female',
     personality: "A warm and friendly senior who enjoys conversation.",
     interests: ["Gardening", "Baking", "Family History"],
-    avatar: "/elderly-woman-cartoon-avatar-smiling-grandmother.jpg"
+    avatar: "/elderly-woman-cartoon-avatar-smiling-grandmother.jpg",
+    emotions: {
+            "angry": "/Margaret Chan_Angry.png",
+            "confused": "/Margaret Chan_Confused.png",
+            "happy": "/Margaret Chan_Happy.png",
+            "neutral": "/Margaret Chan_Neutral.png",
+            "scared": "/Margaret Chan_Scared.png",
+            "worried": "/Margaret Chan_Worried.png"
+        }
   }
 
 export default function ChatTraining() {
@@ -108,6 +116,7 @@ export default function ChatTraining() {
                     if (scenario) {
                         setRapport(scenario.constraints.starting_score)
                         setScenario(scenario)
+                        setExpression(scenario.constraints.default_expression)
                     }
                     if (persona) setPersona(persona)
                     if (conversation) {
@@ -168,6 +177,7 @@ export default function ChatTraining() {
                 if (scenario) {
                     setRapport(scenario.constraints.starting_score)
                     setScenario(scenario)
+                    setExpression(scenario.constraints.default_expression)
                 }
                 if (persona) setPersona(persona)
                 if (conversation) {
@@ -385,7 +395,7 @@ export default function ChatTraining() {
         switch (expression) {
         case "happy":
             return "border-green-400"
-        case "sad":
+        case "worried":
             return "border-blue-400"
         case "angry":
             return "border-red-400"
@@ -398,7 +408,7 @@ export default function ChatTraining() {
         switch (expression) {
         case "happy":
             return "bg-green-100 text-green-700"
-        case "sad":
+        case "worried":
             return "bg-blue-100 text-blue-700"
         case "angry":
             return "bg-red-100 text-red-700"
@@ -539,7 +549,7 @@ export default function ChatTraining() {
                 {/* Full-width avatar banner */}
                 <div className="relative w-full">
                     <img
-                        src={persona.avatar}
+                        src={persona.emotions[expression.toLowerCase()]}
                         alt={persona.name}
                         className={`w-full h-60 sm:h-68 object-cover object-center border-b-4 ${expressionBorder()} transition-colors duration-300`}
                     />

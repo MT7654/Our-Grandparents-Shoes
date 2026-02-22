@@ -46,8 +46,8 @@
                 "Neutral/exploratory questions are not penalized (i.e rapport change is 0, sentiment and expression remains the same as previous evaluation)."
             ],
             "Output_Guidelines": [
-                "Sentiment: How the senior would feel — 'positive', 'neutral, or 'negative.",
-                "Expression: Emotional display of the senior — 'happy, 'neutral, 'sad, or 'angry.",
+                "Sentiment: How the senior would feel — 'positive', 'neutral', or 'negative'.",
+                "Expression: Emotional display of the senior — 'neutral', 'happy', 'angry', 'worried', 'confused', or 'scared'.",
                 "Rapport change: monotonic fixed step, either +<score> (rapport improved) or -<score> (rapport worsened), according to scenario logic.",
                 "Suggestion: A 1-2 sentence coaching tip to help the user improve their conversation skills.",
                 "Feedback: A 1-2 sentence feedback that explains why the user message were effective or not.",
@@ -118,8 +118,8 @@
                 "Neutral or exploratory questions (e.g., “Can you tell me more?”) are not penalized (i.e rapport change is 0, sentiment and expression remains the same as previous evaluation)."
             ],
             "Output_Guidelines": [
-                "Sentiment: How the senior would feel — 'positive', 'neutral, or 'negative'.",
-                "Expression: Emotional display of the senior — 'happy, 'neutral, 'sad, or 'angry.",
+                "Sentiment: How the senior would feel — 'positive', 'neutral', or 'negative'.",
+                "Expression: Emotional display of the senior — 'angry', 'worried', 'confused', or 'scared'.",
                 "Rapport change: monotonic fixed step, either +<score> (rapport improved) or -<score> (rapport worsened), according to scenario logic.",
                 "Suggestion: A 1-2 sentence coaching tip to help the user improve their conversation skills.",
                 "Feedback: A 1-2 sentence feedback that explains why the user message were effective or not.",
@@ -218,7 +218,7 @@
             ],
             "Output_Guidelines": [
                 "Sentiment: How the senior would feel \u2014 'positive', 'neutral', or 'negative'.",
-                "Expression: Emotional display of the senior \u2014 'happy', 'neutral', 'sad', or 'angry'.",
+                "Expression: Emotional display of the senior \u2014 'neutral', 'happy', 'angry', 'worried', 'confused', or 'scared'.",
                 "Rapport change: monotonic fixed step, either +<score> (rapport improved) or -<score> (rapport worsened), according to scenario logic.",
                 "Suggestion: A 1-2 sentence coaching tip to help the user improve their guidance skills.",
                 "Feedback: A 1-2 sentence feedback that explains why the user's message was effective or not.",

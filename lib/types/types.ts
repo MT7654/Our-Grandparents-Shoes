@@ -21,7 +21,8 @@ export interface Persona {
     gender: string,
     personality: string,
     interests: string[],
-    avatar: string
+    avatar: string,
+    emotions: Record<string, string>
 }
 
 /** Single metric score (name + value) for end-of-conversation evaluation */
@@ -83,6 +84,8 @@ type Design = {
 }
 
 type Constraints = {
+  default_expression: string;
+  approved_expressions: string[];
   starting_score: number;
   min_turns: number,
   max_turns: number;

@@ -1,12 +1,14 @@
 "use server"
 
 import Groq from "groq-sdk"
-import { MidConversationEvaluation, type Persona, ScenarioKeys, Prompts, Difficulty } from "../types/types"
+import { MidConversationEvaluation, type Persona, ScenarioKeys, Prompts, Difficulty, Scenario } from "../types/types"
 import { type Database } from '@/supabase/types'
 import prompts from '@/lib/prompts.json'
+import scenarios from '@/lib/scenarios.json'
 
 type Message = Database['public']['Tables']['messages']['Row']
 type Evaluation = Database['public']['Tables']['evaluations']['Row']
+type Expression = Database['public']['Enums']['eval_new_expression']
 
 const apiKey = process.env.GROQ_API_KEY
 if (!apiKey) throw new Error("GROQ_API_KEY not set")
@@ -27,7 +29,7 @@ const outputFormat =
     Respond ONLY with a valid JSON object in this exact format:
         {
             "sentiment": "positive|neutral|negative",
-            "expression": "happy|neutral|sad|angry",
+            "expression": "<expression_range>",
             "rapportChange": <number>,
             "suggestion": "<coaching tip>",
             "feedback": "<latest message feedback>",
@@ -40,7 +42,7 @@ const taskOutputFormat =
     Respond ONLY with a valid JSON object in this exact format:
         {
             "sentiment": "positive|neutral|negative",
-            "expression": "happy|neutral|sad|angry",
+            "expression": "<expression_range>",
             "rapportChange": <number>,
             "suggestion": "<coaching tip>",
             "feedback": "<latest message feedback>",
@@ -64,6 +66,8 @@ export async function evaluateResponse(
     temperature = 0.3,
     max_tokens = 200
 ): Promise<MidConversationEvaluation> {
+
+    const scenario: Scenario = scenarios[scenarioName as ScenarioKeys]
 
     const evaluationPrompt = generateEvaluationPrompt(persona, history, objective, lastEvaluation, difficulty_level)
     const systemPrompt = generateSystemPrompt(scenarioName, difficulty_level)
@@ -119,8 +123,8 @@ export async function evaluateResponse(
     const validSentiments = ["positive", "neutral", "negative"]
     if (!validSentiments.includes(result.sentiment)) result.sentiment = "neutral"
 
-    const validExpressions = ["happy", "neutral", "sad", "angry"]
-    if (!validExpressions.includes(result.expression)) result.expression = "neutral"
+    const validExpressions = scenario.constraints.approved_expressions
+    if (!validExpressions.includes(result.expression)) result.expression = scenario.constraints.default_expression as Expression
 
     // Ensure suggestion is string
     if (typeof result.suggestion !== "string") result.suggestion = "No suggestion available."
@@ -186,6 +190,7 @@ function generateSystemPrompt(
     scenarioName: string,
     difficulty_level: Difficulty
 ): string {
+    const scenario: Scenario = scenarios[scenarioName as ScenarioKeys]
     const prompt: Prompts = prompts[scenarioName as ScenarioKeys]
     const conversationalPrompt: Record<string, string[]> = prompt['Evaluation_Prompt']
 
@@ -201,7 +206,11 @@ function generateSystemPrompt(
         result += '\n'
     })
 
-    result += scenarioName === 'Resolve a Task' ? taskOutputFormat : outputFormat
+    const expression_range = scenario.constraints.approved_expressions.join('|')
+    const chosen_output_format = scenarioName === 'Resolve a Task' ? taskOutputFormat : outputFormat
+    const output_format_with_expression = chosen_output_format.replaceAll('<expression_range>', expression_range)
+    
+    result += output_format_with_expression
     result = result.replaceAll('<score>', difficulty_level === 'Easy' ? '5' : '10')
 
     return result

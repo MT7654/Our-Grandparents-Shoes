@@ -23,6 +23,8 @@
             "buttonCta": "Start House Visit"
         },
         "constraints": {
+            "default_expression": "neutral",
+            "approved_expressions": ["neutral", "happy", "angry", "worried", "confused", "scared"],
             "starting_score": 0,
             "min_turns": 10,
             "max_turns": 10, 
@@ -71,6 +73,8 @@
             "buttonCta": "Start Listening Session"
         },
         "constraints": {
+            "default_expression": "worried",
+            "approved_expressions": ["angry", "worried", "confused", "scared"],
             "starting_score": 100,
             "min_turns": 20,
             "max_turns": 30, 
@@ -115,6 +119,8 @@
             "buttonCta": "Start Task Training"
         },
         "constraints": {
+            "default_expression": "neutral",
+            "approved_expressions": ["neutral", "happy", "angry", "worried", "confused", "scared"],
             "starting_score": 0,
             "min_turns": 50,
             "max_turns": 50, 
