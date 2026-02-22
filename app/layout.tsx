@@ -9,7 +9,7 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 // Updated metadata for Senior Conversation Trainer app
 export const metadata: Metadata = {
-  title: "Senior Conversation Trainer",
+  title: "ConverseBetter",
   description: "Learn to communicate with empathy and confidence with senior citizens through interactive practice",
   generator: "v0.app",
   icons: {

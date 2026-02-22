@@ -253,7 +253,7 @@ export default function AuthScreen() {
                     className="mt-1 rounded border-gray-300"
                   />
                   <Label htmlFor="consent" className="text-xs text-gray-700">
-                    I consent to TalkBetter: Senior Care collecting and using my personal data in accordance with the app's privacy policy.
+                    I consent to ConverseBetter: Senior Care collecting and using my personal data in accordance with the app's privacy policy.
                   </Label>
                 </div>
 

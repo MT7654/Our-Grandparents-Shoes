@@ -238,7 +238,7 @@ export default function LandingPage() {
               <span>Communication Training</span>
             </div>
 
-            <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-balance">Senior Conversation Trainer</h1>
+            <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-balance">ConverseBetter</h1>
 
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-balance leading-relaxed">
               Build meaningful connections through practice. Learn to communicate with empathy, clarity, and confidence
