@@ -88,7 +88,8 @@ export const startConversation = async (
  * Ends a conversation: runs completion evaluation, saves feedback and scores, and returns the saved result.
  */
 export const endConversation = async (
-    converseID: Conversation['vid']
+    converseID: Conversation['vid'],
+    end_early: boolean
 ) => {
     const { conversation, messages } = await fetchFullConversation(converseID)
 
@@ -102,7 +103,10 @@ export const endConversation = async (
 
     const evaluation: EndConversationEvaluation = await evaluateCompletion(messages)
 
-    const final_conversation = await saveConversation(converseID, conversation.completed ? conversation.completed : evaluation.completed, evaluation.feedback)
+    // Update completion base on end_early or completed
+    conversation.completed = conversation.completed || end_early ? true : evaluation.completed
+    
+    const final_conversation = await saveConversation(converseID, conversation.completed, evaluation.feedback)
     const scores = await saveScores(converseID, evaluation.scores)
 
     if (!scores) {

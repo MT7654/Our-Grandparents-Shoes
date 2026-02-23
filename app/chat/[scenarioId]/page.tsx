@@ -84,6 +84,7 @@ export default function ChatTraining() {
     const [conversationEnded, setConversationEnded] = useState(false) 
     const [messageError, setMessageError] = useState<string | null>(null)
     const [showSteps, setShowSteps] = useState(false)
+    const [endEarly, setEndEarly] = useState(false)
 
     // Initial load: try to resume active session; if none, we'll show difficulty popup
     useEffect(() => {
@@ -105,8 +106,6 @@ export default function ChatTraining() {
                 if (data.error) throw new Error(data.error)
 
                 const { scenario, persona, conversation, messages, evaluation } = data
-
-                console.log(scenario, persona)
 
                 if (scenario === undefined || persona === undefined || conversation === undefined || messages === undefined || evaluation === undefined) {
                     setShowDifficultyPopup(true)
@@ -317,7 +316,8 @@ export default function ChatTraining() {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    converseId: verseId
+                    converseId: verseId,
+                    end_early: endEarly
                 })
             })
 
@@ -373,8 +373,12 @@ export default function ChatTraining() {
     /* ---------------------------------------------------------------- */
 
     const handleEndEarly = () => {
-        end()
+        setEndEarly(true)
     }
+
+    useEffect(() => {
+        if (endEarly) end()
+    }, [endEarly])
 
     const handleDifficultyChange = (value: "Easy" | "Hard") => {
         setShowDifficultyPopup(false)

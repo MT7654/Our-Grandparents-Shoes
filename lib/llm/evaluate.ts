@@ -132,8 +132,6 @@ export async function evaluateResponse(
         expression_score_map[emotion] = emotion in scenario.constraints.bias_expressions ? parseFloat(score) + bias : parseFloat(score)
     })
 
-    console.log(expression_score_map)
-
     // Get expression with the highest tendency score
     const entries = Object.entries(expression_score_map)
     const currentExpression = entries.reduce((max, [key, value]) => {

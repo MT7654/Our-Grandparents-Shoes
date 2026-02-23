@@ -20,15 +20,16 @@ export async function POST(request: NextRequest) {
         
         const body = await request.json()
         const converseId: Conversation['vid'] | undefined = body?.converseId
+        const end_early: boolean | undefined = body?.end_early
 
-        if (!converseId) {
+        if (!converseId || end_early === undefined) {
             return NextResponse.json(
-                { error: 'Conversation ID is required' },
+                { error: 'Conversation ID and required parameters are required' },
                 { status: 400 }
             )
         }
 
-        const savedConversation = await endConversation(converseId)
+        const savedConversation = await endConversation(converseId, end_early)
 
         if (!savedConversation) {
             return NextResponse.json(
