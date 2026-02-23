@@ -86,6 +86,7 @@ type Design = {
 type Constraints = {
   default_expression: string;
   approved_expressions: string[];
+  bias_expressions: string[];
   starting_score: number;
   min_turns: number,
   max_turns: number;

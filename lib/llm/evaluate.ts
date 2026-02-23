@@ -15,6 +15,8 @@ if (!apiKey) throw new Error("GROQ_API_KEY not set")
 
 const groq = new Groq({ apiKey })
 
+const bias = 0.1
+
 const modelNames = [
     "llama-3.1-8b-instant",      // Fast, smaller model
     "mixtral-8x7b-32768",        // Mixtral model
@@ -105,7 +107,7 @@ export async function evaluateResponse(
     let result: MidConversationEvaluation
     try {
         result = JSON.parse(text) as MidConversationEvaluation
-        result.rapportChange = Number(result.rapportChange)
+        result.rapportChange = Number(result.rapportChange)        
     } catch (err) {
         console.error("Failed to parse LLM response as JSON:", text)
         throw new Error("Failed to parse LLM response as JSON")
@@ -122,6 +124,23 @@ export async function evaluateResponse(
     // Validate sentiment and expression
     const validSentiments = ["positive", "neutral", "negative"]
     if (!validSentiments.includes(result.sentiment)) result.sentiment = "neutral"
+
+    // Get Expression Score and add bias when necessary
+    const expression_score_map: Record<string, number> = {}
+    result.expression.split(" ").forEach(item => {
+        const [emotion, score] = item.split(":")
+        expression_score_map[emotion] = emotion in scenario.constraints.bias_expressions ? parseFloat(score) + bias : parseFloat(score)
+    })
+
+    console.log(expression_score_map)
+
+    // Get expression with the highest tendency score
+    const entries = Object.entries(expression_score_map)
+    const currentExpression = entries.reduce((max, [key, value]) => {
+        const [maxKey, maxValue] = max;
+        return value > maxValue ? [key, value] : max;
+    }, entries[0])[0]
+    result.expression = currentExpression as Expression
 
     const validExpressions = scenario.constraints.approved_expressions
     if (!validExpressions.includes(result.expression)) result.expression = scenario.constraints.default_expression as Expression
@@ -206,10 +225,10 @@ function generateSystemPrompt(
         result += '\n'
     })
 
-    const expression_range = scenario.constraints.approved_expressions.join('|')
+    const expression_range = scenario.constraints.approved_expressions.join(':<tendency_value> \n') + ':<tendency_value> \n'
     const chosen_output_format = scenarioName === 'Resolve a Task' ? taskOutputFormat : outputFormat
     const output_format_with_expression = chosen_output_format.replaceAll('<expression_range>', expression_range)
-    
+
     result += output_format_with_expression
     result = result.replaceAll('<score>', difficulty_level === 'Easy' ? '5' : '10')
 

@@ -25,6 +25,7 @@
         "constraints": {
             "default_expression": "neutral",
             "approved_expressions": ["neutral", "happy", "angry", "worried", "confused", "scared"],
+            "bias_expressions": [],
             "starting_score": 0,
             "min_turns": 10,
             "max_turns": 10, 
@@ -75,6 +76,7 @@
         "constraints": {
             "default_expression": "worried",
             "approved_expressions": ["angry", "worried", "confused", "scared"],
+            "bias_expressions": [],
             "starting_score": 100,
             "min_turns": 20,
             "max_turns": 30, 
@@ -121,6 +123,7 @@
         "constraints": {
             "default_expression": "neutral",
             "approved_expressions": ["neutral", "happy", "angry", "worried", "confused", "scared"],
+            "bias_expressions": ["worried", "confused", "scared"],
             "starting_score": 0,
             "min_turns": 50,
             "max_turns": 50, 
