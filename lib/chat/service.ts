@@ -9,7 +9,7 @@ import {
     reduceTurns
 } from './conversation'
 import { saveEvaluation, getEvaluation } from './evaluation'
-import { savePersonaMessage, getMessages, saveUserMessage } from './message'
+import { savePersonaMessage, getMessages, saveUserMessage, updateUserMessageFeedback, updatePersonaMessageContent } from './message'
 import { saveScores, getScores } from './score'
 import { evaluateCompletion } from '@/lib/llm/completion'
 import { talkToPersona } from '../llm/chat'
@@ -300,5 +300,180 @@ export const converse = async (
         rapport_change: verdict.rapportChange,
         turns: newTurns,
         completed: completed || updated_completion
+    }
+}
+
+/**
+ * Phase 1: Gets the persona reply quickly. Saves user message (without feedback)
+ * and persona message, returns immediately without waiting for evaluation.
+ */
+export const converseReply = async (
+    converseID: Conversation['vid'],
+    latestMessage: string,
+    clientMessages?: Database['public']['Tables']['messages']['Row'][]
+) => {
+    const { completed, turns } = await checkForCompletion(converseID)
+
+    let conversation, messages
+    if (clientMessages && clientMessages.length > 0) {
+        conversation = await getConversationByConversationID(converseID)
+        messages = clientMessages
+    } else {
+        const full = await fetchFullConversation(converseID)
+        conversation = full.conversation
+        messages = full.messages
+    }
+
+    if (!conversation || !messages) {
+        throw new Error('Failed to fetch conversation or messages')
+    }
+
+    const scenario = scenarios[conversation.scenario_name as ScenarioKeys]
+    const persona: Persona = personas[scenario.persona as PersonaKeys]
+
+    const character_limit = scenario.constraints.character_limit
+    if (latestMessage.length > character_limit) {
+        throw new Error('Message exceed character limit')
+    }
+
+    // If conversation was already completed before this turn, use custom reply
+    let custom_reply = ""
+    if (completed && turns <= 0) {
+        custom_reply = scenario.turn_end_message
+    } else if (completed) {
+        custom_reply = scenario.score_end_message
+    }
+
+    // Get persona reply (skip LLM call if we already have a custom reply)
+    const reply = custom_reply !== ''
+        ? custom_reply
+        : await talkToPersona(conversation.scenario_name, conversation.difficulty, persona, messages, latestMessage)
+
+    // Save user message without feedback, and persona message
+    const [user_message, persona_reply] = await Promise.all([
+        saveUserMessage(converseID, latestMessage, null, null),
+        savePersonaMessage(converseID, reply)
+    ])
+
+    if (!user_message || !persona_reply) {
+        throw new Error('Failed to save messages')
+    }
+
+    return {
+        user_message,
+        persona_message: persona_reply,
+        turns,
+        completed,
+        pendingEvaluation: true,
+    }
+}
+
+/**
+ * Phase 2: Runs evaluation, updates user message feedback, saves evaluation,
+ * handles completion logic and turn reduction. Called after converseReply.
+ */
+export const converseEvaluate = async (
+    converseID: Conversation['vid'],
+    userMessageId: string,
+    personaMessageId: string
+) => {
+    const [conversation, evaluation, messages] = await Promise.all([
+        getConversationByConversationID(converseID),
+        getEvaluation(converseID),
+        getMessages(converseID)
+    ])
+
+    if (!conversation || !messages) {
+        throw new Error('Failed to fetch conversation or messages')
+    }
+
+    const scenario = scenarios[conversation.scenario_name as ScenarioKeys]
+    const persona: Persona = personas[scenario.persona as PersonaKeys]
+
+    // Find the latest user message content from the saved messages
+    const userMsg = messages.find(m => m.mid === userMessageId)
+    if (!userMsg) {
+        throw new Error('User message not found')
+    }
+
+    // Exclude the latest user and persona messages from history for evaluation
+    const history = messages.filter(m => m.mid !== userMessageId && m.mid !== personaMessageId)
+
+    const verdict = await evaluateResponse(
+        conversation.scenario_name,
+        persona,
+        userMsg.content,
+        history,
+        evaluation,
+        conversation.difficulty,
+        scenario.objective
+    )
+
+    // Update user message with feedback
+    await updateUserMessageFeedback(userMessageId, verdict.feedback, verdict.status)
+
+    // Calculate new rapport
+    const original_rapport = evaluation ? evaluation.rapport : scenario.constraints.starting_score
+    const new_rapport = Math.min(100, Math.max(0, (original_rapport + verdict.rapportChange)))
+
+    // Save evaluation
+    const new_eval = await saveEvaluation(
+        converseID,
+        verdict.sentiment,
+        verdict.expression,
+        new_rapport,
+        verdict.suggestion
+    )
+
+    if (!new_eval) {
+        throw new Error('Unable to save evaluation results')
+    }
+
+    // Check completion based on score or task
+    const { completed, turns } = await checkForCompletion(converseID)
+    let updated_completion = false
+
+    if (verdict.taskCompleted) {
+        const { completed: c } = await updateCompletion(converseID, true, true)
+        updated_completion = c
+    } else if (new_rapport > scenario.constraints.score_upper_limit) {
+        const { completed: c } = await updateCompletion(converseID, true, true)
+        updated_completion = c
+    } else if (new_rapport < scenario.constraints.score_bottom_limit) {
+        const { completed: c } = await updateCompletion(converseID, true, false)
+        updated_completion = c
+    }
+
+    // Handle completion content override on persona message
+    let completionOverride: string | null = null
+    if (updated_completion) {
+        if (verdict.taskCompleted) {
+            completionOverride = scenario.score_end_message
+        } else {
+            const personaMsg = messages.find(m => m.mid === personaMessageId)
+            completionOverride = (personaMsg?.content ?? '') + ' ' + scenario.score_end_message
+        }
+    }
+
+    // Reduce turns
+    const { turns: newTurns } = await reduceTurns(converseID, turns, updated_completion)
+
+    if (newTurns === 0) {
+        const personaMsg = messages.find(m => m.mid === personaMessageId)
+        const base = completionOverride ?? personaMsg?.content ?? ''
+        completionOverride = base + ' ' + scenario.turn_end_message
+    }
+
+    // Update persona message in DB if content changed
+    if (completionOverride) {
+        await updatePersonaMessageContent(personaMessageId, completionOverride)
+    }
+
+    return {
+        evaluation: new_eval,
+        rapport_change: verdict.rapportChange,
+        turns: newTurns,
+        completed: completed || updated_completion,
+        completionOverride,
     }
 }

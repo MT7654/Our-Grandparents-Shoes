@@ -85,6 +85,7 @@ export default function ChatTraining() {
     const [messageError, setMessageError] = useState<string | null>(null)
     const [showSteps, setShowSteps] = useState(false)
     const [endEarly, setEndEarly] = useState(false)
+    const [evaluating, setEvaluating] = useState(false)
 
     // Initial load: try to resume active session; if none, we'll show difficulty popup
     useEffect(() => {
@@ -209,9 +210,9 @@ export default function ChatTraining() {
         begin()
     }, [scenario_name, difficulty, verseId, router, toast])
 
-    // Converse
+    // Converse (two-phase: reply first, then evaluation)
     const converse = async () => {
-        if (!inputValue.trim() || conversationEnded) {
+        if (!inputValue.trim() || conversationEnded || evaluating) {
             return
         }
 
@@ -232,6 +233,7 @@ export default function ChatTraining() {
         setBotLoading(true)
 
         try {
+            // Phase 1: Get persona reply fast
             const response = await fetch('/api/chat/next', {
                 method: "POST",
                 headers: {
@@ -249,15 +251,15 @@ export default function ChatTraining() {
                 throw new Error(errorData.error || `Failed to send message (${response.status})`)
             }
 
-            const data = await response.json()
+            const phase1 = await response.json()
 
-            if (data.error) {
-                throw new Error(data.error)
+            if (phase1.error) {
+                throw new Error(phase1.error)
             }
 
-            const { user_message, persona_message, evaluation, turns, completed } = data
+            const { user_message, persona_message, completed } = phase1
 
-            // Replace optimistic user message with the real one from the server, then add persona message
+            // Show persona reply immediately
             setMessages(prev => {
                 const withoutOptimistic = prev.filter(m => m.mid !== optimisticUserMsg.mid)
                 if (user_message) {
@@ -265,29 +267,62 @@ export default function ChatTraining() {
                 }
                 return [...withoutOptimistic, persona_message]
             })
-
-            if (evaluation) {
-                // Update Avatar Expression
-                setExpression(evaluation.expression)
-
-                // Update System Suggestion
-                setSuggestion(evaluation.suggestion)
-
-                // Update Rapport
-                setRapport(evaluation.rapport)
-
-                // Update Sentiment
-                setSentiment(evaluation.sentiment)
-                setLastEvaluation(true)
-            }
-
-            if (turns != null) {
-                setTurnsRemain(turns)
-                setConversationEnded(turns <= 0 ? true : false)
-            }
+            setBotLoading(false)
 
             if (completed) {
-                setConversationEnded((prev) => (prev || completed))
+                setConversationEnded(true)
+            }
+
+            // Phase 2: Run evaluation in background
+            if (phase1.pendingEvaluation) {
+                setEvaluating(true)
+                try {
+                    const evalResponse = await fetch('/api/chat/evaluate', {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            converseId: verseId,
+                            userMessageId: user_message.mid,
+                            personaMessageId: persona_message.mid
+                        })
+                    })
+
+                    if (evalResponse.ok) {
+                        const evalData = await evalResponse.json()
+
+                        if (evalData.evaluation) {
+                            setExpression(evalData.evaluation.expression)
+                            setSuggestion(evalData.evaluation.suggestion)
+                            setRapport(evalData.evaluation.rapport)
+                            setSentiment(evalData.evaluation.sentiment)
+                            setLastEvaluation(true)
+                        }
+
+                        if (evalData.turns != null) {
+                            setTurnsRemain(evalData.turns)
+                            setConversationEnded(evalData.turns <= 0)
+                        }
+
+                        if (evalData.completed) {
+                            setConversationEnded(prev => prev || evalData.completed)
+                        }
+
+                        // Update persona message content if completion changed it
+                        if (evalData.completionOverride) {
+                            setMessages(prev => prev.map(m =>
+                                m.mid === persona_message.mid
+                                    ? { ...m, content: evalData.completionOverride }
+                                    : m
+                            ))
+                        }
+                    } else {
+                        console.error('Evaluation request failed')
+                    }
+                } catch (evalError) {
+                    console.error('Evaluation Error: ', evalError)
+                } finally {
+                    setEvaluating(false)
+                }
             }
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Failed to send message'
@@ -300,7 +335,6 @@ export default function ChatTraining() {
                 description: errorMessage,
                 variant: "destructive",
             })
-        } finally {
             setBotLoading(false)
         }
     }
@@ -747,14 +781,14 @@ export default function ChatTraining() {
                                     converse()
                                 }
                             }}
-                            disabled={botLoading}
+                            disabled={botLoading || evaluating}
                             className="flex-1 h-10 text-sm bg-gray-50 border-gray-300 disabled:opacity-50"
                         />
 
                         <Button
                             onClick={converse}
                             size="icon"
-                            disabled={botLoading}
+                            disabled={botLoading || evaluating}
                             className="h-10 w-10 bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
                         >
                             <Send className="w-4 h-4" />

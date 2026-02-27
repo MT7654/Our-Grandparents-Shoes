@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { converse } from '@/lib/chat/service'
+import { converseReply } from '@/lib/chat/service'
 import type { Database } from '@/supabase/types'
 import { guard } from '@/lib/auth/guard'
 
@@ -9,7 +9,7 @@ type Message = Database['public']['Tables']['messages']['Row']
 /**
  * POST /api/chat/next
  * Body: { converseId, latestMessage }
- * Processes one user message: saves it, gets persona reply and evaluation, returns new state.
+ * Phase 1: Gets persona reply quickly, saves messages, returns without waiting for evaluation.
  */
 export async function POST(request: NextRequest) {
     try {
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        const data = await converse(converseId, latestMessage, history)
+        const data = await converseReply(converseId, latestMessage, history)
 
         if (!data) {
             return NextResponse.json(
