@@ -570,6 +570,7 @@ export default function ChatTraining() {
 
                 {/* Tip + Rapport directly under picture */}
                 <div className="px-4 pt-3 pb-3 space-y-2 bg-white">
+                    {scenario_name != "Resolve a Task" && (
                     <div className="flex items-center gap-3">
                         <span className="text-xs font-semibold text-gray-600">Rapport</span>
                         <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -582,6 +583,7 @@ export default function ChatTraining() {
                             {rapport}%
                         </span>
                     </div>
+                    )}
 
                     {lastEvaluation && !conversationEnded && (
                         <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex items-start gap-2">

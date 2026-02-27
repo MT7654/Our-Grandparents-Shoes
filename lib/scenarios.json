@@ -134,7 +134,7 @@
         "turn_end_message": "Thanks for checking in, I am going to rest now.",
         "score_end_message": "I understand how to perform this task now, thank you.",
         "starting_messages": [
-            "Hello dear! It's so nice to have someone to talk to. How are you doing today?"
+            "Hello dear! Can you help me with booking a HealthierSG appointment? I'm not so sure how I should do it"
         ]
     }
 }
