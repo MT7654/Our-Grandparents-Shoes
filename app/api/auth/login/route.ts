@@ -1,6 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
+/**
+ * POST /api/auth/login
+ * Body: { email, password }
+ * Signs in the user and returns session and user.
+ */
 export async function POST(request: Request) {
   try {
     const { email, password } = await request.json()
@@ -31,7 +36,7 @@ export async function POST(request: Request) {
       {
         message: 'Login successful',
         user: data.user,
-        session: data.session,
+        session: data.session
       },
       { status: 200 }
     )

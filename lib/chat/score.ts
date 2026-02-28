@@ -4,6 +4,9 @@ import { type Score } from '@/lib/types/types'
 
 type DBScore = Database['public']['Tables']['scores']['Row']
 
+/**
+ * Upserts end-of-conversation metric scores for a conversation (uses service client for RLS).
+ */
 export const saveScores = async (
     converseID: DBScore['vid'],
     scores: Score[]
@@ -34,6 +37,9 @@ export const saveScores = async (
     return (data || []) as DBScore[]
 }
 
+/**
+ * Retrieves all stored scores for a conversation.
+ */
 export const getScores = async (
     converseID: DBScore['vid']
 ) => {

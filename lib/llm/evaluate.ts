@@ -1,15 +1,21 @@
 "use server"
 
 import Groq from "groq-sdk"
-import { MidConversationEvaluation, type FullPersona } from "../types/types"
+import { MidConversationEvaluation, type Persona, ScenarioKeys, Prompts, Difficulty, Scenario } from "../types/types"
 import { type Database } from '@/supabase/types'
+import prompts from '@/lib/prompts.json'
+import scenarios from '@/lib/scenarios.json'
 
 type Message = Database['public']['Tables']['messages']['Row']
+type Evaluation = Database['public']['Tables']['evaluations']['Row']
+type Expression = Database['public']['Enums']['eval_new_expression']
 
 const apiKey = process.env.GROQ_API_KEY
 if (!apiKey) throw new Error("GROQ_API_KEY not set")
 
 const groq = new Groq({ apiKey })
+
+const bias = 0.1
 
 const modelNames = [
     "llama-3.1-8b-instant",      // Fast, smaller model
@@ -17,35 +23,56 @@ const modelNames = [
     "llama-3.3-70b-versatile",   // Newer 70B model (if available)
 ]
 
-const systemPrompt = `
-    You are an expert conversation coach evaluating a conversation between a user and a senior persona. 
-    Analyze the user's message and the persona's response.
+const easyMood = "Calm, warm, friendly, forgiving and reassuring."
+const hardMood = "Sharp, tense, assertive, quick to anger, slow to forgive and slightly irritable."
 
-    Instructions:
-        1. Sentiment: "positive", "neutral", or "negative" — based on how the user's message would make the senior feel
-        2. Expression: "happy", "neutral", "sad", or "angry" — the emotional expression the senior would show
-        3. Rapport change: a number between -10 and +15 indicating how much the rapport improved or worsened
-        4. Suggestion: a helpful coaching tip (1-2 sentences) for the user to improve their conversation skills
-
+const outputFormat =
+`
     Respond ONLY with a valid JSON object in this exact format:
         {
             "sentiment": "positive|neutral|negative",
-            "expression": "happy|neutral|sad|angry",
+            "expression": "<expression_range>",
             "rapportChange": <number>,
-            "suggestion": "<coaching tip>"
+            "suggestion": "<coaching tip>",
+            "feedback": "<latest message feedback>",
+            "status": "good|normal|needs improvement"
         }
 `
 
+const taskOutputFormat =
+`
+    Respond ONLY with a valid JSON object in this exact format:
+        {
+            "sentiment": "positive|neutral|negative",
+            "expression": "<expression_range>",
+            "rapportChange": <number>,
+            "suggestion": "<coaching tip>",
+            "feedback": "<latest message feedback>",
+            "status": "good|normal|needs improvement",
+            "taskCompleted": true|false
+        }
+`
+
+/**
+ * Evaluates the user's latest message: sentiment, expression, rapport change, and coaching suggestion.
+ * Tries multiple models; clamps and validates the JSON response.
+ */
 export async function evaluateResponse(
-    persona: FullPersona,
+    scenarioName: string,
+    persona: Persona,
     lastMessage: string,
     history: Message[],
+    lastEvaluation: Evaluation | null,
+    difficulty_level: Difficulty,
     objective: string,
     temperature = 0.3,
     max_tokens = 200
 ): Promise<MidConversationEvaluation> {
 
-    const evaluationPrompt = generateEvaluationPrompt(persona, history, objective)
+    const scenario: Scenario = scenarios[scenarioName as ScenarioKeys]
+
+    const evaluationPrompt = generateEvaluationPrompt(persona, history, objective, lastEvaluation, difficulty_level)
+    const systemPrompt = generateSystemPrompt(scenarioName, difficulty_level)
 
     let completion: any = null
     let lastError: Error | null = null
@@ -80,14 +107,16 @@ export async function evaluateResponse(
     let result: MidConversationEvaluation
     try {
         result = JSON.parse(text) as MidConversationEvaluation
+        result.rapportChange = Number(result.rapportChange)        
     } catch (err) {
         console.error("Failed to parse LLM response as JSON:", text)
         throw new Error("Failed to parse LLM response as JSON")
     }
 
-    // Clamp rapportChange to [-10, 15]
+    // Clamp rapportChange to depending on difficulty level
+    const clamp = difficulty_level === 'Easy' ? 5 : 10
     if (typeof result.rapportChange === "number") {
-        result.rapportChange = Math.min(15, Math.max(-10, result.rapportChange))
+        result.rapportChange = Math.min(clamp, Math.max(-clamp, Math.round(result.rapportChange / clamp) * clamp))
     } else {
         result.rapportChange = 0
     }
@@ -96,19 +125,42 @@ export async function evaluateResponse(
     const validSentiments = ["positive", "neutral", "negative"]
     if (!validSentiments.includes(result.sentiment)) result.sentiment = "neutral"
 
-    const validExpressions = ["happy", "neutral", "sad", "angry"]
-    if (!validExpressions.includes(result.expression)) result.expression = "neutral"
+    // Get Expression Score and add bias when necessary
+    const expression_score_map: Record<string, number> = {}
+    result.expression.split(" ").forEach(item => {
+        const [emotion, score] = item.split(":")
+        expression_score_map[emotion] = emotion in scenario.constraints.bias_expressions ? parseFloat(score) + bias : parseFloat(score)
+    })
+
+    // Get expression with the highest tendency score
+    const entries = Object.entries(expression_score_map)
+    const currentExpression = entries.reduce((max, [key, value]) => {
+        const [maxKey, maxValue] = max;
+        return value > maxValue ? [key, value] : max;
+    }, entries[0])[0]
+    result.expression = currentExpression as Expression
+
+    const validExpressions = scenario.constraints.approved_expressions
+    if (!validExpressions.includes(result.expression)) result.expression = scenario.constraints.default_expression as Expression
 
     // Ensure suggestion is string
     if (typeof result.suggestion !== "string") result.suggestion = "No suggestion available."
 
+    // Validate taskCompleted for task-based scenarios
+    if (scenarioName === 'Resolve a Task') {
+        result.taskCompleted = result.taskCompleted === true || result.taskCompleted === 'true' as any
+    }
+
     return result
 }
 
+/** Builds the prompt for mid-conversation evaluation (objective, persona, history, last evaluation). */
 function generateEvaluationPrompt(
-    persona: FullPersona,
+    persona: Persona,
     history: Message[],
-    objective: string
+    objective: string,
+    evaluation: Evaluation | null,
+    difficulty_level: Difficulty
 ): string {
 
     const conversationText = history.map(msg => {
@@ -117,14 +169,23 @@ function generateEvaluationPrompt(
     }).join("\n")
 
     const interests = Array.isArray(persona.interests) ? persona.interests.join(' ') : ""
-
-    const { pid, ...rest } = persona
+    
     const personaText = `
-        Name: ${rest.name}
-        Age: ${rest.age}
-        Personality: ${rest.personality}
+        Name: ${persona.name}
+        Age: ${persona.age}
+        Gender: ${persona.gender}
+        Personality: ${persona.personality}
         Interests: ${interests}
+        Initial Mood: ${difficulty_level === 'Easy' ? easyMood : hardMood}
     `
+
+    const evaluationText = (evaluation ? `
+            Sentiment: ${evaluation.sentiment}
+            Expression: ${evaluation.expression}
+            Rapport: ${evaluation.rapport}
+            Suggestion: ${evaluation.suggestion}
+        ` : 'None (Brand New Conversation)'
+    )
 
     return `
         Objective:
@@ -135,5 +196,39 @@ function generateEvaluationPrompt(
 
         Conversation History:
         ${conversationText}
+
+        Last Evaluation:
+        ${evaluationText}
     `
+}
+
+/** Builds the system prompt for mid-conversation evaluation from scenario prompts and difficulty. */
+function generateSystemPrompt(
+    scenarioName: string,
+    difficulty_level: Difficulty
+): string {
+    const scenario: Scenario = scenarios[scenarioName as ScenarioKeys]
+    const prompt: Prompts = prompts[scenarioName as ScenarioKeys]
+    const conversationalPrompt: Record<string, string[]> = prompt['Evaluation_Prompt']
+
+    let result = ''
+
+    Object.entries(conversationalPrompt).forEach(([key, values]) => {
+        result += `${key.replaceAll('_', ' ')}\n`
+
+        values.forEach(value => {
+            result += `\t${value}\n`
+        })
+
+        result += '\n'
+    })
+
+    const expression_range = scenario.constraints.approved_expressions.join(':<tendency_value> \n') + ':<tendency_value> \n'
+    const chosen_output_format = scenarioName === 'Resolve a Task' ? taskOutputFormat : outputFormat
+    const output_format_with_expression = chosen_output_format.replaceAll('<expression_range>', expression_range)
+
+    result += output_format_with_expression
+    result = result.replaceAll('<score>', difficulty_level === 'Easy' ? '5' : '10')
+
+    return result
 }

@@ -1,22 +1,50 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { startConversation } from '@/lib/chat/service'
+import { type ScenarioKeys } from '@/lib/types/types'
+import { guard } from '@/lib/auth/guard'
+import scenarios from '@/lib/scenarios.json'
 import type { Database } from '@/supabase/types'
 
-type Persona = Database['public']['Tables']['personas']['Row']
+type Conversation = Database['public']['Tables']['conversations']['Row']
 
+/**
+ * POST /api/chat/start
+ * Body: { scenario_name, difficulty_level }
+ * Starts a new conversation or returns existing in-progress conversation for the scenario.
+ */
 export async function POST(request: NextRequest) {
     try {
-        const body = await request.json()
-        const personaId: Persona['pid'] | undefined = body?.personaId
+        const guardResult = await guard('user')
 
-        if (!personaId) {
+        if (guardResult instanceof NextResponse) {
+            return guardResult
+        }
+
+        const body = await request.json()
+        const scenario_name: ScenarioKeys | undefined = body?.scenario_name
+        const difficulty_level: Conversation['difficulty'] | undefined = body?.difficulty_level
+
+        if (!scenario_name || !difficulty_level) {
             return NextResponse.json(
-                { error: 'Persona ID is required'},
+                { error: 'Scenario name and difficulty level are required' },
                 { status: 400 }
             )
         }
 
-        const conversation = await startConversation(personaId)
+        if (!(scenario_name in scenarios)) {
+            return NextResponse.json(
+                { error: 'Scenario name invalid' },
+                { status: 404 }
+            )
+        }
+        if (difficulty_level !== 'Easy' && difficulty_level !== 'Hard') {
+            return NextResponse.json(
+                { error: 'Difficulty level must be Easy or Hard' },
+                { status: 400 }
+            )
+        }
+
+        const conversation = await startConversation(scenario_name, difficulty_level)
 
         return NextResponse.json(
             {

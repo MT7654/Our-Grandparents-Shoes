@@ -43,9 +43,13 @@ const systemPrompt = `
     ]
   }
 
-  Remember only return "completed" as true if there are at least 3 follow ups by the user. 
+  Remember only return "completed" as true if there are at least 3 follow ups by the user.
 `
 
+/**
+ * Runs end-of-conversation evaluation: completed flag, objective_met, feedback, and metric scores.
+ * Tries multiple models; normalises scores to 0–100 integers.
+ */
 export async function evaluateCompletion(
   conversationHistory: Message[],
   temperature = 0.3,
@@ -110,6 +114,7 @@ export async function evaluateCompletion(
   return result
 }
 
+/** Formats conversation history as text for the completion evaluation prompt. */
 function generateEvaluationPrompt(conversationHistory: Message[]): string {
   const conversationText = conversationHistory.map(msg => {
     const senderLabel = msg.sender === "user" ? "User" : "Persona"

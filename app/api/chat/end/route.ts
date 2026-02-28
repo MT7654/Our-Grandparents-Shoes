@@ -1,27 +1,39 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { endConversation, fetchCompleteConversation } from '@/lib/chat/service'
-
+import { guard } from '@/lib/auth/guard'
 import type { Database } from '@/supabase/types'
 
 type Conversation = Database['public']['Tables']['conversations']['Row']
 
+/**
+ * POST /api/chat/end
+ * Body: { converseId }
+ * Ends the conversation, runs completion evaluation, saves scores and feedback.
+ */
 export async function POST(request: NextRequest) {
     try {
+        const guardResult = await guard('user')
+
+        if (guardResult instanceof NextResponse) {
+            return guardResult
+        }
+        
         const body = await request.json()
         const converseId: Conversation['vid'] | undefined = body?.converseId
+        const end_early: boolean | undefined = body?.end_early
 
-        if (!converseId) {
+        if (!converseId || end_early === undefined) {
             return NextResponse.json(
-                { error: 'Converse ID is required'},
+                { error: 'Conversation ID and required parameters are required' },
                 { status: 400 }
             )
         }
 
-        const savedConversation = await endConversation(converseId)
-        
+        const savedConversation = await endConversation(converseId, end_early)
+
         if (!savedConversation) {
             return NextResponse.json(
-                { error: 'Failed to save conversation'},
+                { error: 'Failed to save conversation' },
                 { status: 400 }
             )
         }
@@ -37,10 +49,14 @@ export async function POST(request: NextRequest) {
     }
 }
 
+/**
+ * GET /api/chat/end?id=<converseId>
+ * Returns completed conversation with scores and objective (for results page).
+ */
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url)
-        const converseId = searchParams.get("id")
+        const converseId = searchParams.get('id')
 
         if (!converseId) {
             return NextResponse.json(
@@ -53,7 +69,7 @@ export async function GET(request: NextRequest) {
 
         if (!complete_evaluation) {
             return NextResponse.json(
-                { error: `Conversation with ID "${converseId}" not found or not completed` },
+                { error: 'Conversation not found or not completed' },
                 { status: 404 }
             )
         }

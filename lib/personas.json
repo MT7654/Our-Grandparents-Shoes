@@ -1,0 +1,22 @@
+{
+    "Margaret": {
+        "name": "Margaret Chan",
+        "age": 78,
+        "gender": "female",
+        "personality": "A warm and friendly senior who enjoys conversation.",
+        "interests": [
+            "Gardening",
+            "Baking",
+            "Family History"
+        ],
+        "avatar": "/elderly-woman-cartoon-avatar-smiling-grandmother.jpg",
+        "emotions": {
+            "angry": "/Margaret Chan_Angry.png",
+            "confused": "/Margaret Chan_Confused.png",
+            "happy": "/Margaret Chan_Happy.png",
+            "neutral": "/Margaret Chan_Neutral.png",
+            "scared": "/Margaret Chan_Scared.png",
+            "worried": "/Margaret Chan_Worried.png"
+        }
+    }
+}

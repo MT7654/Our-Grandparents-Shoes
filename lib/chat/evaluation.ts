@@ -3,6 +3,9 @@ import type { Database } from '@/supabase/types'
 
 type Evaluation = Database['public']['Tables']['evaluations']['Row']
 
+/**
+ * Upserts the latest mid-conversation evaluation (sentiment, expression, rapport, suggestion) for a conversation.
+ */
 export const saveEvaluation = async (
     converseID: Evaluation['vid'],
     sentiment: Evaluation['sentiment'],
@@ -42,6 +45,9 @@ export const saveEvaluation = async (
     return data as Evaluation
 }
 
+/**
+ * Fetches the current evaluation for a conversation. Returns null if none exists.
+ */
 export const getEvaluation = async (
     converseID: Evaluation['vid']
 ) => {

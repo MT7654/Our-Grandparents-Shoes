@@ -1,0 +1,140 @@
+{
+    "House Visit" : {
+        "id": "House-Visit",
+        "name": "House Visit",
+        "description": "Practice short, polite social visits with practical conversations",
+        "objective": "Complete a polite and efficient home visit with the senior.",
+        "instructions": [
+            "Keep conversation short and polite",
+            "Ask clear, practical questions",
+            "Stay focused on the purpose of the visit"
+        ],
+        "guidance": [
+            "Keep conversation short and polite",
+            "Ask clear, practical questions",
+            "Stay focused on the purpose of the visit"
+        ],
+        "design": {
+            "icon": "Home",
+            "iconColor": "text-blue-600",
+            "bgColor": "bg-blue-50",
+            "borderColor": "border-blue-200",
+            "textColor": "text-blue-700",
+            "buttonCta": "Start House Visit"
+        },
+        "constraints": {
+            "default_expression": "neutral",
+            "approved_expressions": ["neutral", "happy", "angry", "worried", "confused", "scared"],
+            "bias_expressions": [],
+            "starting_score": 0,
+            "min_turns": 10,
+            "max_turns": 10, 
+            "character_limit": 200,
+            "score_bottom_limit": -1000,
+            "score_upper_limit": 1000
+        },
+        "behaviour": [
+            "Neutral", 
+            "Slightly Guarded",
+            "Cooperative but not overly chatty"
+        ],
+        "persona": "Margaret",
+        "turn_end_message": "Anyway, thanks for checking in, I am going to rest now.",
+        "score_end_message": "I am feeling tired now, thank you for listening.",
+        "starting_messages": [
+            "Ah, it's nice to see someone new. How's your day going?",
+            "Hello! You look familiar. Do I know you from around the neighbourhood?",
+            "Ah, it's good to see a friendly face. How are you today?"
+        ]
+    },
+    
+    "Emotional Listening Ear": {
+        "id": "Emotional-Listening-Ear",
+        "name": "Listening Ear",
+        "description": "Learn to provide emotional support and validation",
+        "objective": "Help the senior feel heard and emotionally supported.",
+        "instructions": [
+            "Encourage the senior to talk",
+            "Validate emotions and feelings",
+            "Do not rush or interrupt",
+            "Avoid giving solutions unless asked"
+        ],
+        "guidance": [
+            "Encourage sharing",
+            "Validate emotions",
+            "Do not interrupt",
+            "Avoid solving unless asked"
+        ],
+        "design": {
+            "icon": "Heart",
+            "iconColor": "text-purple-600",
+            "bgColor": "bg-purple-50",
+            "borderColor": "border-purple-200",
+            "textColor": "text-purple-700",
+            "buttonCta": "Start Listening Session"
+        },
+        "constraints": {
+            "default_expression": "worried",
+            "approved_expressions": ["angry", "worried", "confused", "scared"],
+            "bias_expressions": [],
+            "starting_score": 100,
+            "min_turns": 20,
+            "max_turns": 30, 
+            "character_limit": 200,
+            "score_bottom_limit": 10,
+            "score_upper_limit": 1000
+        },
+        "persona": "Margaret",
+        "turn_end_message": "I am feeling tired now, thank you for listening.",
+        "score_end_message": "I do not want to talk to you any longer.",
+        "starting_messages": [
+            "Oh, it's nice to meet you. Lately, I've been having some disagreements with my family, and it's been really stressful for me.",
+            "Hello, it's good to see someone new. I've been feeling quite lonely recently and could use someone to talk to.",
+            "Hi, I'm glad you're here. I've been misplacing things a lot lately, and it's starting to worry me."
+        ]
+    }, 
+
+    "Resolve a Task": {
+        "id": "Resolve-a-Task",
+        "name": "Resolve a Task",
+        "description": "Practice helping seniors complete practical tasks with patience",
+        "objective": "Help the senior complete a specific task successfully.",
+        "instructions": [
+            "Explain steps clearly and slowly",
+            "Break tasks into simple parts",
+            "Check understanding frequently",
+            "Be patient and reassuring"
+        ],
+        "guidance": [
+            "Explain steps clearly and slowly",
+            "Break tasks into simple parts",
+            "Check understanding frequently",
+            "Be patient and reassuring"
+        ],
+        "design": {
+            "icon": "CheckSquare",
+            "iconColor": "text-green-600",
+            "bgColor": "bg-green-50",
+            "borderColor": "border-green-200",
+            "textColor": "text-green-700",
+            "buttonCta": "Start Task Training"
+        },
+        "constraints": {
+            "default_expression": "neutral",
+            "approved_expressions": ["neutral", "happy", "angry", "worried", "confused", "scared"],
+            "bias_expressions": ["worried", "confused", "scared"],
+            "starting_score": 0,
+            "min_turns": 50,
+            "max_turns": 50, 
+            "character_limit": 200,
+            "score_bottom_limit": -1000,
+            "score_upper_limit": 1000
+        },
+        "persona": "Margaret",
+        "turn_end_message": "Thanks for checking in, I am going to rest now.",
+        "score_end_message": "I understand how to perform this task now, thank you.",
+        "starting_messages": [
+            "Hello dear! Can you help me with booking a HealthierSG appointment? I'm not so sure how I should do it"
+        ]
+    }
+}
