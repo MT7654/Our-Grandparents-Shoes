@@ -622,9 +622,13 @@ export default function ChatTraining() {
                     {lastEvaluation && !conversationEnded && (
                         <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex items-start gap-2">
                             <Lightbulb className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
-                            <p className="text-xs text-amber-700 leading-relaxed">
-                                {`Tip: ${suggestion}`}
-                            </p>
+                            <div className="text-xs text-amber-700 leading-relaxed">
+                                <p>{`Tip: ${suggestion}`}</p>
+                                <div className="my-1 border-t border-gray-200" />
+                                <p className="mt-1 text-amber-800">
+                                    Please avoid being too direct, and respond with empathy rather than overly brief replies.
+                                </p>
+                            </div>
                         </div>
                     )}  
                     {scenario_name === "Resolve a Task" && (
