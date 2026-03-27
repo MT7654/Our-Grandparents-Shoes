@@ -775,19 +775,25 @@ export default function ChatTraining() {
                             End Early
                         </Button>
 
-                        <Input
-                            placeholder="Type your message..."
-                            value={inputValue}
-                            onChange={(e) => setInputValue(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter" && !e.shiftKey) {
-                                    e.preventDefault()
-                                    converse()
-                                }
-                            }}
-                            disabled={botLoading || evaluating}
-                            className="flex-1 h-10 text-sm bg-gray-50 border-gray-300 disabled:opacity-50"
-                        />
+                        <div className="relative flex-1">
+                            <Input
+                                placeholder="Type your message..."
+                                value={inputValue}
+                                onChange={(e) => setInputValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" && !e.shiftKey) {
+                                        e.preventDefault()
+                                        converse()
+                                    }
+                                }}
+                                maxLength={200}
+                                disabled={botLoading || evaluating}
+                                className="flex-1 h-10 text-sm bg-gray-50 border-gray-300 disabled:opacity-50 pr-16"
+                            />
+                            <span className={`absolute right-2 top-1/2 -translate-y-1/2 text-xs pointer-events-none ${inputValue.length > 200 ? 'text-red-500' : 'text-gray-400'}`}>
+                                {inputValue.length}/200
+                            </span>
+                        </div>
 
                         <Button
                             onClick={converse}
