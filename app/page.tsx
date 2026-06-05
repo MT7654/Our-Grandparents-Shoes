@@ -238,7 +238,10 @@ export default function LandingPage() {
               <span>Communication Training</span>
             </div>
 
-            <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-balance">ConverseBetter</h1>
+            <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-balance inline-flex items-center justify-center gap-3">
+              <span>ConverseBetter</span>
+              <span className="inline-flex items-center px-2 py-1 text-sm font-semibold rounded-full bg-amber-100 text-amber-800">beta</span>
+            </h1>
 
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-balance leading-relaxed">
               Build meaningful connections through practice. Learn to communicate with empathy, clarity, and confidence
