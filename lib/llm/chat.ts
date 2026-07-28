@@ -1,17 +1,12 @@
 "use server"
 
-import Groq from "groq-sdk"
 import { type Persona, ScenarioKeys, Prompts, Difficulty, Scenario } from "../types/types"
 import { type Database } from '@/supabase/types'
+import { getGroqClient } from '@/lib/llm/client'
 import prompts from '@/lib/prompts.json'
 import scenarios from '@/lib/scenarios.json'
 
 type Message = Database['public']['Tables']['messages']['Row']
-
-const apiKey = process.env.GROQ_API_KEY
-if (!apiKey) throw new Error("GROQ_API_KEY not set")
-
-const groq = new Groq({ apiKey })
 
 const modelNames = [
     "llama-3.1-8b-instant",      // Fast, smaller model
@@ -46,6 +41,7 @@ export async function talkToPersona(
     max_tokens: number = 50
 ): Promise<string> {
 
+    const groq = getGroqClient()
     const conversationalPrompt = generateConversationPrompt(personaProfile, conversationHistory, difficulty_level)
     const systemPrompt = generateSystemPrompt(scenarioName, difficulty_level)
 

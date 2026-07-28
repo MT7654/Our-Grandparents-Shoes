@@ -1,13 +1,8 @@
-import Groq from "groq-sdk"
 import { type EndConversationEvaluation } from '@/lib/types/types'
+import { getGroqClient } from '@/lib/llm/client'
 import { type Database } from '@/supabase/types'
 
 type Message = Database['public']['Tables']['messages']['Row']
-
-const apiKey = process.env.GROQ_API_KEY
-if (!apiKey) throw new Error("GROQ_API_KEY not set")
-
-const groq = new Groq({ apiKey })
 
 const modelNames = [
   "llama-3.1-8b-instant",
@@ -56,6 +51,7 @@ export async function evaluateCompletion(
   max_tokens = 200
 ): Promise<EndConversationEvaluation> {
 
+  const groq = getGroqClient()
   const evaluationPrompt = generateEvaluationPrompt(conversationHistory)
 
   let completion: any = null

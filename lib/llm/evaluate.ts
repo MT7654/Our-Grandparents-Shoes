@@ -1,19 +1,14 @@
 "use server"
 
-import Groq from "groq-sdk"
 import { MidConversationEvaluation, type Persona, ScenarioKeys, Prompts, Difficulty, Scenario } from "../types/types"
 import { type Database } from '@/supabase/types'
+import { getGroqClient } from '@/lib/llm/client'
 import prompts from '@/lib/prompts.json'
 import scenarios from '@/lib/scenarios.json'
 
 type Message = Database['public']['Tables']['messages']['Row']
 type Evaluation = Database['public']['Tables']['evaluations']['Row']
 type Expression = Database['public']['Enums']['eval_new_expression']
-
-const apiKey = process.env.GROQ_API_KEY
-if (!apiKey) throw new Error("GROQ_API_KEY not set")
-
-const groq = new Groq({ apiKey })
 
 const bias = 0.1
 
@@ -69,6 +64,7 @@ export async function evaluateResponse(
     max_tokens = 200
 ): Promise<MidConversationEvaluation> {
 
+    const groq = getGroqClient()
     const scenario: Scenario = scenarios[scenarioName as ScenarioKeys]
 
     const evaluationPrompt = generateEvaluationPrompt(persona, history, objective, lastEvaluation, difficulty_level)
