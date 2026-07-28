@@ -64,7 +64,7 @@ export default function AuthScreen() {
         });
 
         // Refresh the session to get the updated token with role claim
-        const supabase = createClient()
+        const supabase = await createClient()
         await supabase.auth.refreshSession()
 
         // Get the role from the refreshed session or database

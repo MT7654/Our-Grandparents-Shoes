@@ -18,11 +18,13 @@ export default function LandingPage() {
   const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
-    checkAuthStatus()
+    checkAuthStatus().catch((error) => {
+      console.error('Failed to check authentication status:', error)
+    })
   }, [])
 
   const checkAuthStatus = async () => {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: { session } } = await supabase.auth.getSession()
     
     if (session) {
@@ -92,7 +94,7 @@ export default function LandingPage() {
 
   // For client side redirection
   const verify = async (target: string) => {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
     if (!session || sessionError) {
@@ -155,37 +157,47 @@ export default function LandingPage() {
   }) => {
     setIsLoading(true)
 
-    const { isAuthorized, hasSession, actualRole } = await verify(role)
+    try {
+      const { isAuthorized, hasSession, actualRole } = await verify(role)
 
-    console.log('Navigation check:', { isAuthorized, hasSession, actualRole, targetRole: role, successPath })
+      console.log('Navigation check:', { isAuthorized, hasSession, actualRole, targetRole: role, successPath })
 
-    if (isAuthorized) {
-      console.log('Authorized, navigating to:', successPath)
-      router.push(successPath)
-      // Also use window.location as fallback to ensure navigation happens
-      setTimeout(() => {
-        if (window.location.pathname === '/') {
-          window.location.href = successPath
-        }
-      }, 100)
-    } else {
-      if (hasSession) {
-        console.log('Has session but wrong role:', { actualRole, targetRole: role })
-        toast({
-          description: sessionMessage,
-          variant: "default",
-        });
+      if (isAuthorized) {
+        console.log('Authorized, navigating to:', successPath)
+        router.push(successPath)
+        // Also use window.location as fallback to ensure navigation happens
+        setTimeout(() => {
+          if (window.location.pathname === '/') {
+            window.location.href = successPath
+          }
+        }, 100)
       } else {
-        console.log('No session, redirecting to auth')
-        toast({
-          description: accountMessage,
-          variant: "default",
-        })
-        router.push('/auth')
+        if (hasSession) {
+          console.log('Has session but wrong role:', { actualRole, targetRole: role })
+          toast({
+            description: sessionMessage,
+            variant: "default",
+          });
+        } else {
+          console.log('No session, redirecting to auth')
+          toast({
+            description: accountMessage,
+            variant: "default",
+          })
+          router.push('/auth')
+        }
       }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unable to verify your session'
+      console.error('Navigation failed:', error)
+      toast({
+        title: 'Configuration Error',
+        description: errorMessage,
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLoading(false)
     }
-
-    setIsLoading(false)
   }
 
   const startTraining = async () => {
