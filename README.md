@@ -6,7 +6,7 @@ A Next.js application for practising conversations with senior personas using AI
 
 - [Running locally](#-running-locally)
 - [Database setup (Supabase)](#️-database-setup-supabase)
-- [Deployment](#-deployment-options)
+- [Production deployment (Google Cloud Run)](#-production-deployment-google-cloud-run)
 - [Project structure](#-project-structure)
 - [API overview](#-api-overview)
 - [Features](#-features)
@@ -17,15 +17,13 @@ A Next.js application for practising conversations with senior personas using AI
 
 ### Prerequisites
 - Node.js 18+ installed
-- npm or pnpm package manager
+- npm package manager
 
 ### Setup Steps
 
 1. **Install dependencies:**
    ```bash
    npm install
-   # or
-   pnpm install
    ```
 
 2. **Set up environment variables**
@@ -45,8 +43,6 @@ A Next.js application for practising conversations with senior personas using AI
 
    ```bash
    npm run dev
-   # or
-   pnpm dev
    ```
 
 5. **Open your browser** at [http://localhost:3000](http://localhost:3000).
@@ -184,78 +180,72 @@ After running migrations, verify your setup:
 - **RLS errors**: Check that RLS policies are properly set up in the migration files
 - **Connection errors**: Verify your environment variables are correctly set in `.env.local`
 
-## 📦 Deployment Options
+## ☁️ Production Deployment (Google Cloud Run)
 
-### ⚠️ GitHub Pages Limitation
+Google Cloud Run is the primary production hosting environment for this
+application.
 
-**GitHub Pages cannot host this app** because:
-- GitHub Pages only serves static HTML/CSS/JS files
-- This app uses **API routes** (server-side code) that require a Node.js server
-- Environment variables need server-side access
+### Current production service
 
-### ✅ Recommended Deployment Platforms
+| Setting | Value |
+|---|---|
+| Service | `conversebetter` |
+| Region | `us-central1` |
+| URL | [https://conversebetter-918155710461.us-central1.run.app](https://conversebetter-918155710461.us-central1.run.app) |
+| Source | [MT7654/Our-Grandparents-Shoes](https://github.com/MT7654/Our-Grandparents-Shoes) |
+| Build | Google Cloud Build |
+| Image storage | Google Artifact Registry |
+| Container port | `8080` |
+| Scaling | Automatic, minimum 0 and maximum 1 instance |
+| Resources | 1 CPU and 512 MiB memory |
+| Concurrency | 80 requests per instance |
+| Request timeout | 300 seconds |
+| Access | Public Cloud Run endpoint; application routes enforce Supabase authentication and roles |
 
-#### 1. **Vercel** (Recommended - Made by Next.js creators)
+Cloud Run provides the HTTPS endpoint and executes the Next.js application and
+server API routes. Cloud Build builds the application from the connected GitHub
+repository and stores the resulting container image in Artifact Registry.
 
-**Easiest option with zero configuration:**
+### Runtime environment variables
 
-1. Push your code to GitHub
-2. Go to [vercel.com](https://vercel.com)
-3. Sign in with GitHub
-4. Click "New Project" and import your repository
-5. Add environment variables (including `GROQ_API_KEY`, Supabase URL and keys)
-6. Click "Deploy"
+Configure these variables on the Cloud Run service:
 
-**Vercel automatically:**
-- Detects Next.js
-- Builds and deploys your app
-- Provides HTTPS and custom domains
-- Handles API routes perfectly
+- `GROQ_API_KEY` - server-side Groq API key for conversations and evaluations.
+- `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL.
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anonymous/public key.
+- `SUPABASE_SERVICE_ROLE_KEY` - server-only Supabase service-role key.
 
-#### 2. **Netlify**
+Do not commit real secret values to this repository. Cloud Run supplies the
+configuration at runtime; the browser obtains the public Supabase URL and
+anonymous key through `/api/config/supabase`.
 
-1. Push your code to GitHub
-2. Go to [netlify.com](https://netlify.com)
-3. Sign in and click "New site from Git"
-4. Connect your repository
-5. Build settings:
-   - Build command: `npm run build`
-   - Publish directory: `.next`
-6. Add environment variable in Site settings → Environment variables
-7. Deploy
+### Deploy a new revision
 
-#### 3. **Railway**
+The production service is connected to this GitHub repository. A maintainer can
+deploy from the Cloud Run console by opening `conversebetter`, selecting
+**Edit & deploy new revision**, and choosing the intended repository revision.
 
-1. Push your code to GitHub
-2. Go to [railway.app](https://railway.app)
-3. Click "New Project" → "Deploy from GitHub repo"
-4. Add environment variable in Variables tab
-5. Deploy
+For a source deployment through Google Cloud CLI:
 
-#### 4. **Render**
+```bash
+gcloud run deploy conversebetter \
+  --source . \
+  --region us-central1 \
+  --allow-unauthenticated
+```
 
-1. Push your code to GitHub
-2. Go to [render.com](https://render.com)
-3. Click "New" → "Web Service"
-4. Connect your repository
-5. Settings:
-   - Build Command: `npm install && npm run build`
-   - Start Command: `npm start`
-6. Add environment variable
-7. Deploy
+Confirm that the existing runtime environment variables and service settings
+are retained before directing production traffic to the new revision.
 
-### 🔒 Environment Variables for Deployment
+### Post-deployment checks
 
-Make sure to add all required environment variables in your hosting platform's settings:
-
-**Required variables**
-
-- `GROQ_API_KEY` – Groq API key (server-side only; do not use `NEXT_PUBLIC_` for this)
-- `NEXT_PUBLIC_SUPABASE_URL` – Supabase project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` – Supabase anon/public key
-- `SUPABASE_SERVICE_ROLE_KEY` – Supabase service role key (keep secret)
-
-**Note:** For production deployments, you'll also need to run the database migrations on your Supabase project (see [Database Setup](#-database-setup) section above).
+1. Confirm that the latest revision is ready and receives 100% of traffic.
+2. Open the production URL and confirm the ConverseBetter home page loads.
+3. Test user login, scenario selection, conversation, completion and dashboard.
+4. Test administrator login and the administrator dashboard.
+5. Review Cloud Run and Cloud Build logs for deployment or runtime errors.
+6. Apply required Supabase migrations before deploying code that depends on
+   schema changes.
 
 ## 📁 Project structure
 
@@ -311,10 +301,15 @@ All API routes that require auth use the `guard('user')` pattern; invalid or mis
 - **Tailwind CSS** - Styling
 - **Supabase** - PostgreSQL database with authentication
 - **Groq (Llama 3.1)** - Fast AI conversations and sentiment analysis
+- **Google Cloud Run** - Primary production hosting and HTTPS endpoint
+- **Google Cloud Build** - Source build pipeline
+- **Google Artifact Registry** - Production container image storage
 - **Radix UI** - Accessible component library
 
 ## 📝 Notes
 
 - Avatar images go in `/public` with naming: `{personaId}-{Emotion}.jpg` (e.g. `margaret-Happy.jpg`, `robert-Sad.jpg`).
 - The app uses server-side API routes and server-side env vars; it needs a Node.js hosting environment (not static-only hosting like GitHub Pages).
+- `DEPLOY.md` is a legacy Vercel deployment guide. The Google Cloud Run section
+  in this README describes the current production environment.
 
