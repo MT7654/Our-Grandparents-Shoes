@@ -1,6 +1,6 @@
-# Senior Conversation Trainer
+# ConverseBetter
 
-A Next.js application for practising conversations with senior personas using AI-powered sentiment analysis, rapport tracking, and end-of-conversation evaluation.
+ConverseBetter is a Next.js application for practising conversations with senior personas using AI-powered sentiment analysis, rapport tracking, and end-of-conversation evaluation.
 
 ## Table of contents
 
