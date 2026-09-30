@@ -1,14 +1,10 @@
 import { type EndConversationEvaluation } from '@/lib/types/types'
 import { getGroqClient } from '@/lib/llm/client'
+import { getModelNames } from '@/lib/llm/models'
 import { type Database } from '@/supabase/types'
 
 type Message = Database['public']['Tables']['messages']['Row']
 
-const modelNames = [
-  "llama-3.1-8b-instant",
-  "mixtral-8x7b-32768",
-  "llama-3.3-70b-versatile"
-]
 
 const systemPrompt = `
   You are an expert conversation coach evaluating a conversation between a user and a senior persona. 
@@ -48,7 +44,7 @@ const systemPrompt = `
 export async function evaluateCompletion(
   conversationHistory: Message[],
   temperature = 0.3,
-  max_tokens = 200
+  max_tokens = 2048
 ): Promise<EndConversationEvaluation> {
 
   const groq = getGroqClient()
@@ -57,7 +53,7 @@ export async function evaluateCompletion(
   let completion: any = null
   let lastError: Error | null = null
 
-  for (const modelName of modelNames) {
+  for (const modelName of getModelNames()) {
     try {
       completion = await groq.chat.completions.create({
         model: modelName,
@@ -66,11 +62,19 @@ export async function evaluateCompletion(
           { role: "user", content: evaluationPrompt }
         ],
         temperature,
-        max_tokens,
+        max_completion_tokens: max_tokens,
+        reasoning_effort: 'low',
+        include_reasoning: false,
         response_format: { type: "json_object" }
       })
+      const choice = completion.choices[0]
+      if (!choice?.message?.content || choice.finish_reason === 'length') {
+        throw new Error('LLM returned empty or truncated JSON')
+      }
+      JSON.parse(choice.message.content)
       break
     } catch (err) {
+      completion = null
       lastError = err instanceof Error ? err : new Error(String(err))
       console.warn(`Model ${modelName} failed, trying next...`, lastError.message)
     }

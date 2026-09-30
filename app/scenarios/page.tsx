@@ -10,6 +10,7 @@ import { Scenario, Persona } from '@/lib/types/types'
 import LoadingOverlay from '@/components/loading-overlay'
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
+import personas from '@/lib/personas.json'
 
 const icons: Record<string, LucideIcon> = {
   Home: Home,
@@ -17,13 +18,7 @@ const icons: Record<string, LucideIcon> = {
   CheckSquare: CheckSquare
 }
 
-const default_persona: Persona = {
-  name: "Margaret Chan",
-  age: 78,
-  personality: "A warm and friendly senior who enjoys conversation.",
-  interests: ["Gardening", "Baking", "Family History"],
-  avatar: "/elderly-woman-cartoon-avatar-smiling-grandmother.jpg"
-}
+const default_persona: Persona = personas.Margaret
 
 export default function ScenarioSelection() {
   const router = useRouter()

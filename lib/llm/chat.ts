@@ -3,16 +3,12 @@
 import { type Persona, ScenarioKeys, Prompts, Difficulty, Scenario } from "../types/types"
 import { type Database } from '@/supabase/types'
 import { getGroqClient } from '@/lib/llm/client'
+import { getModelNames } from '@/lib/llm/models'
 import prompts from '@/lib/prompts.json'
 import scenarios from '@/lib/scenarios.json'
 
 type Message = Database['public']['Tables']['messages']['Row']
 
-const modelNames = [
-    "llama-3.1-8b-instant",      // Fast, smaller model
-    "mixtral-8x7b-32768",        // Mixtral model
-    "llama-3.3-70b-versatile",   // Newer 70B model (if available)
-]
 
 const outputFormat = 
 `
@@ -38,7 +34,7 @@ export async function talkToPersona(
     conversationHistory: Message[],
     latestUserMessage: string,
     temperature: number = 0.8,
-    max_tokens: number = 50
+    max_tokens: number = 1024
 ): Promise<string> {
 
     const groq = getGroqClient()
@@ -48,7 +44,7 @@ export async function talkToPersona(
     let completion: any = null
     let lastError: Error | null = null
 
-    for (const modelName of modelNames) {
+    for (const modelName of getModelNames()) {
         try {
             completion = await groq.chat.completions.create({
                 model: modelName,
@@ -58,11 +54,19 @@ export async function talkToPersona(
                     { role: "user", content: latestUserMessage }
                 ],
                 temperature,
-                max_tokens,
+                max_completion_tokens: max_tokens,
+                reasoning_effort: 'low',
+                include_reasoning: false,
                 response_format: { type: "json_object" }
             })
+            const choice = completion.choices[0]
+            if (!choice?.message?.content || choice.finish_reason === 'length') {
+                throw new Error('LLM returned empty or truncated JSON')
+            }
+            JSON.parse(choice.message.content)
             break
         } catch (err) {
+            completion = null
             lastError = err instanceof Error ? err : new Error(String(err))
             console.warn(`Model ${modelName} failed, trying next...`, lastError.message)
         }

@@ -16,7 +16,7 @@ ConverseBetter is a Next.js application for practising conversations with senior
 ## 🚀 Running locally
 
 ### Prerequisites
-- Node.js 18+ installed
+- Node.js 20.9+ installed (required by Next.js 16)
 - npm package manager
 
 ### Setup Steps
@@ -32,12 +32,22 @@ ConverseBetter is a Next.js application for practising conversations with senior
 
    ```
    GROQ_API_KEY=your_groq_api_key
+   GROQ_MODEL=openai/gpt-oss-20b
+   GROQ_FALLBACK_MODEL=openai/gpt-oss-120b
    NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
    SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
    ```
 
 3. **Set up Supabase database** (see [Database Setup](#-database-setup) section below)
+
+   The two model variables are optional and default to the values above. Set
+   them on Vercel (or Cloud Run) to change models without editing code, then
+   redeploy. Overrides must support Groq JSON mode, `reasoning_effort: low`, and
+   `include_reasoning: false`. All three LLM paths share this configuration.
+   The previous Llama and Mixtral models have been retired; see
+   [Groq's deprecation history](https://console.groq.com/docs/deprecations).
+   Use only the server-side `GROQ_API_KEY`; no public Groq key is required.
 
 4. **Run the development server**
 
@@ -55,6 +65,11 @@ To create an optimized production build:
 npm run build
 npm start
 ```
+
+To check real persona replies and both evaluation paths without writing to the
+database, run `node --env-file=.env scripts/smoke-llm.cjs`. This uses your Groq
+key and makes four API calls with synthetic conversation data. To verify the
+fallback independently, set `GROQ_MODEL=openai/gpt-oss-120b` for the test run.
 
 ## 🗄️ Database Setup (Supabase)
 
