@@ -12,6 +12,12 @@ Both Vercel projects, `our-grandparents-shoes` and `v0-senior-conversation-train
 
 Allow each actual production origin in Neon Auth. Enable email/password, required email verification and email codes. Existing volunteers select **Restore an existing account**, enter their original email, then use the reset code to choose a password. The verified Neon subject is linked to the existing UUID. Role and ownership come from the migrated profile.
 
+### Challenge journal
+
+Apply `db/migrations/20261121000100_challenge_journal.sql` to the shared Neon database before deploying the journal. Existing visits retain their historical results. Live practice requires the earlier end-reason migration in the same directory. Challenge evidence is saved per visit, and replay reads the original transcript without creating another visit.
+
+The existing Groq key serves dialogue, scoring and replay. If a configured GPT-OSS model reaches its quota, the application tries the other configured model and the Qwen fallback. The journal can retry an unavailable assessment from the saved conversation.
+
 ## Historical import and verification
 
 The source import uses the Supabase service-role key only on the migration workstation. Source credentials and the direct Neon connection string belong in ignored local environment files. Keep record payloads out of logs.

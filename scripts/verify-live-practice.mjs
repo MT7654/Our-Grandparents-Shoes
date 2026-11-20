@@ -8,6 +8,21 @@ const compiled = await build({
 })
 const live = await import("data:text/javascript;base64," + Buffer.from(compiled.outputFiles[0].text).toString("base64"))
 const rules = await import("../lib/chat/live-rules.ts")
+assert.equal(rules.acceptsVisitEnding("Shall we leave the radio there?", "Yes, let's leave it for now.", true), false)
+assert.equal(rules.acceptsVisitEnding("Of course, take care.", "Thank you, bye.", false), true)
+assert.equal(rules.acceptsVisitEnding("Would you like some company?", "I need some time alone.", true), true)
+const { challenges, getChallenge, mastery } = await import("../lib/visits/challenges.ts")
+assert.equal(new Set(challenges.map(skill => skill.id)).size, 12)
+assert.equal(getChallenge("privacy", "House Visit"), undefined)
+for (const skill of challenges) assert.ok(readFileSync("public" + skill.image).length > 0)
+const stamp = (date, difficulty, opening, state = "Demonstrated") => ({
+  started_at: date, difficulty, opening, skill_report: { state }
+})
+const easy = stamp("2026-11-20", "Easy", "At the door")
+assert.equal(mastery([easy, stamp("2026-11-21", "Hard", "At the door")]), "Demonstrated")
+assert.equal(mastery([easy, stamp("2026-11-21", "Hard", "The radio", "Practised")]), "Demonstrated")
+assert.equal(mastery([stamp("2026-11-22", "Hard", "The radio"), easy]), "Repeated independently")
+assert.equal(mastery([stamp("2026-11-18", "Hard", "The radio"), easy]), "Demonstrated")
 for (const scenario of ["House Visit", "Emotional Listening Ear"]) {
   for (const userTurns of [3, 4, 7, 9]) {
     assert.equal(rules.reasonAfterAssessment({ scenario, userTurns, objectiveMet: true, rapport: 95, minimumRapport: 10 }), null)

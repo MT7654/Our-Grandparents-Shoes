@@ -233,3 +233,7 @@ h1,.journal-brand { letter-spacing:-.035em; }
  [aria-label="Visit details"] img {height:100%;width:auto;aspect-ratio:1;transform:rotate(-1deg);}
  .evidence-card>img {width:min(60vw,13rem);margin:0 auto;}
 }
+.stamp-grid article {position:relative;padding:.7rem;border-top:1px dashed #bcab86;}
+.stamp-grid .postmarked::after {content:"✓";position:absolute;top:1rem;left:5.5rem;display:grid;place-items:center;width:2.6rem;height:2.6rem;border:3px double #9b553f;border-radius:50%;color:#934a34;font-weight:800;transform:rotate(-12deg);}
+.chapter-badge {display:flex;align-items:end;min-height:6rem;background-size:cover;background-position:center;padding:.65rem;}
+.chapter-badge strong {background:#173e33;color:#fff7df;padding:.4rem 1rem;font:italic bold 1.15rem Georgia,serif;border:2px solid #dfbf76;}

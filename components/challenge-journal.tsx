@@ -54,13 +54,13 @@ export function SkillAlbum() {
                       ).length + " / 4 demonstrated"}
                 </span>
               </summary>
-              {badge && <p>Chapter badge earned · {chapterBadges[i]}</p>}
+              {badge && <div className="chapter-badge" style={{backgroundImage:"url("+chapterImage(chapter)+")"}}><strong>{chapterBadges[i]}</strong></div>}
               <div className="stamp-grid">
                 {skills.map((c) => {
                   const entries = visits.filter((v) => v.challenge_id === c.id)
                   const status = mastery(entries)
                   return (
-                    <article key={c.id}>
+                    <article key={c.id} className={status === "Repeated independently" ? "postmarked" : ""}>
                       <img
                         src={c.image}
                         alt=""

@@ -703,11 +703,15 @@ export default function ChatTraining() {
                 Message not sent
                 </DialogTitle>
                 <DialogDescription>
-                We couldn&apos;t send your message or fetch a response from the server.
+                {messageError}
                 </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-                <Button onClick={() => setMessageError(null)}>OK</Button>
+                <Button variant="outline" onClick={() => setMessageError(null)}>Edit reply</Button>
+                <Button disabled={botLoading || !inputValue.trim()} onClick={() => {
+                    setMessageError(null)
+                    void converse(inputValue)
+                }}>Try again</Button>
             </DialogFooter>
             </DialogContent>
         </Dialog>

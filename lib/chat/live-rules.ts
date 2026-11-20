@@ -4,6 +4,14 @@ export type EndReason = "objective_met" | "boundary" | "turn_limit" | "ended_ear
 // No suggested phrase, canned response, or general positivity completes it.
 export const practiceExchanges = 3
 
+export function acceptsVisitEnding(volunteer: string, margaret: string, marked: boolean) {
+  const farewell = /\b(?:goodbye|bye(?:-bye)?|take care|see you (?:next time|soon|later))\b/i
+  if (farewell.test(volunteer) && farewell.test(margaret) && !margaret.includes("?")) return true
+  if (!marked) return false
+  // Leaving a radio alone or a booking pending is different from ending the visit.
+  return farewell.test(margaret) || /\b(?:come back|visit another|another day|please go|you can go|leave me|be alone|time alone|some space|sit quietly|quiet company|need to (?:go|rest)|need a rest|must go|end (?:the|this) visit)\b/i.test(margaret)
+}
+
 export function reasonAfterReply(turnsRemaining: number, userTurns: number, requestedEnd: boolean): EndReason | null {
   if (requestedEnd && userTurns >= practiceExchanges) return "boundary"
   return turnsRemaining <= 0 ? "turn_limit" : null
