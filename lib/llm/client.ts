@@ -14,3 +14,18 @@ export function getGroqClient(): Groq {
   client ??= new Groq({ apiKey, maxRetries: 0 })
   return client
 }
+
+// A compact fallback response may only need the next few seconds of its output allowance.
+// Daily quota errors should fall through immediately.
+export async function withShortQuotaRetry<T>(model: string, request: () => Promise<T>): Promise<T> {
+  try {
+    return await request()
+  } catch (error) {
+    const delay = error instanceof Error && /try again in ([\d.]+)s\b/i.exec(error.message)
+    if (!model.startsWith("qwen/") || !delay || !("status" in error) || error.status !== 429) throw error
+    const ms = Math.ceil(Number(delay[1]) * 1000) + 300
+    if (!Number.isFinite(ms) || ms > 15000) throw error
+    await new Promise(resolve => setTimeout(resolve, ms))
+    return request()
+  }
+}

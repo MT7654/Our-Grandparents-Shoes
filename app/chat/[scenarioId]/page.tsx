@@ -664,6 +664,7 @@ export default function ChatTraining() {
             </div>
 
             {assessmentRetry && (
+              <div className="mx-auto flex flex-wrap items-center gap-2 px-3 text-sm" aria-live="polite"><span>Your reply is saved. Coaching is delayed.</span>
                 <Button type="button" variant="outline" disabled={evaluating} className="mx-3 my-1 min-h-11 self-center" onClick={async () => {
                     setEvaluating(true)
                     try {
@@ -688,6 +689,7 @@ export default function ChatTraining() {
                         setEvaluating(false)
                     }
                 }}>Retry assessment</Button>
+                {!conversationEnded && <Button type="button" variant="ghost" disabled={evaluating} onClick={()=>setAssessmentRetry(null)}>Skip this turn’s coaching</Button>}</div>
             )}
         {/* Message send error popup */}
         <Dialog

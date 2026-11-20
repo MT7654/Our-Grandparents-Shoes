@@ -1,6 +1,6 @@
 import { type EndConversationEvaluation } from '@/lib/types/types'
-import { getGroqClient } from '@/lib/llm/client'
-import { getModelNames, modelOptions, noteRateLimit } from '@/lib/llm/models'
+import { getGroqClient, withShortQuotaRetry } from '@/lib/llm/client'
+import { getModelNames, modelOptions, noteRateLimit, outputBudget } from '@/lib/llm/models'
 import { transcriptLineIndex } from './transcript'
 import { type Database } from '@/supabase/types'
 
@@ -63,17 +63,17 @@ export async function evaluateCompletion(
 
   for (const modelName of getModelNames()) {
     try {
-      completion = await groq.chat.completions.create({
+      completion = await withShortQuotaRetry(modelName, () => groq.chat.completions.create({
         model: modelName,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: evaluationPrompt }
         ],
         temperature,
-        max_completion_tokens: max_tokens,
+        max_completion_tokens: outputBudget(modelName,max_tokens,420),
         ...modelOptions(modelName,"medium"),
         response_format: { type: "json_object" }
-      })
+      }))
       const choice = completion.choices[0]
       if (!choice?.message?.content || choice.finish_reason === 'length') {
         throw new Error('LLM returned empty or truncated JSON')

@@ -5,6 +5,9 @@ const cooldown = new Map<string,number>()
 export function modelOptions(model:string,effort:"low"|"medium"="low"){
   return model.startsWith("qwen/") ? {reasoning_effort:"none" as const} : {reasoning_effort:effort,include_reasoning:false}
 }
+export function outputBudget(model:string,requested:number,compact:number) {
+  return model.startsWith("qwen/") ? Math.min(requested,compact) : requested
+}
 export function noteRateLimit(model:string,err:unknown){
   if(typeof err === "object" && err !== null && "status" in err && err.status===429) cooldown.set(model,Date.now()+60_000)
 }

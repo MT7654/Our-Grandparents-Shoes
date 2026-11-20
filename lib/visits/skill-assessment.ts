@@ -1,6 +1,6 @@
 import "server-only"
-import { getGroqClient } from "@/lib/llm/client"
-import { getModelNames, modelOptions, noteRateLimit } from "@/lib/llm/models"
+import { getGroqClient, withShortQuotaRetry } from "@/lib/llm/client"
+import { getModelNames, modelOptions, noteRateLimit, outputBudget } from "@/lib/llm/models"
 import { followUpHints, houseGreeting } from "@/lib/chat/hints"
 import type { challenges, SkillReport } from "./challenges"
 
@@ -32,10 +32,10 @@ export async function assessFocus(
   )
   for (const model of getModelNames()) {
     try {
-      const answer = await getGroqClient().chat.completions.create({
+      const answer = await withShortQuotaRetry(model, () => getGroqClient().chat.completions.create({
         model,
         temperature: 0.1,
-        max_completion_tokens: 2300,
+        max_completion_tokens: outputBudget(model,2300,230),
         ...modelOptions(model),
         response_format: { type: "json_object" },
         messages: [
@@ -54,7 +54,7 @@ export async function assessFocus(
             }),
           },
         ],
-      })
+      }))
       const value = JSON.parse(answer.choices[0]?.message.content ?? "")
       value.state = [
         "Demonstrated",

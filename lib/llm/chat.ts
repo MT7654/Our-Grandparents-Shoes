@@ -2,8 +2,8 @@
 
 import { type Persona, Difficulty } from "../types/types"
 import { type Database } from '@/supabase/types'
-import { getGroqClient } from '@/lib/llm/client'
-import { getModelNames, modelOptions, noteRateLimit } from '@/lib/llm/models'
+import { getGroqClient, withShortQuotaRetry } from '@/lib/llm/client'
+import { getModelNames, modelOptions, noteRateLimit, outputBudget } from '@/lib/llm/models'
 import { acceptsVisitEnding, practiceExchanges } from "@/lib/chat/live-rules"
 import { sceneFor } from '@/lib/visits/scenes'
 import prompts from '@/lib/prompts.json'
@@ -73,7 +73,7 @@ export async function generateLiveReply(
 
     for (const modelName of getModelNames()) {
         try {
-            completion = await groq.chat.completions.create({
+            completion = await withShortQuotaRetry(modelName, () => groq.chat.completions.create({
                 model: modelName,
                 messages: [
                     { role: "system", content: systemPrompt },
@@ -81,9 +81,9 @@ export async function generateLiveReply(
                     { role: "user", content: latestUserMessage }
                 ],
                 temperature,
-                max_completion_tokens: max_tokens,
+                max_completion_tokens: outputBudget(modelName,max_tokens,160),
                 ...modelOptions(modelName)
-            })
+            }))
             const choice = completion.choices[0]
             if (!choice?.message?.content || choice.finish_reason === 'length') {
                 throw new Error('LLM returned empty or truncated dialogue')
