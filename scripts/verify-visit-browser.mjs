@@ -52,7 +52,7 @@ const server = createServer((req, res) => {
     res.setHeader("Content-Type", "text/css")
     return res.end(css)
   }
-  if (/^\/visit\/[a-z-]+\.(glb|png|webp)$/.test(req.url))
+  if (/^\/(visit|journal)\/[a-z0-9-]+\.(glb|png|webp)$/.test(req.url))
     return res.end(readFileSync("public" + req.url))
   res.setHeader("Content-Type", "text/html")
   res.end(
@@ -144,7 +144,7 @@ try {
       })
 
       await page.goto(url + "/" + scenarios[visit.scenario].id)
-      const levels = page.getByRole("dialog", { name: "Select difficulty" })
+      const levels = page.getByRole("dialog", { name: scenarios[visit.scenario].name })
       await levels.waitFor()
       assert.equal(await page.getByText(/0 turns remaining/i).count(), 0)
       assert.deepEqual(

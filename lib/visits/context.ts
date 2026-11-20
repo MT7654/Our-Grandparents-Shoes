@@ -20,13 +20,13 @@ export async function practiceContext(
   if (kind === "assignment") {
     const { data } = await db
       .from("visit_assignments")
-      .select("difficulty,scenarios,visit_recipients!inner(uid)")
+      .select("difficulty,challenge_id,scenarios,visit_recipients!inner(uid)")
       .eq("id", id)
       .eq("visit_recipients.uid", uid)
       .maybeSingle()
     if (!data?.scenarios.includes(scenario))
       throw Error("Assignment unavailable")
-    return { key: raw, difficulty: data.difficulty as Difficulty }
+    return { key: raw, challenge: data.challenge_id, difficulty: data.difficulty as Difficulty }
   }
   const { data } = await db
     .from("conversations")

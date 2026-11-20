@@ -39,6 +39,7 @@ try {
     "insert into conversations(uid,scenario_name,turns,completed,objective_met) values($1,'House Visit',8,true,true) returning vid", [user],
   )).rows[0].vid
   await db.exec(readFileSync("db/migrations/20261120143000_live_practice_end_reason.sql", "utf8"))
+  await db.exec(readFileSync("db/migrations/20261121000100_challenge_journal.sql", "utf8"))
   assert.deepEqual((await db.query("select completed,objective_met,end_reason from conversations where vid=$1", [prior])).rows[0], {completed:true, objective_met:true, end_reason:null})
   for (const [difficulty, wanted] of cases) {
     const fresh = {owner:user, scenario:wanted === "objective_met" ? "Resolve a Task" : scenario, difficulty, turns:wanted==="turn_limit" ? 3 : 10, context:"test:"+wanted, opening:"Starting a visit."}

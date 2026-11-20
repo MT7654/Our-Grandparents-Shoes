@@ -1,10 +1,12 @@
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import {getChallenge} from "@/lib/visits/challenges"
 import scenarios from "@/lib/scenarios.json"
 type Key = keyof typeof scenarios
 type Assignment = {
   id: string
+  challenge_id?:string
   due_date: string
   difficulty: string
   scenarios: Key[]
@@ -42,7 +44,7 @@ export function Assignments() {
           : data.assignments.map((a) => (
               <article key={a.id} className="space-y-1 rounded-lg border border-border bg-background p-3">
                 <p>
-                  {a.difficulty} · Due {a.due_date} (Singapore)
+                  {getChallenge(a.challenge_id)?.title} {a.difficulty} · Due {a.due_date} (Singapore)
                 </p>
                 {a.scenarios.map((k) => {
                   const matches = data.attempts.filter(

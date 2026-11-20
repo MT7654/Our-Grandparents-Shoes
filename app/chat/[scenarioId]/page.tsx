@@ -1,5 +1,6 @@
 "use client"
 
+import { challenges, getChallenge, chapterImage } from "@/lib/visits/challenges"
 import { visits } from "@/lib/visits/scenes"
 import { followUpHints, houseGreeting } from "@/lib/chat/hints"
 import { useState, useEffect, useRef } from "react"
@@ -74,6 +75,8 @@ export default function ChatTraining() {
 
     // UI
     const [loading, setLoading] = useState(false)
+    const [focus, setFocus] = useState("")
+    const challenge = getChallenge(focus, scenario_name)
     const [botLoading, setBotLoading] = useState(false)
     // -----------------------------------------------------------
     //  Guidance mode: "inline" = tips under each user bubble,
@@ -139,6 +142,7 @@ export default function ChatTraining() {
                 const { scenario, persona, conversation, messages, evaluation } = data
 
                 if (scenario === undefined || persona === undefined || conversation === undefined || messages === undefined || evaluation === undefined) {
+                    setFocus(getChallenge(new URLSearchParams(location.search).get('focus'), scenario_name)?.id ?? challenges.find(c=>c.scenario===scenario_name)?.id ?? '')
                     const assigned = new URLSearchParams(location.search).get('difficulty')
                     if (assigned === 'Easy' || assigned === 'Hard') setDifficulty(assigned)
                     else setShowDifficultyPopup(true)
@@ -152,7 +156,8 @@ export default function ChatTraining() {
                     }
                     if (persona) setPersona(persona)
                     if (conversation) {
-                        setVerseId(conversation.vid)
+                        setFocus(conversation.challenge_id ?? "")
+                    setVerseId(conversation.vid)
                         applyProgress(conversation)
                         setDifficulty(conversation.difficulty)
                     }
@@ -192,7 +197,7 @@ export default function ChatTraining() {
                 const response = await fetch('/api/chat/start', {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ context: new URLSearchParams(location.search).get('context'), scenario_name, difficulty_level: difficulty }),
+                    body: JSON.stringify({ context: new URLSearchParams(location.search).get('context'), scenario_name, challenge: focus, difficulty_level: difficulty }),
                 })
 
                 if (!response.ok) {
@@ -213,6 +218,7 @@ export default function ChatTraining() {
                 }
                 if (persona) setPersona(persona)
                 if (conversation) {
+                    setFocus(conversation.challenge_id ?? "")
                     setVerseId(conversation.vid)
                     applyProgress(conversation)
                     setDifficulty(conversation.difficulty)
@@ -482,7 +488,7 @@ export default function ChatTraining() {
         ? expression
         : "neutral"
     const portrait = useVisitPortrait
-        ? `/visit/margaret-${portraitExpression}.webp`
+        ? `/journal/margaret-${portraitExpression}.webp`
         : persona.emotions[expression.toLowerCase()]
     const observations = !scene ? []
         : scenario_name === "House Visit" ? [
@@ -510,11 +516,14 @@ export default function ChatTraining() {
             <Dialog open={showDifficultyPopup}>
                 <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto" showCloseButton={false} onEscapeKeyDown={(event) => event.preventDefault()} onInteractOutside={(event) => event.preventDefault()}>
                     <DialogHeader className="text-left">
-                        <DialogTitle>Select difficulty</DialogTitle>
+                        <img className="chapter-strip" src={chapterImage(scenario_name)} alt="" />
+                        <DialogTitle>{scenarioTitle}</DialogTitle>
                         <DialogDescription className="text-sm leading-relaxed">
                             Choose how you want to practise {scenarioTitle}.
                         </DialogDescription>
                     </DialogHeader>
+                    <label className="journal-select">Choose a challenge<select value={focus} onChange={e => setFocus(e.target.value)}><option value="">Practise freely</option>{challenges.filter(c => c.scenario === scenario_name).map(c => <option key={c.id} value={c.id}>{c.title}</option>)}</select></label>
+                    {challenge && <div className="focus-card"><img src={challenge.image} alt="" /><p>{challenge.cue}</p></div>}
                     <div className="grid gap-3">
                         {([
                             ["Easy", "Practise a more approachable visit with optional reply hints."],
@@ -541,7 +550,7 @@ export default function ChatTraining() {
                 </DialogContent>
             </Dialog>
 
-            <header className="shrink-0 border-b border-border bg-card px-3 py-1.5 sm:px-4">
+            <header className="journal-mast shrink-0 border-b border-border bg-card px-3 py-1.5 sm:px-4">
                 <div className="mx-auto flex max-w-5xl items-center gap-2">
                     <Button asChild variant="ghost" size="icon" className="size-11 shrink-0">
                         <Link href="/scenarios" aria-label="Back to practice">
@@ -580,8 +589,8 @@ export default function ChatTraining() {
             </header>
 
             <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-2 px-3 py-2 md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:gap-4">
-                <section aria-label="Visit details" className="flex shrink-0 items-center gap-4 overflow-hidden rounded-xl border bg-card md:block md:self-start">
-                    <img src={portrait} alt={persona.name} className="size-[clamp(3.5rem,13dvh,7rem)] shrink-0 object-cover md:aspect-square md:h-auto md:w-full" />
+                <section style={{backgroundImage: "url("+chapterImage(scenario_name)+")"}} aria-label="Visit details" className="flex shrink-0 items-center gap-4 overflow-hidden rounded-xl border bg-card md:block md:self-start">
+                    <img src={portrait} alt={persona.name} className="size-[clamp(4.5rem,16dvh,9rem)] shrink-0 object-cover md:aspect-square md:h-auto md:w-full" />
                     <div className="min-w-0 space-y-1 md:p-4">
                         <h2 className="font-semibold">{persona.name}</h2>
                         <Badge variant="secondary" className={`capitalize ${expressionBadge()}`}>{expression}</Badge>
@@ -759,6 +768,7 @@ export default function ChatTraining() {
 
             <footer className="shrink-0 border-t border-border bg-card px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-4">
                 <div className="mx-auto max-w-5xl space-y-2">
+                    {challenge && !conversationEnded && <details className="focus-tab"><summary>Your focus · {challenge.title}</summary><p>{difficulty === "Easy" ? challenge.cue : challenge.title}</p></details>}
                     {!!verseId && !conversationEnded && hintOptions.length > 0 && (
                         <details ref={hintsRef} className="rounded-lg border border-border bg-background">
                             <summary className="min-h-11 cursor-pointer rounded-lg px-3 py-2.5 text-sm font-semibold text-primary">Show reply hints</summary>

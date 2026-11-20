@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
         }
 
         const context = await practiceContext(body.context, scenario_name, guardResult.session.user.id)
-        const conversation = await startConversation(guardResult.session.user.id, scenario_name, context.difficulty ?? difficulty_level, context.key, context.callback)
+        const conversation = await startConversation(guardResult.session.user.id, scenario_name, context.difficulty ?? difficulty_level, context.key, context.callback, context.challenge ?? body.challenge)
 
         return NextResponse.json(
             {

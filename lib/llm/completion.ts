@@ -102,6 +102,7 @@ export async function evaluateCompletion(
     throw new Error("Failed to parse LLM response as JSON")
   }
 
+  if (typeof result.feedback !== "string") result.feedback = ""
   // Ensure scores are integers between 0-100
   if (Array.isArray(result.scores)) {
     result.scores = result.scores.filter(score => score && typeof score.name === "string" &&

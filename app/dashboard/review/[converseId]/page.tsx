@@ -1,5 +1,6 @@
 "use client"
 
+import {SkillDebrief} from "@/components/challenge-journal"
 import { Journal } from '@/components/visit-journal'
 import { useEffect, useState } from 'react'
 import { Button } from "@/components/ui/button"
@@ -170,6 +171,7 @@ export default function SessionReviewPage() {
           </div>
         )}
 
+        <SkillDebrief vid={converseId}/>
         <Journal vid={converseId} scenario={review.scenario}/>
         {/* View Conversation History */}
         <Link

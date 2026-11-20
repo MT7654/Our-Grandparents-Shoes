@@ -37,7 +37,7 @@ export default function LandingPage() {
         <p role="status">{error}</p>
       </div>
       <figure className="overflow-hidden rounded-3xl border">
-        <img src="/visit/flat.webp" alt="The sunlit sitting room where you visit Margaret" className="h-64 w-full object-cover sm:h-96" />
+        <img src="/journal/chapter-0.webp" alt="Margaret’s sunlit HDB corridor and portable radio" className="h-64 w-full object-cover sm:h-96" />
       </figure>
     </main>
   )

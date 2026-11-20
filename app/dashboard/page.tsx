@@ -1,5 +1,6 @@
 "use client"
 
+import {SkillAlbum} from "@/components/challenge-journal"
 import { Assignments } from "@/components/visit-assignments"
 import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
@@ -149,7 +150,7 @@ export default function ProgressDashboard() {
           </div>
         </div>
 
-        <Assignments/>
+        <div id="album"><SkillAlbum/></div><Assignments/>
         <details className="mb-6 bg-white border rounded p-4"><summary>Skill trends</summary>
           {Object.entries(Object.groupBy(assessments,a=>a.scenario_name+" · "+a.difficulty)).map(([label,group])=><section key={label}><h3 className="font-semibold mt-3">{label.replace("Emotional Listening Ear","Listening Ear")}</h3>
           {group?.map(a=><p key={a.vid}>{new Date(a.created_at).toLocaleDateString()} · {a.scores.length?a.scores.map(s=>s.metric_name+" "+s.metric_value).join(" · "):"Assessment unavailable"}</p>)}</section>)}</details>

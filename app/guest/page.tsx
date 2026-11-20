@@ -1,5 +1,6 @@
 "use client"
 
+import {chapterImage,getChallenge} from "@/lib/visits/challenges"
 import Link from "next/link"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -20,6 +21,7 @@ export default function GuestPractice() {
   const [messages, setMessages] = useState<Message[]>([])
   const scene = visit && sceneFor(visit.scenario, messages)
 
+  const sample=getChallenge(visit?.scenario==="Emotional Listening Ear"?"listen":"choice")!
   const expression = scene?.ended ? "happy" : visit?.scenario === "Emotional Listening Ear" ? "worried" : "neutral"
 
   function start(scenario: string) {
@@ -42,9 +44,10 @@ export default function GuestPractice() {
         {visit && scene ? (
           <>
             <div className="sticky top-0 z-10 flex items-center gap-4 overflow-hidden rounded-xl border bg-card">
-              <img src={`/visit/margaret-${expression}.webp`} alt="Margaret Chan" className="size-[clamp(4rem,14dvh,8rem)] object-cover" />
+              <img src={`/journal/margaret-${expression}.webp`} alt="Margaret Chan" className="size-[clamp(4rem,14dvh,8rem)] object-cover" />
               <div><h2 className="font-semibold">Margaret Chan</h2><p className="capitalize text-muted-foreground">{expression}</p></div>
             </div>
+            <details className="focus-tab"><summary>Your focus · {sample.title}</summary><p>{sample.cue}</p></details>
             <ol aria-label="Conversation" aria-live="polite" className="space-y-3">
               {messages.map((message, index) => (
                 <li key={index} className="rounded-xl bg-white p-4">
@@ -56,7 +59,7 @@ export default function GuestPractice() {
             {scene.ended ? (
               <div role="status">
                 <h2 className="text-xl font-semibold">Visit complete</h2>
-                <p>How did your response leave room for Margaret to decide?</p>
+                <img src={sample.image} className="guest-stamp" alt="" /><p>Sample stamp · {sample.title}</p><blockquote>{messages.at(-1)?.content}</blockquote><p>How did your response leave room for Margaret to decide?</p>
               </div>
             ) : (
               <fieldset className="space-y-2">
@@ -76,7 +79,7 @@ export default function GuestPractice() {
           <>
             <p>Choose from scripted responses at each step. This guided demo is not live AI practice, and guest visits are not saved.</p>
             {scenarios.map(name => (
-              <Card key={name} className="gap-2 p-5">
+              <Card key={name} className="gap-2 p-5"><img src={chapterImage(name)} alt="" className="chapter-strip"/>
                 <h2 className="text-xl font-semibold">{name.replace("Emotional Listening Ear", "Listening Ear")}</h2>
                 <p>{descriptions[name]}</p>
                 <Button className="mt-2 self-start" onClick={() => start(name)} aria-label={`Start ${name}`}>Start visit</Button>

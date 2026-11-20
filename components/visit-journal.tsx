@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import {chapterImage} from "@/lib/visits/challenges"
 import scenarios from "@/lib/scenarios.json"
 type Entry = {
   moment: { mid: string; content: string }
@@ -58,8 +59,8 @@ export function Journal({
     <section aria-labelledby="visit-journal-heading" className="space-y-4 rounded-xl border border-border bg-card p-4 text-base leading-relaxed text-card-foreground">
       <h2 id="visit-journal-heading" className="text-lg font-semibold leading-snug">Visit journal</h2>
       <img
-        src="/visit/flat.webp"
-        alt="Margaret’s table with her radio, recipe cards and seed packets"
+        src={chapterImage(scenario)}
+        alt=""
         className="h-28 w-full rounded-lg object-cover sm:h-36"
       />
       <p>{scenarios[scenario].objective}</p>

@@ -151,14 +151,14 @@ export async function closeLiveVisit(db: LiveDb, owner: string, vid: string, ear
 }
 
 export async function createLiveVisit(db: LiveDb, input: {
-  owner: string; scenario: Conversation["scenario_name"]; difficulty: Conversation["difficulty"]; turns: number; context: string; opening: string
+  owner: string; scenario: Conversation["scenario_name"]; difficulty: Conversation["difficulty"]; turns: number; context: string; opening: string; challenge?: string
 }) {
   const { owner, scenario, difficulty, turns, context, opening } = input
   const inserted = (await db.query<Conversation>(
-    `insert into public.conversations(uid,scenario_name,difficulty,turns,practice_context)
-    values($1,$2,$3,$4,$5)
+    `insert into public.conversations(uid,scenario_name,difficulty,turns,practice_context,challenge_id)
+    values($1,$2,$3,$4,$5,$6)
     on conflict (uid,scenario_name,practice_context) where completed=false do nothing returning *`,
-    [owner, scenario, difficulty, turns, context],
+    [owner, scenario, difficulty, turns, context, input.challenge ?? null],
   )).rows[0]
   if (!inserted) return null
   const message = (await db.query<Message>(

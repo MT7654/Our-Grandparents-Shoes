@@ -1,4 +1,5 @@
 "use client"
+import {ChapterCover} from "@/components/challenge-journal"
 
 import { Assignments } from "@/components/visit-assignments"
 import { useState, useEffect } from 'react'
@@ -111,7 +112,7 @@ export default function ScenarioSelection() {
           <Button variant="outline" className="min-h-11" onClick={logout}>Sign out</Button>
         </div>
         <header className="mb-5 space-y-2">
-          <h1 className="text-3xl font-bold leading-tight tracking-tight sm:text-4xl">Live AI practice</h1>
+          <h1 className="text-3xl font-bold leading-tight tracking-tight sm:text-4xl">Choose your next visit</h1>
           <p className="max-w-prose text-base leading-relaxed text-muted-foreground">
             Choose a visit with Margaret Chan and type your own replies. On Easy, you can open optional reply hints.
           </p>
@@ -124,7 +125,7 @@ export default function ScenarioSelection() {
             <a href="#assignments">Assignments</a>
           </Button>
         </nav>
-        <Assignments />
+
           {/* Error Display */}
           {error && (
             <Alert variant="destructive" className="mb-8">
@@ -150,7 +151,7 @@ export default function ScenarioSelection() {
               <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3.5 sm:gap-4 sm:p-4">
                 <div className="size-14 shrink-0 overflow-hidden rounded-full bg-accent sm:size-16">
                   <img
-                    src="/visit/margaret-neutral.webp"
+                    src="/journal/margaret-neutral.webp"
                     alt=""
                     className="size-full object-cover object-top"
                     width={64}
@@ -171,7 +172,7 @@ export default function ScenarioSelection() {
                     key={scenario.id}
                     className="gap-4 border-border bg-card py-4 sm:py-5"
                   >
-                    <CardHeader className="px-4 sm:px-5">
+                    <ChapterCover name={scenario.name}/><CardHeader className="px-4 sm:px-5">
                       <div className="flex items-start gap-3">
                         <div className="shrink-0 rounded-lg bg-accent p-2.5">
                           <Icon aria-hidden="true" className="size-5 text-primary" />
@@ -207,6 +208,7 @@ export default function ScenarioSelection() {
             </section>
           )}
 
+          <Assignments />
           {/* Empty State */}
           {!loading && !error && scenarios.length === 0 && (
             <Alert>

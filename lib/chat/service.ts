@@ -1,4 +1,5 @@
 import { transaction } from "@/lib/neon/pool"
+import { getChallenge } from "../visits/challenges"
 import { sceneFor } from "../visits/scenes"
 import {
   getConversationByConversationID,
@@ -51,16 +52,22 @@ export async function startConversation(
   difficulty: Conversation["difficulty"],
   context = "standalone",
   callback?: string,
+  focus?: string,
 ) {
   const { scenario, persona } = setup(scenarioName)
   const existing = await resumeConversation(owner, scenarioName, context)
   if (existing) return existing
   const openings = scenario.starting_messages
-  const opening = openings[Math.floor(Math.random() * openings.length)]
+  const challenge = getChallenge(focus, scenarioName)
+  let opening = challenge ? (difficulty === "Easy" ? challenge.easy : challenge.hard) : openings[Math.floor(Math.random() * openings.length)]
+  if (challenge && difficulty === "Hard") {
+    const previous = await transaction(owner, async db => (await db.query("select (select content from messages m where m.vid=c.vid order by sent_at,mid limit 1) as opening from conversations c where uid=$1 and challenge_id=$2 and completed order by created_at desc limit 1",[owner,challenge.id])).rows[0])
+    if (previous?.opening?.split("\n")[0] === opening) opening = challenge.easy
+  }
   const { min_turns, max_turns } = scenario.constraints
   const turns = min_turns + Math.floor(Math.random() * (max_turns - min_turns + 1))
   const created = await transaction(null, db => createLiveVisit(db, {
-    owner, scenario: scenarioName, difficulty, turns, context,
+    owner, scenario: scenarioName, difficulty, turns, context, challenge: challenge?.id,
     opening: callback ? opening + "\n" + callback : opening,
   }))
   if (created) return { scenario, persona, ...created }
