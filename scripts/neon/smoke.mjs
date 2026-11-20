@@ -32,6 +32,12 @@ try{
     state=sceneFor(key,messages)
    }
    assert.ok(state.ended)
+   if (key==="House Visit"){
+     const completed=await api("/api/chat/end",{converseId:vid,end_early:false})
+     assert.ok(completed.scores.length,"Completed visit has saved scores")
+     const replay=await api("/api/chat/end",{converseId:vid,end_early:false})
+     assert.deepEqual(replay.scores.map(s=>s.sid).sort(),completed.scores.map(s=>s.sid).sort())
+   }
    const entry=await api("/api/visits/journal?vid="+vid)
    assert.equal(entry.choices.length,3)
    const retry=await api("/api/visits/journal",{id:crypto.randomUUID(),vid,choice:entry.choices[1]})

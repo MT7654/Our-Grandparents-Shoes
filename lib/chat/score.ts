@@ -23,7 +23,7 @@ export const saveScores = async (
         .from('scores')
         .upsert(rows, 
             {
-                onConflict: ['vid', 'metric_name'] as any,
+                onConflict: 'vid,metric_name',
                 ignoreDuplicates: false
             }
         )
