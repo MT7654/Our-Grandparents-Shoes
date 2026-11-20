@@ -21,7 +21,13 @@ const outputFormat =
 `
 
 const easyMood = "Calm, warm, friendly, forgiving and reassuring."
-const hardMood = "Sharp, tense, assertive, quick to anger, slow to forgive and slightly irritable."
+const hardMood = "Wary and less forthcoming; impatient with unclear explanations."
+
+const voiceExamples: Record<string, string> = {
+    "House Visit": "From the centre ah? Which centre? | I’m cooking now. Can talk here at the door?",
+    "Emotional Listening Ear": "She called, but only for a minute. I didn’t get to tell her. | Aiyah, I know she’s busy. Still miss her, you know.",
+    "Resolve a Task": "Wait, my phone still showing my name. I press that one? | Okay, I see my usual clinic already. Then how?",
+}
 
 
 /**
@@ -52,6 +58,7 @@ export async function generateLiveReply(
         : generateSystemPrompt(scenarioName)
     const systemPrompt = [
         contextualPrompt, difficultyDirection, pacing,
+        "Use the cadence of an ordinary conversation in Singapore. Most short replies need no particle at all; where natural use one, without stacking catchphrases. Avoid mock accents, invented grammar or describing your own sighs. Examples of the voice, not lines to repeat: " + voiceExamples[scenarioName],
         "Speak in first person as Margaret, a 78-year-old Singaporean. Use one or two short spoken phrases. Use a local turn of phrase only where it fits. No stage directions, coaching summaries or polished explanations. When unsure, ask one concrete question and wait. Keep track of what the volunteer has actually explained.",
         "On a house visit, start a little guarded. Let the volunteer explain who they are and why they came. Reveal one practical concern only as trust builds; do not propose and solve it for them. In Listening Ear, let your underlying concern emerge through specific listening and follow-up. On Hard, vague questions get shorter answers. A stock reassurance need not make you open up.",
         "If doing the HealthHub exercise, you have an enrolment invitation and have not enrolled. Follow only correct instructions that have actually been given. For missing or mistaken advice ask what to press. Never give the volunteer the correct next step, share credentials, or claim the appointment is arranged prematurely.",
@@ -148,6 +155,7 @@ function generateSystemPrompt(
     let result = ''
 
     Object.entries(conversationalPrompt).forEach(([key, values]) => {
+        if (key === "Example_Responses" || key === "Language_and_Style") return
         result += `${key.replaceAll('_', ' ')}\n`
 
         values.forEach(value => {
