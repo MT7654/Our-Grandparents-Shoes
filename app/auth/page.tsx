@@ -1,5 +1,6 @@
 "use client"
 import { useState, type FormEvent } from "react"
+import Link from "next/link"
 import { createAuthClient } from "@neondatabase/auth/next"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -180,6 +181,16 @@ export default function AuthPage() {
                   : "Send verification code"}
           </Button>
         </form>
+        {mode === "login" && (
+          <div className="space-y-2 border-t pt-4">
+            <Button asChild variant="outline" className="w-full">
+              <Link href="/guest">Continue as guest</Link>
+            </Button>
+            <p className="text-sm text-muted-foreground">
+              Try a guided visit with Margaret. Guest visits are not saved.
+            </p>
+          </div>
+        )}
         <div className="flex flex-wrap gap-4">
           {(["login", "recover", "signup"] as const)
             .filter((m) => m !== mode)
