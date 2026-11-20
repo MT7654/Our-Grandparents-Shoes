@@ -2,14 +2,15 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
+import { Masthead } from "@/components/masthead"
 import { Toaster } from "@/components/ui/toaster"
 
-const _geist = Geist({ subsets: ["latin"] })
-const _geistMono = Geist_Mono({ subsets: ["latin"] })
+const geist = Geist({ subsets: ["latin"], variable: "--type-geist" })
+const mono = Geist_Mono({ subsets: ["latin"], variable: "--type-mono" })
 
 // Updated metadata for Senior Conversation Trainer app
 export const metadata: Metadata = {
-  title: "ConverseBetter — beta",
+  title: "ConverseBetter",
   description: "Learn to communicate with empathy and confidence with senior citizens through interactive practice",
   generator: "v0.app",
   icons: {
@@ -38,7 +39,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`font-sans antialiased`}>
+      <body className={`${geist.variable} ${mono.variable} font-sans antialiased`}>
+        <Masthead />
         {children}
         <Toaster />
       </body>

@@ -62,7 +62,7 @@ export default function ReviewChatView() {
     }, [messages])
 
     return (
-        <div className="min-h-screen bg-[#F5F6F8]">
+        <div className="min-h-screen bg-background">
 
             <LoadingOverlay isLoading={loading} />
 
@@ -70,7 +70,7 @@ export default function ReviewChatView() {
             <div className="border-b border-gray-200 bg-white shadow-sm">
                 <div className="container mx-auto px-4 py-3">
                     <Link href={`/dashboard/review/${converseId}`}>
-                        <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
+                        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                             <ArrowLeft className="w-4 h-4 mr-2" />
                             Back to Review
                         </Button>
@@ -87,7 +87,7 @@ export default function ReviewChatView() {
                 {/* Conversation Log */}
                 <Card className="bg-white border-gray-200 flex flex-col h-[calc(100vh-220px)]">
                     <div className="border-b border-gray-200 p-3 bg-gray-50">
-                        <h4 className="font-bold text-gray-800 text-sm">Conversation Log</h4>
+                        <h4 className="font-bold text-foreground text-sm">Conversation Log</h4>
                     </div>
 
                     <div className="p-4 space-y-3 overflow-y-auto flex-1" ref={scrollRef}>
@@ -98,12 +98,12 @@ export default function ReviewChatView() {
                             <div key={message.mid} id={message.mid} className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
                                 <div
                                     className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
-                                        message.sender === "user" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-900"
+                                        message.sender === "user" ? "bg-primary text-white" : "bg-secondary text-foreground"
                                     }`}
                                 >
                                     <p className="leading-relaxed text-sm">{message.content}</p>
                                     <span
-                                        className={`text-xs mt-1 block ${message.sender === "user" ? "text-blue-100" : "text-gray-500"}`}
+                                        className={`text-xs mt-1 block ${message.sender === "user" ? "text-white" : "text-muted-foreground"}`}
                                     >
                                         {toLocalDate(message.sent_at)}
                                     </span>

@@ -55,7 +55,7 @@ export function Journal({
   }
   if (!entry) return <p role="status">{status}</p>
   return (
-    <section className="space-y-3 border rounded-xl p-5 bg-amber-50">
+    <section className="workspace-panel space-y-4 border rounded-xl p-5 bg-card">
       <h2 className="text-xl font-semibold">Visit journal</h2>
       <img
         src="/visit/flat.webp"
@@ -98,7 +98,7 @@ export function Journal({
         Save reflection
       </button>
       <span role="status">{status}</span>
-      <div className="flex gap-4">
+      <div className="section-links">
         <Link href={"/chat/" + scenarios[scenario].id}>
           Practise this scenario again
         </Link>

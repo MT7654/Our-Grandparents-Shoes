@@ -96,8 +96,8 @@ export default function AuthPage() {
     }
   }
   return (
-    <main className="min-h-dvh grid place-items-center bg-[#faf6ec] px-4">
-      <Card className="w-full max-w-md p-7">
+    <main className="min-h-[calc(100dvh-4rem)] grid place-items-center bg-background px-4 py-8">
+      <Card className="w-full max-w-md gap-5 rounded-2xl p-6 sm:p-9">
         <h1 className="text-3xl font-semibold">
           {mode === "login"
             ? "Sign in"
@@ -105,7 +105,7 @@ export default function AuthPage() {
               ? "Restore your practice history"
               : mode === "signup"
                 ? "Create an account"
-                : "Verify your email"}
+                : mode === "reset" ? "Set a new password" : "Verify your email"}
         </h1>
         {mode === "recover" && (
           <p>
@@ -113,7 +113,7 @@ export default function AuthPage() {
             visits will appear after verification.
           </p>
         )}
-        <form onSubmit={submit} className="space-y-4">
+        <form onSubmit={submit} className="auth-form space-y-4">
           {mode === "signup" && (
             <label className="block">
               Name
@@ -171,7 +171,7 @@ export default function AuthPage() {
             </label>
           )}
           <p role="status">{status}</p>
-          <Button disabled={busy}>
+          <Button className="w-full" disabled={busy}>
             {mode === "login"
               ? "Sign in"
               : mode === "reset"
@@ -191,7 +191,7 @@ export default function AuthPage() {
             </p>
           </div>
         )}
-        <div className="flex flex-wrap gap-4">
+        <div className="flex flex-wrap justify-between gap-3 text-sm text-primary">
           {(["login", "recover", "signup"] as const)
             .filter((m) => m !== mode)
             .map((m) => (

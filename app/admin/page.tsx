@@ -217,23 +217,24 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10">
+    <div className="min-h-screen bg-background">
       <LoadingOverlay isLoading={loading} />
-      <div className="container mx-auto px-4 py-8 md:py-12">
+      <div className="mx-auto max-w-6xl px-5 py-8 md:py-12">
         {/* Header */}
-        <div className="mb-8 flex items-start justify-between">
+        <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-2">
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight">Admin Dashboard</h1>
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight">Coordinator dashboard</h1>
             <p className="text-xl text-muted-foreground">
               Track volunteers and monitor conversation sessions
             </p>
           </div>
           <Button variant="outline" onClick={handleLogout} className="flex items-center gap-2">
             <LogOut className="h-4 w-4" />
-            Logout
+            Sign out
           </Button>
         </div>
 
+        <nav aria-label="Dashboard sections" className="section-links"><a href="#participation">Participation</a><a href="#cohorts" onClick={() => document.querySelector<HTMLDetailsElement>("#cohorts")?.setAttribute("open", "")}>Cohorts and assignments</a><a href="#volunteers">Volunteer directory</a></nav>
         <Participation /><Cohorts />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <Card className="border-2">
@@ -266,12 +267,12 @@ export default function AdminPage() {
         </div>
 
         {/* Search and Limit Controls */}
-        <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div id="volunteers" className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="Search by volunteer name or persona name..."
+              aria-label="Search volunteers" placeholder="Search volunteers"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"
@@ -335,7 +336,7 @@ export default function AdminPage() {
                     <TableCell>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10">
+                          <Button aria-label={`Delete ${volunteer.full_name}`} variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10">
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </AlertDialogTrigger>

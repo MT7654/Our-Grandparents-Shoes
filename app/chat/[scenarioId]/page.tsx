@@ -447,7 +447,7 @@ export default function ChatTraining() {
         case "angry":
             return "border-red-400"
         default:
-            return "border-gray-300"
+            return "border-border"
         }
     }
 
@@ -460,7 +460,7 @@ export default function ChatTraining() {
         case "angry":
             return "bg-red-100 text-red-700"
         default:
-            return "bg-gray-100 text-gray-700"
+            return "bg-gray-100 text-foreground"
         }
     }
 
@@ -516,13 +516,13 @@ export default function ChatTraining() {
                 <Button aria-label="Back to practice"
                     variant="ghost"
                     size="sm"
-                    className="h-8 px-2 text-gray-600 hover:text-gray-900 bg-transparent"
+                    className="h-8 px-2 text-muted-foreground hover:text-foreground bg-transparent"
                 >
                     <ArrowLeft className="w-4 h-4" />
                 </Button>
                 </Link>
                 <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-bold text-gray-900">{scenario?.name}</span>
+                    <span className="text-sm font-bold text-foreground">{scenario?.name}</span>
                     {!!scenario?.objective && (
                     <Popover open={objectiveOpen} onOpenChange={setObjectiveOpen}>
                             <Tooltip>
@@ -531,7 +531,7 @@ export default function ChatTraining() {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-7 w-7 text-gray-600 hover:text-gray-900 bg-transparent"
+                                            className="h-7 w-7 text-muted-foreground hover:text-foreground bg-transparent"
                                             aria-label="View objective"
                                         >
                                             <Target className="h-4 w-4" />
@@ -554,14 +554,14 @@ export default function ChatTraining() {
                                     <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-6 w-6 text-gray-500 hover:text-gray-900 hover:bg-white/60"
+                                    className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-white/60"
                                     aria-label="Close objective"
                                     onClick={() => setObjectiveOpen(false)}
                                     >
                                     <X className="h-3.5 w-3.5" />
                                     </Button>
                                 </div>
-                                    <p className="mt-1 text-sm text-gray-800 leading-relaxed">
+                                    <p className="mt-1 text-sm text-foreground leading-relaxed">
                                         {scenario?.objective}
                                     </p>
                                 </div>
@@ -618,14 +618,14 @@ export default function ChatTraining() {
                 <details className="px-4 pt-3 pb-3 space-y-2 bg-white"><summary>Coaching and rapport</summary>
                     {scenario_name != "Resolve a Task" && (
                     <div className="flex items-center gap-3">
-                        <span className="text-xs font-semibold text-gray-600">Rapport</span>
-                        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <span className="text-xs font-semibold text-muted-foreground">Rapport</span>
+                        <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
                             <div
                                 className={`h-full ${getHealthBarColor()} transition-all duration-500`}
                                 style={{ width: `${rapport}%` }}
                             />
                         </div>
-                        <span className="text-xs font-bold text-gray-900 tabular-nums w-8 text-right">
+                        <span className="text-xs font-bold text-foreground tabular-nums w-8 text-right">
                             {rapport}%
                         </span>
                     </div>
@@ -644,8 +644,8 @@ export default function ChatTraining() {
                             onClick={() => setShowSteps(true)}
                             className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 flex items-center gap-2 hover:bg-gray-50 transition-colors cursor-pointer"
                         >
-                            <ClipboardList className="w-3.5 h-3.5 text-gray-700 flex-shrink-0" />
-                            <p className="text-xs text-gray-900 font-medium">
+                            <ClipboardList className="w-3.5 h-3.5 text-foreground flex-shrink-0" />
+                            <p className="text-xs text-foreground font-medium">
                                 View Steps to Book HealthHub Appointment
                             </p>
                         </button>
@@ -667,14 +667,14 @@ export default function ChatTraining() {
                 <div
                     className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 shadow-sm ${
                     message.sender === "user"
-                        ? "bg-blue-600 text-white"
-                        : "bg-white border border-gray-200 text-gray-900"
+                        ? "bg-primary text-white"
+                        : "bg-white border border-gray-200 text-foreground"
                     }`}
                 >
                     <p className="text-xs leading-relaxed">{message.content}</p>
                     <span
                     className={`text-xs mt-1 block ${
-                        message.sender === "user" ? "text-blue-200" : "text-gray-400"
+                        message.sender === "user" ? "text-white/90" : "text-gray-400"
                     }`}
                     >
                     {toLocalDate(message.sent_at)}
@@ -687,10 +687,10 @@ export default function ChatTraining() {
             {/* Bot typing indicator (always left, always last) */}
             {botLoading && (
                 <div className="flex flex-col items-start">
-                    <div className="max-w-[80%] rounded-2xl px-3.5 py-2.5 shadow-sm bg-white border border-gray-200 text-gray-900">
+                    <div className="max-w-[80%] rounded-2xl px-3.5 py-2.5 shadow-sm bg-white border border-gray-200 text-foreground">
                         <div className="flex items-center gap-2">
-                            <Spinner className="text-blue-600" />
-                            <span className="text-xs text-gray-500">Typing…</span>
+                            <Spinner className="text-primary" />
+                            <span className="text-xs text-muted-foreground">Typing…</span>
                         </div>
                     </div>
                 </div>
@@ -739,28 +739,28 @@ export default function ChatTraining() {
                 </DialogHeader>
                 <div className="space-y-4 mt-2">
                     <div>
-                        <p className="text-sm font-semibold text-gray-900">Step 1: Log in</p>
-                        <p className="text-sm text-gray-600">Open the HealthHub app and log in using Singpass.</p>
+                        <p className="text-sm font-semibold text-foreground">Step 1: Log in</p>
+                        <p className="text-sm text-muted-foreground">Open the HealthHub app and log in using Singpass.</p>
                     </div>
                     <div>
-                        <p className="text-sm font-semibold text-gray-900">Step 2: Start enrolment</p>
-                        <p className="text-sm text-gray-600">Tap the Healthier SG banner to begin your enrolment.</p>
+                        <p className="text-sm font-semibold text-foreground">Step 2: Start enrolment</p>
+                        <p className="text-sm text-muted-foreground">Tap the Healthier SG banner to begin your enrolment.</p>
                     </div>
                     <div>
-                        <p className="text-sm font-semibold text-gray-900">Step 3: Select profile</p>
-                        <p className="text-sm text-gray-600">Choose your user profile for self-enrolment, and tap Enrol in Healthier SG to proceed.</p>
+                        <p className="text-sm font-semibold text-foreground">Step 3: Select profile</p>
+                        <p className="text-sm text-muted-foreground">Choose your user profile for self-enrolment, and tap Enrol in Healthier SG to proceed.</p>
                     </div>
                     <div>
-                        <p className="text-sm font-semibold text-gray-900">Step 4: Choose your clinic</p>
-                        <p className="text-sm text-gray-600">Tap Select preferred clinic. You will be shown up to 3 clinics based on your past visits and residential address. To select other clinics, tap Search/Filters and search by postal code or keyword, then tap Apply filters.</p>
+                        <p className="text-sm font-semibold text-foreground">Step 4: Choose your clinic</p>
+                        <p className="text-sm text-muted-foreground">Tap Select preferred clinic. You will be shown up to 3 clinics based on your past visits and residential address. To select other clinics, tap Search/Filters and search by postal code or keyword, then tap Apply filters.</p>
                     </div>
                     <div>
-                        <p className="text-sm font-semibold text-gray-900">Step 5: Confirm your enrolment</p>
-                        <p className="text-sm text-gray-600">Tap Confirm enrolment to complete your enrolment with your preferred clinic.</p>
+                        <p className="text-sm font-semibold text-foreground">Step 5: Confirm your enrolment</p>
+                        <p className="text-sm text-muted-foreground">Tap Confirm enrolment to complete your enrolment with your preferred clinic.</p>
                     </div>
                     <div>
-                        <p className="text-sm font-semibold text-gray-900">Step 6: Book your appointment</p>
-                        <p className="text-sm text-gray-600">After selecting your clinic, you will be prompted to book your first Healthier SG appointment. Follow the on-screen instructions or contact your clinic directly if prompted. You can also tap Book/Manage appointment on the Health Plan tab to schedule your consultation.</p>
+                        <p className="text-sm font-semibold text-foreground">Step 6: Book your appointment</p>
+                        <p className="text-sm text-muted-foreground">After selecting your clinic, you will be prompted to book your first Healthier SG appointment. Follow the on-screen instructions or contact your clinic directly if prompted. You can also tap Book/Manage appointment on the Health Plan tab to schedule your consultation.</p>
                     </div>
                 </div>
                 <DialogFooter>
@@ -770,12 +770,12 @@ export default function ChatTraining() {
         </Dialog>
 
         {/* ── Bottom controls ────────────────────────────────────── */}
-        <div className="bg-white border-t border-gray-300 shadow-lg px-4 py-2.5">
+        <div className="bg-white border-t border-border shadow-lg px-4 py-2.5">
             <div className="max-w-3xl mx-auto space-y-2">
                 {!conversationEnded && scene && <div className="flex flex-wrap gap-2">{scene.choices.map(choice => <Button key={choice.label} variant="outline" className="h-auto whitespace-normal border-[var(--visit-border)] text-[var(--visit-sage)]" disabled={botLoading || evaluating} onClick={() => converse(choice.label)}>{choice.label}</Button>)}</div>}
                 {conversationEnded || scene?.ended ? (
                     <Button 
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold h-9 text-sm"
+                        className="w-full bg-primary hover:bg-primary/90 text-white font-semibold h-9 text-sm"
                         onClick={end}
                     >
                         View Results
@@ -786,7 +786,7 @@ export default function ChatTraining() {
                             onClick={handleEndEarly}
                             variant="outline"
                             size="sm"
-                            className="h-10 px-3 text-xs whitespace-nowrap text-gray-600 hover:text-gray-900 border-gray-300 bg-transparent"
+                            className="h-10 px-3 text-xs whitespace-nowrap text-muted-foreground hover:text-foreground border-border bg-transparent"
                         >
                             End Early
                         </Button>
@@ -804,7 +804,7 @@ export default function ChatTraining() {
                                 }}
                                 maxLength={200}
                                 disabled={botLoading || evaluating}
-                                className="flex-1 h-10 text-sm bg-gray-50 border-gray-300 disabled:opacity-50 pr-16"
+                                className="flex-1 h-10 text-sm bg-gray-50 border-border disabled:opacity-50 pr-16"
                             />
                             <span className={`absolute right-2 top-1/2 -translate-y-1/2 text-xs pointer-events-none ${inputValue.length > 200 ? 'text-red-500' : 'text-gray-400'}`}>
                                 {inputValue.length}/200
@@ -815,7 +815,7 @@ export default function ChatTraining() {
                             aria-label="Send message" onClick={() => converse()}
                             size="icon"
                             disabled={botLoading || evaluating}
-                            className="h-10 w-10 bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                            className="h-10 w-10 bg-primary hover:bg-primary/90 disabled:opacity-50"
                         >
                             <Send className="w-4 h-4" />
                         </Button>

@@ -59,9 +59,9 @@ export function Participation() {
   }, [url])
   const total = rows.find((r) => r.kind === "period")
   return (
-    <section className="mb-8 space-y-4 rounded-xl border bg-white p-6">
+    <section id="participation" className="workspace-panel mb-8 space-y-4 rounded-xl border bg-white p-6">
       <h2 className="text-2xl font-semibold">Volunteer participation</h2>
-      <div className="flex flex-wrap items-end gap-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <label>
           Period{" "}
           <select
@@ -150,7 +150,7 @@ export function Participation() {
               .map((r) => (
                 <div
                   key={r.label}
-                  className="grid grid-cols-[9rem_1fr_4rem] items-center gap-3 text-sm"
+                  className="grid grid-cols-[minmax(5rem,1fr)_minmax(2rem,2fr)_3rem] items-center gap-3 text-sm"
                 >
                   <span>
                     {r.label}

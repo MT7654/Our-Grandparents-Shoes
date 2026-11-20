@@ -6,29 +6,29 @@
 /* Updated color palette for warm, friendly conversation trainer theme */
 :root {
   --visit-paper: #faf6ec;
-  --visit-ink: #292821;
-  --visit-sage: #46583e;
-  --visit-border: #cfc9b9;
-  --background: oklch(0.99 0.01 90);
-  --foreground: oklch(0.25 0.02 280);
+  --visit-ink: #233b34;
+  --visit-sage: #245b47;
+  --visit-border: #abbdb1;
+  --background: #faf6ec;
+  --foreground: #233b34;
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.25 0.02 280);
+  --card-foreground: #233b34;
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.25 0.02 280);
-  --primary: oklch(0.55 0.15 260);
-  --primary-foreground: oklch(0.99 0.01 90);
-  --secondary: oklch(0.88 0.05 85);
-  --secondary-foreground: oklch(0.3 0.02 280);
-  --muted: oklch(0.95 0.01 90);
-  --muted-foreground: oklch(0.5 0.02 280);
-  --accent: oklch(0.85 0.08 180);
-  --accent-foreground: oklch(0.25 0.02 280);
-  --destructive: oklch(0.577 0.245 27.325);
+  --popover-foreground: #233b34;
+  --primary: #245b47;
+  --primary-foreground: #fff;
+  --secondary: #e5efe8;
+  --secondary-foreground: #233b34;
+  --muted: #e5efe8;
+  --muted-foreground: #51655c;
+  --accent: #e5efe8;
+  --accent-foreground: #233b34;
+  --destructive: #874124;
   --destructive-foreground: oklch(0.99 0.01 90);
-  --border: oklch(0.9 0.01 90);
-  --input: oklch(0.9 0.01 90);
-  --ring: oklch(0.55 0.15 260);
-  --chart-1: oklch(0.55 0.15 260);
+  --border: #abbdb1;
+  --input: #71867a;
+  --ring: #1a6390;
+  --chart-1: #245b47;
   --chart-2: oklch(0.65 0.12 180);
   --chart-3: oklch(0.75 0.1 85);
   --chart-4: oklch(0.5 0.18 300);
@@ -80,8 +80,8 @@
 }
 
 @theme inline {
-  --font-sans: "Geist", "Geist Fallback";
-  --font-mono: "Geist Mono", "Geist Mono Fallback";
+  --font-sans: var(--type-geist), system-ui, sans-serif;
+  --font-mono: var(--type-mono), monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -128,3 +128,55 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer base {
+  :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  [id] { scroll-margin-top: 1rem; }
+  progress { accent-color: var(--primary); }
+  nav [aria-current="page"] { text-decoration: underline; text-underline-offset: .35em; }
+}
+
+.section-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .25rem 1.25rem;
+  align-items: center;
+  padding: .4rem 0;
+  border-block: 1px solid var(--border);
+  margin-bottom: 1.5rem;
+}
+.section-links a, .workspace-panel a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: .22em;
+}
+.section-links a { padding-block: .6rem; font-weight: 600; }
+.auth-form label, .workspace-panel label { font-weight: 500; }
+.auth-form input:not([type="checkbox"]) { margin-top: .35rem; }
+.workspace-panel :is(input:not([type="checkbox"]), select, textarea) {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 3rem;
+  margin-top: .35rem;
+  border: 1px solid var(--input);
+  border-radius: .5rem;
+  background: var(--card);
+  padding: .5rem .75rem;
+  font: inherit;
+}
+.workspace-panel summary { cursor: pointer; font-weight: 600; padding-block: .5rem; }
+.workspace-panel button {
+  border: 1px solid var(--border);
+  border-radius: .6rem;
+  padding: .65rem 1rem;
+  background: var(--secondary);
+  color: var(--primary);
+  font-weight: 600;
+}
+.workspace-panel button:disabled { opacity: .55; }
+.workspace-panel :is(th, td) { padding: .65rem; border-bottom: 1px solid var(--border); }
+.workspace-panel th { background: var(--secondary); }
+.workspace-panel caption { padding: .5rem; text-align: left; }
+.workspace-panel blockquote { border-left: 3px solid var(--primary); padding-left: 1rem; }

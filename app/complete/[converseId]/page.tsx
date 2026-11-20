@@ -79,7 +79,7 @@ export default function ConversationComplete() {
 
     if (error || !sessionData) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10 flex items-center justify-center p-4">
+            <div className="min-h-screen bg-background flex items-center justify-center p-4">
                 <Card className="w-full max-w-2xl">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
@@ -116,7 +116,7 @@ export default function ConversationComplete() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-2xl">
             <CardHeader className="text-center">
             {sessionData.completed ? (

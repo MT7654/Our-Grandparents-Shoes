@@ -25,7 +25,7 @@ import { useToast } from "@/hooks/use-toast"
 function getScenarioIcon(scenario: string) {
   switch (scenario) {
     case "House Visit":
-      return <Home className="w-4 h-4 text-blue-600" />
+      return <Home className="w-4 h-4 text-primary" />
     case "Listening Ear":
       return <Heart className="w-4 h-4 text-purple-600" />
     case "Resolve a Task":
@@ -38,7 +38,7 @@ function getScenarioIcon(scenario: string) {
 function getScenarioBg(scenario: string) {
   switch (scenario) {
     case "House Visit":
-      return "bg-blue-50 border-blue-200"
+      return "bg-secondary border-border"
     case "Listening Ear":
       return "bg-purple-50 border-purple-200"
     case "Resolve a Task":
@@ -99,7 +99,7 @@ export default function SessionReviewPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F5F6F8]">
+      <div className="min-h-screen bg-background">
         <LoadingOverlay isLoading />
       </div>
     )
@@ -107,11 +107,11 @@ export default function SessionReviewPage() {
 
   if (error || !review) {
     return (
-      <div className="min-h-screen bg-[#F5F6F8] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center space-y-4">
-          <p className="text-sm text-gray-600">{review == null ? 'Session not found.' : error ?? 'Something went wrong.'}</p>
+          <p className="text-sm text-muted-foreground">{review == null ? 'Session not found.' : error ?? 'Something went wrong.'}</p>
           <Link href="/dashboard">
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white">Back to Dashboard</Button>
+            <Button className="bg-primary hover:bg-primary/90 text-white">Back to Dashboard</Button>
           </Link>
         </div>
       </div>
@@ -119,18 +119,18 @@ export default function SessionReviewPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F6F8]">
+    <div className="min-h-screen bg-background">
       <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
         {/* Header */}
         <div>
           <Link href="/dashboard">
-            <Button variant="ghost" className="mb-4 bg-transparent text-gray-600 hover:text-gray-900">
+            <Button variant="ghost" className="mb-4 bg-transparent text-muted-foreground hover:text-foreground">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Sessions
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900">Session Review</h1>
-          <p className="text-sm text-gray-600 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Session Review</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Detailed feedback for your conversation with Margaret Chan.
           </p>
         </div>
@@ -143,12 +143,12 @@ export default function SessionReviewPage() {
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-semibold text-gray-900">{review.scenario}</span>
-                <Badge variant="outline" className="text-xs px-1.5 py-0 border-gray-300 text-gray-600">
+                <span className="text-sm font-semibold text-foreground">{review.scenario}</span>
+                <Badge variant="outline" className="text-xs px-1.5 py-0 border-border text-muted-foreground">
                   {review.difficulty}
                 </Badge>
               </div>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-muted-foreground">
                 {new Date(review.date).toLocaleDateString("en-US", {
                   month: "short",
                   day: "numeric",
@@ -161,7 +161,7 @@ export default function SessionReviewPage() {
 
         {/* Objective Status */}
         <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
+          <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">
             Objective Status
           </h2>
           <div className="flex items-center gap-2">
@@ -174,8 +174,8 @@ export default function SessionReviewPage() {
               </>
             ) : (
               <>
-                <XCircle className="w-5 h-5 text-gray-500 flex-shrink-0" />
-                <Badge className="bg-gray-100 text-gray-700 border-0 text-sm font-semibold">
+                <XCircle className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                <Badge className="bg-gray-100 text-foreground border-0 text-sm font-semibold">
                   Not Completed
                 </Badge>
               </>
@@ -186,12 +186,12 @@ export default function SessionReviewPage() {
         {/* Overall Feedback */}
         {review.feedback && (
           <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-            <div className="flex items-center gap-2 px-4 py-3 bg-blue-50 border-b border-blue-200">
-              <MessageCircle className="w-4 h-4 text-blue-700" />
-              <h2 className="text-sm font-bold text-blue-800">Overall Feedback</h2>
+            <div className="flex items-center gap-2 px-4 py-3 bg-secondary border-b border-border">
+              <MessageCircle className="w-4 h-4 text-primary" />
+              <h2 className="text-sm font-bold text-primary">Overall Feedback</h2>
             </div>
             <div className="p-4">
-              <p className="text-sm text-gray-700 leading-relaxed">{review.feedback}</p>
+              <p className="text-sm text-foreground leading-relaxed">{review.feedback}</p>
             </div>
           </div>
         )}
@@ -202,10 +202,10 @@ export default function SessionReviewPage() {
           <div className="bg-white border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer mb-8">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <MessageSquare className="w-5 h-5 text-blue-600" />
+                <MessageSquare className="w-5 h-5 text-primary" />
                 <div>
-                  <p className="text-sm font-semibold text-gray-900">View Conversation History</p>
-                  <p className="text-xs text-gray-500">Review the full conversation log</p>
+                  <p className="text-sm font-semibold text-foreground">View Conversation History</p>
+                  <p className="text-xs text-muted-foreground">Review the full conversation log</p>
                 </div>
               </div>
               <ArrowLeft className="w-4 h-4 text-gray-400 rotate-180" />
@@ -223,14 +223,14 @@ export default function SessionReviewPage() {
             <div className="divide-y divide-gray-100">
               {review.goodPrompts.map((item, index) => (
                 <div key={index} className="p-4 space-y-2">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
-                    <p className="text-sm text-blue-900 font-medium leading-relaxed">
+                  <div className="bg-secondary border border-border rounded-lg px-3 py-2">
+                    <p className="text-sm text-primary font-medium leading-relaxed">
                       {'"'}
                       {item.userMessage}
                       {'"'}
                     </p>
                   </div>
-                  <p className="text-sm text-gray-700 leading-relaxed pl-1">{item.explanation}</p>{item.mid && <Link className='underline text-sm' href={`/dashboard/review/${converseId}/chat#${item.mid}`}>Read this exchange</Link>}
+                  <p className="text-sm text-foreground leading-relaxed pl-1">{item.explanation}</p>{item.mid && <Link className='underline text-sm' href={`/dashboard/review/${converseId}/chat#${item.mid}`}>Read this exchange</Link>}
                 </div>
               ))}
             </div>
@@ -254,7 +254,7 @@ export default function SessionReviewPage() {
                       {'"'}
                     </p>
                   </div>
-                  <p className="text-sm text-gray-700 leading-relaxed pl-1">{item.explanation}</p>{item.mid && <Link className='underline text-sm' href={`/dashboard/review/${converseId}/chat#${item.mid}`}>Read this exchange</Link>}
+                  <p className="text-sm text-foreground leading-relaxed pl-1">{item.explanation}</p>{item.mid && <Link className='underline text-sm' href={`/dashboard/review/${converseId}/chat#${item.mid}`}>Read this exchange</Link>}
                 </div>
               ))}
             </div>
@@ -266,13 +266,13 @@ export default function SessionReviewPage() {
           <Link href="/scenarios" className="flex-1">
             <Button
               variant="outline"
-              className="w-full bg-transparent border-gray-300 text-gray-800 hover:bg-gray-100"
+              className="w-full bg-transparent border-border text-foreground hover:bg-gray-100"
             >
               Try Another Scenario
             </Button>
           </Link>
           <Link href="/dashboard" className="flex-1">
-            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+            <Button className="w-full bg-primary hover:bg-primary/90 text-white">
               Back to Dashboard
             </Button>
           </Link>

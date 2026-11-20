@@ -70,7 +70,7 @@ export function Cohorts() {
     .find((c) => c.id === cohort)
     ?.visit_memberships.some((m) => m.uid === uid && !m.left_at)
   return (
-    <details className="p-5 border bg-white mb-6">
+    <details id="cohorts" className="workspace-panel rounded-xl p-5 border bg-white mb-6">
       <summary>Cohorts and assignments</summary>
       <div className="space-y-4 py-4">
         <label>

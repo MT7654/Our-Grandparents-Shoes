@@ -27,7 +27,7 @@ function getScenarioIcon(scenario: string | null) {
   if (!scenario) return null
   switch (scenario) {
     case "House Visit":
-      return <Home className="w-4 h-4 text-blue-600" />
+      return <Home className="w-4 h-4 text-primary" />
     case "Emotional Listening Ear":
     case "Listening Ear":
       return <Heart className="w-4 h-4 text-purple-600" />
@@ -42,7 +42,7 @@ function getScenarioBg(scenario: string | null) {
   if (!scenario) return "bg-gray-50 border-gray-200"
   switch (scenario) {
     case "House Visit":
-      return "bg-blue-50 border-blue-200"
+      return "bg-secondary border-border"
     case "Emotional Listening Ear":
     case "Listening Ear":
       return "bg-purple-50 border-purple-200"
@@ -123,13 +123,13 @@ export default function ProgressDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F6F8]">
+    <div className="min-h-screen bg-background">
       <LoadingOverlay isLoading={loading} />
       <div className="max-w-2xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <Link href="/">
-            <Button variant="ghost" className="mb-4 bg-transparent text-gray-600 hover:text-gray-900">
+            <Button variant="ghost" className="mb-4 bg-transparent text-muted-foreground hover:text-foreground">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Home
             </Button>
@@ -137,11 +137,11 @@ export default function ProgressDashboard() {
 
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">My progress</h1>
-              <p className="text-sm text-gray-600 mt-1">Review your past conversations</p>
+              <h1 className="text-2xl font-bold text-foreground">My progress</h1>
+              <p className="text-sm text-muted-foreground mt-1">Review your past conversations</p>
             </div>
             <Link href="/scenarios">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+              <Button className="bg-primary hover:bg-primary/90 text-white">
                 <MessageCircle className="w-4 h-4 mr-2" />
                 Train
               </Button>
@@ -155,13 +155,13 @@ export default function ProgressDashboard() {
           {group?.map(a=><p key={a.vid}>{new Date(a.created_at).toLocaleDateString()} · {a.scores.length?a.scores.map(s=>s.metric_name+" "+s.metric_value).join(" · "):"Assessment unavailable"}</p>)}</section>)}</details>
         {/* Past Conversations - Primary Section */}
         <div className="mb-8">
-          <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Past Conversations</h2>
+          <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-3">Past Conversations</h2>
 
           {pastSessions.length === 0 ? (
             <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
-              <p className="text-sm text-gray-600">No conversations yet. Start your first training session.</p>
+              <p className="text-sm text-muted-foreground">No conversations yet. Start your first training session.</p>
               <Link href="/scenarios">
-                <Button className="mt-4 bg-blue-600 hover:bg-blue-700 text-white">Start Training</Button>
+                <Button className="mt-4 bg-primary hover:bg-primary/90 text-white">Start Training</Button>
               </Link>
             </div>
           ) : (
@@ -179,16 +179,16 @@ export default function ProgressDashboard() {
                         {/* Session Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-semibold text-gray-900">{session.scenario_name==="Emotional Listening Ear"?"Listening Ear":session.scenario_name}</span>
+                            <span className="text-sm font-semibold text-foreground">{session.scenario_name==="Emotional Listening Ear"?"Listening Ear":session.scenario_name}</span>
                             <Badge
                               variant="outline"
-                              className="text-xs px-1.5 py-0 border-gray-300 text-gray-600"
+                              className="text-xs px-1.5 py-0 border-border text-muted-foreground"
                             >
                               {session.difficulty}
                             </Badge>
                           </div>
                           <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-muted-foreground">
                               {toLocalDate(session.created_at)}
                             </span>
                             <span className="text-xs text-gray-400">-</span>
@@ -198,7 +198,7 @@ export default function ProgressDashboard() {
                                 Completed
                               </span>
                             ) : (
-                              <span className="flex items-center gap-1 text-xs text-gray-500 font-medium">
+                              <span className="flex items-center gap-1 text-xs text-muted-foreground font-medium">
                                 <XCircle className="w-3 h-3" />
                                 Not Completed
                               </span>
@@ -219,7 +219,7 @@ export default function ProgressDashboard() {
 
         {/* Achievements - Secondary Section */}
         <div>
-          <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Achievements</h2>
+          <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-3">Achievements</h2>
           <div className="space-y-2">
             {badges.map((badge) => {
               const Icon = getIcon(badge.label)
@@ -242,7 +242,7 @@ export default function ProgressDashboard() {
                     )}
                   </div>
                   <span
-                    className={`text-sm font-medium ${badge.unlocked ? "text-gray-900" : "text-gray-500"}`}
+                    className={`text-sm font-medium ${badge.unlocked ? "text-foreground" : "text-muted-foreground"}`}
                   >
                     {badge.name}
                   </span>

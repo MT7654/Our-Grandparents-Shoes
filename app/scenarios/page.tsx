@@ -101,14 +101,14 @@ export default function ScenarioSelection() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10 relative">
+    <div className="min-h-screen bg-background relative">
 
       {/* Loading Screen */}
       <LoadingOverlay isLoading={loading} />
 
       {/* Logout Button Top Right */}
       <div className="absolute top-4 right-4">
-        <Button variant="outline" onClick={logout}>Logout</Button>
+        <Button variant="outline" onClick={logout}>Sign out</Button>
       </div>
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-5xl mx-auto">
@@ -127,7 +127,7 @@ export default function ScenarioSelection() {
             </p>
           </div>
 
-          <nav className="flex gap-4 mb-4"><a href="#practice">Practice</a><Link href="/dashboard">My progress</Link><a href="#assignments">Assignments</a></nav><Assignments/><div id="practice" />
+          <nav aria-label="Practice sections" className="section-links"><a href="#practice">Choose a visit</a><a href="#assignments">Assignments</a></nav><Assignments/><div id="practice" />
           {/* Error Display */}
           {error && (
             <Alert variant="destructive" className="mb-8">
@@ -157,7 +157,7 @@ export default function ScenarioSelection() {
                   <img
                     src= {persona.avatar}
                     alt= {persona.name}
-                    className="w-20 h-20 rounded-full object-cover border-2 border-gray-300"
+                    className="w-20 h-20 rounded-full object-cover border-2 border-border"
                   />
                   <div>
                     <CardTitle className="text-2xl">{persona.name}</CardTitle>
@@ -176,12 +176,12 @@ export default function ScenarioSelection() {
                 return (
                   <Card
                     key={scenario.id}
-                    className={`border-2 ${scenario.design.borderColor} ${scenario.design.bgColor} hover:shadow-lg transition-all`}
+                    className="border bg-card"
                   >
                     <CardHeader className="pb-3">
                       <div className="flex items-start gap-4">
-                        <div className={`p-3 rounded-lg bg-white border ${scenario.design.borderColor}`}>
-                          <Icon className={`w-8 h-8 ${scenario.design.iconColor}`} />
+                        <div className="rounded-lg bg-accent p-3">
+                          <Icon className="size-6 text-primary" />
                         </div>
                         <div className="flex-1">
                           <CardTitle className="text-2xl mb-1">{scenario.name}</CardTitle>
@@ -204,11 +204,11 @@ export default function ScenarioSelection() {
                         </ul>
                       </div>
 
-                      <Link href={`/chat/${scenario.id}${typeof window === "undefined" ? "" : location.search}`} className="block">
-                        <Button className="w-full" size="lg">
+                      <Button asChild className="w-full" size="lg">
+                        <Link href={`/chat/${scenario.id}${typeof window === "undefined" ? "" : location.search}`}>
                           {scenario.design.buttonCta}
-                        </Button>
-                      </Link>
+                        </Link>
+                      </Button>
                     </CardContent>
                   </Card>
                 )
