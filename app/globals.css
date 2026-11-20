@@ -220,3 +220,16 @@ h1,.journal-brand { letter-spacing:-.035em; }
 .journal-actions [aria-pressed=true] {color:white;background:#245b47;}
 @media(max-width:480px){.evidence-card{grid-template-columns:1fr;}.evidence-card>img{width:7rem;}}
 @media(prefers-reduced-motion:no-preference){.earned{animation:stamp-settle .25s ease-out;}@keyframes stamp-settle{from{transform:rotate(-7deg) scale(1.18);opacity:.45;}to{transform:none;opacity:1;}}}
+.chapter-heading {position:relative;}
+.chapter-heading .chapter-strip {height:clamp(7rem,18dvh,11rem);}
+.chapter-heading [data-slot=dialog-title] {position:absolute;top:.7rem;left:.7rem;max-width:90%;padding:.25rem .65rem;background:#fff5dceF;box-shadow:1px 2px 0 #8f755466;font-size:clamp(1.5rem,4vw,2rem);font-style:italic;}
+.focus-card {background:linear-gradient(94deg,#f4e3bd,#fff6df 16%,#fbf0d5 95%);box-shadow:0 3px 0 #c9b48b;padding:.6rem;}
+.focus-tab {border-left:5px solid #bf7651;}
+[aria-label="Visit conversation"] > section,[aria-label="Visit conversation"] section {background:#fffaf0;}
+[aria-label="Visit conversation"] .bg-secondary.text-foreground {background:#fff5dc;border-color:#c3af85;border-radius:.2rem 1rem 1rem 1rem;}
+.evidence-card {background:linear-gradient(105deg,#f6e9cd 0%,#fffaed 24%,#fff8e7);}
+@media(min-height:650px) and (max-width:767px){
+ [aria-label="Visit details"] {height:clamp(8rem,20dvh,11rem);padding:.5rem .8rem;}
+ [aria-label="Visit details"] img {height:100%;width:auto;aspect-ratio:1;transform:rotate(-1deg);}
+ .evidence-card>img {width:min(60vw,13rem);margin:0 auto;}
+}

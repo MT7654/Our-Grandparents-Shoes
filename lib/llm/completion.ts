@@ -1,6 +1,6 @@
 import { type EndConversationEvaluation } from '@/lib/types/types'
 import { getGroqClient } from '@/lib/llm/client'
-import { getModelNames } from '@/lib/llm/models'
+import { getModelNames, modelOptions, noteRateLimit } from '@/lib/llm/models'
 import { transcriptLineIndex } from './transcript'
 import { type Database } from '@/supabase/types'
 
@@ -22,6 +22,7 @@ const systemPrompt = `
     - "objective_met" should be true if the user successfully achieved the intended conversation objective with proper engagement.
     - If the objective was met, identify the numbered volunteer line that addresses a particular detail Margaret shared, and the later Margaret line showing the outcome. Repeated stock questions, a friendly tone or simply saying goodbye do not establish success. A thoughtful close, including granting requested space, may be effective.
     - Judge what both people established across the full visit. If Margaret opens by offering a few minutes, availability is already established. If she asks for space and the visitor grants it, that is meaningful follow-through. Do not recommend pressing her for more conversation. Recognise repairs after an initially clumsy reply.
+    - For a house visit, if the volunteer and Margaret agree to leave an object alone and listen together, that IS a concrete action. Do not insist on offering repairs or continuing after she declines help.
     - For feedback, name one concrete exchange accurately. If a criterion is missing, identify that criterion without discounting other steps that did happen.
     - Do not include extra commentary outside the JSON.
 
@@ -70,8 +71,7 @@ export async function evaluateCompletion(
         ],
         temperature,
         max_completion_tokens: max_tokens,
-        reasoning_effort: 'medium',
-        include_reasoning: false,
+        ...modelOptions(modelName,"medium"),
         response_format: { type: "json_object" }
       })
       const choice = completion.choices[0]
@@ -82,7 +82,8 @@ export async function evaluateCompletion(
       break
     } catch (err) {
       completion = null
-      lastError = err instanceof Error ? err : new Error(String(err))
+      noteRateLimit(modelName,err)
+            lastError = err instanceof Error ? err : new Error(String(err))
       console.warn(`Model ${modelName} failed, trying next...`, lastError.message)
     }
   }

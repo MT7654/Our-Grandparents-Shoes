@@ -170,7 +170,7 @@ export default function AuthPage() {
   if (!role) return (
     <main className="min-h-[calc(100dvh-4rem)] grid place-items-center px-4 py-8">
       <Card className="w-full max-w-md gap-4 p-7">
-        <h1 className="text-3xl font-semibold">Sign in</h1>
+        <img className="chapter-strip" src="/journal/chapter-0.webp" alt=""/><h1 className="text-3xl font-semibold">Sign in</h1>
         <Button disabled={betaEnabled === null} onClick={() => { setRole("volunteer"); changeMode(betaEnabled ? "betaLogin" : "login") }}>Sign in as a volunteer</Button>
         <Button variant="outline" onClick={() => { setRole("admin"); changeMode("login") }}>Sign in as an admin</Button>
         <Link className="mt-2 text-center text-sm text-primary underline" href="/guest">Try guided demo</Link>

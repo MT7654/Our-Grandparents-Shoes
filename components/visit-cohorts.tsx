@@ -1,9 +1,20 @@
 "use client"
 import { useState, useEffect } from "react"
-import {challenges,getChallenge} from "@/lib/visits/challenges"
+import { challenges, getChallenge } from "@/lib/visits/challenges"
 import scenarios from "@/lib/scenarios.json"
 type Directory = {
-  flagged: {uid:string;vid:string;challenge_id:string;skill_report:{state:string;note:string;volunteer:string;margaret:string}}[]
+  independent: { context: string; total: number }[]
+  flagged: {
+    uid: string
+    vid: string
+    challenge_id: string
+    skill_report: {
+      state: string
+      note: string
+      volunteer: string
+      margaret: string
+    }
+  }[]
   statuses: {
     assignment_id: string
     uid: string
@@ -13,8 +24,13 @@ type Directory = {
   attempts: {
     uid: string
     vid: string
-    skill_report?: {state:string;note:string;volunteer:string;margaret:string}
-    skill_flag?:boolean
+    skill_report?: {
+      state: string
+      note: string
+      volunteer: string
+      margaret: string
+    }
+    skill_flag?: boolean
     practice_context: string
     scenario_name: string
   }[]
@@ -26,7 +42,7 @@ type Directory = {
   volunteers: { user_id: string; full_name: string }[]
   assignments: {
     id: string
-    challenge_id?:string
+    challenge_id?: string
     due_date: string
     scenarios: string[]
     visit_recipients: { uid: string }[]
@@ -38,7 +54,7 @@ export function Cohorts() {
     [uid, setUid] = useState(""),
     [name, setName] = useState(""),
     [status, setStatus] = useState("")
-  const [focus,setFocus]=useState("")
+  const [focus, setFocus] = useState("")
   const [selected, setSelected] = useState<string[]>([]),
     [due, setDue] = useState(""),
     [difficulty, setDifficulty] = useState("Easy")
@@ -50,21 +66,25 @@ export function Cohorts() {
   useEffect(() => {
     load().catch(() => setStatus("Cohorts unavailable"))
   }, [])
-  async function change(operation: string, vid?:string) {
+  async function change(operation: string, vid?: string) {
     try {
       const r = await fetch("/api/admin/cohorts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          operation,vid,
+          operation,
+          vid,
           name,
           cohort,
           uid,
           scenarios: selected,
-          focus: selected.length === 1 && getChallenge(focus,selected[0]) ? focus : null,
+          focus:
+            selected.length === 1 && getChallenge(focus, selected[0])
+              ? focus
+              : null,
           due,
-          difficulty
-        })
+          difficulty,
+        }),
       })
       if (!r.ok) throw Error()
       await load()
@@ -77,7 +97,10 @@ export function Cohorts() {
     .find((c) => c.id === cohort)
     ?.visit_memberships.some((m) => m.uid === uid && !m.left_at)
   return (
-    <details id="cohorts" className="workspace-panel rounded-xl p-5 border bg-white mb-6">
+    <details
+      id="cohorts"
+      className="workspace-panel rounded-xl p-5 border bg-white mb-6"
+    >
       <summary>Cohorts and assignments</summary>
       <div className="space-y-4 py-4">
         <label>
@@ -134,7 +157,7 @@ export function Cohorts() {
                   setSelected(
                     e.target.checked
                       ? [...selected, k]
-                      : selected.filter((x) => x !== k)
+                      : selected.filter((x) => x !== k),
                   )
                 }
               />{" "}
@@ -142,7 +165,24 @@ export function Cohorts() {
             </label>
           ))}
         </fieldset>
-        {selected.length === 1 && <label>Challenge<select value={getChallenge(focus,selected[0])?.id ?? ""} onChange={e=>setFocus(e.target.value)}><option value="">Free practice</option>{challenges.filter(c=>c.scenario===selected[0]).map(c=><option key={c.id} value={c.id}>{c.title}</option>)}</select></label>}
+        {selected.length === 1 && (
+          <label>
+            Challenge
+            <select
+              value={getChallenge(focus, selected[0])?.id ?? ""}
+              onChange={(e) => setFocus(e.target.value)}
+            >
+              <option value="">Free practice</option>
+              {challenges
+                .filter((c) => c.scenario === selected[0])
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title}
+                  </option>
+                ))}
+            </select>
+          </label>
+        )}
         <label>
           Difficulty{" "}
           <select
@@ -169,8 +209,8 @@ export function Cohorts() {
         </button>
         {data?.assignments.map((a) => (
           <p key={a.id}>
-            {a.scenarios.join(", ")} {getChallenge(a.challenge_id)?.title} · Due {a.due_date} ·{" "}
-            {a.visit_recipients.length} assigned ·{" "}
+            {a.scenarios.join(", ")} {getChallenge(a.challenge_id)?.title} · Due{" "}
+            {a.due_date} · {a.visit_recipients.length} assigned ·{" "}
             {
               data.statuses.filter((s) => s.assignment_id === a.id && s.started)
                 .length
@@ -178,17 +218,38 @@ export function Cohorts() {
             started ·{" "}
             {
               data.statuses.filter(
-                (s) => s.assignment_id === a.id && s.completed
+                (s) => s.assignment_id === a.id && s.completed,
               ).length
             }{" "}
             completed ·{" "}
             {a.due_date <
             new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10)
               ? data.statuses.filter(
-                  (s) => s.assignment_id === a.id && !s.completed
+                  (s) => s.assignment_id === a.id && !s.completed,
                 ).length
               : 0}{" "}
-            overdue · {data.attempts.filter(t=>t.practice_context==="assignment:"+a.id && t.skill_report && t.skill_report.state!=="No opportunity this visit").length} assessed opportunities · {data.attempts.filter(t=>t.practice_context==="assignment:"+a.id && t.skill_report?.state==="Demonstrated").length} demonstrated
+            overdue ·{" "}
+            {
+              data.attempts.filter(
+                (t) =>
+                  t.practice_context === "assignment:" + a.id &&
+                  t.skill_report &&
+                  t.skill_report.state !== "No opportunity this visit",
+              ).length
+            }{" "}
+            assessed opportunities ·{" "}
+            {
+              data.attempts.filter(
+                (t) =>
+                  t.practice_context === "assignment:" + a.id &&
+                  t.skill_report?.state === "Demonstrated",
+              ).length
+            }{" "}
+            demonstrated ·{" "}
+            {data.independent?.find(
+              (row) => row.context === "assignment:" + a.id,
+            )?.total ?? 0}{" "}
+            repeated independently
             {data.attempts
               .filter((t) => t.practice_context === "assignment:" + a.id)
               .map((t) => (
@@ -198,12 +259,29 @@ export function Cohorts() {
                   href={"/admin/volunteer/" + t.uid + "/chat/" + t.vid}
                 >
                   {data.volunteers.find((v) => v.user_id === t.uid)?.full_name}{" "}
-                  · {t.scenario_name} {t.skill_report?.state} {t.skill_flag && "· Review requested"}
+                  · {t.scenario_name} {t.skill_report?.state}{" "}
+                  {t.skill_flag && "· Review requested"}
                 </a>
               ))}
           </p>
         ))}
-        {data?.flagged?.map(t=><article key={t.vid}><h3>Review requested · {getChallenge(t.challenge_id)?.title}</h3><p>{t.skill_report?.note}</p><blockquote>{t.skill_report?.volunteer}<br/>{t.skill_report?.margaret}</blockquote><a href={"/admin/volunteer/"+t.uid+"/chat/"+t.vid}>Read visit</a> <button onClick={()=>change("reviewed",t.vid)}>Mark reviewed</button></article>)}
+        {data?.flagged?.map((t) => (
+          <article key={t.vid}>
+            <h3>Review requested · {getChallenge(t.challenge_id)?.title}</h3>
+            <p>{t.skill_report?.note}</p>
+            <blockquote>
+              {t.skill_report?.volunteer}
+              <br />
+              {t.skill_report?.margaret}
+            </blockquote>
+            <a href={"/admin/volunteer/" + t.uid + "/chat/" + t.vid}>
+              Read visit
+            </a>{" "}
+            <button onClick={() => change("reviewed", t.vid)}>
+              Mark reviewed
+            </button>
+          </article>
+        ))}
         <p role="status">{status}</p>
       </div>
     </details>

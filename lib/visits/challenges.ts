@@ -1,3 +1,17 @@
+export const alternateHardOpenings = [
+  "Centre? Which centre? I wasn’t expecting visitors.",
+  "The kettle takes ages. But I can manage.",
+  "Don’t shift my plants. I just want a second opinion.",
+  "I’m on my way out. Can we leave this for another day?",
+  "Forgot where I put my bus card again. Don’t tell my daughter.",
+  "My son called, said I worry too much. You think so too?",
+  "People keep telling me to cheer up. That’s not what I need.",
+  "Too much talking today. I just want a quiet minute.",
+  "The code came in. Shall I read it to you so you can help?",
+  "I pressed something in HealthHub. How come I see two names?",
+  "The nearest clinic is there, but my old doctor knows me better.",
+  "The app says contact the clinic. Means I have an appointment already?",
+]
 export const chapters = [
   "House Visit",
   "Emotional Listening Ear",

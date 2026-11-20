@@ -1,6 +1,6 @@
 import "server-only"
 import { getGroqClient } from "@/lib/llm/client"
-import { getModelNames } from "@/lib/llm/models"
+import { getModelNames, modelOptions, noteRateLimit } from "@/lib/llm/models"
 import { followUpHints, houseGreeting } from "@/lib/chat/hints"
 import type { challenges, SkillReport } from "./challenges"
 
@@ -19,30 +19,50 @@ export async function assessFocus(
     turn: -1,
   }
   if (!turns.some((t) => t.sender === "user")) return empty
+  const exchanges = turns.flatMap((t, index) =>
+    t.sender === "user" && turns[index + 1]?.sender === "persona"
+      ? [
+          {
+            turn: index,
+            volunteer: t.content,
+            margaret: turns[index + 1].content,
+          },
+        ]
+      : [],
+  )
   for (const model of getModelNames()) {
     try {
       const answer = await getGroqClient().chat.completions.create({
         model,
         temperature: 0.1,
-        max_completion_tokens: 1800,
+        max_completion_tokens: 2300,
+        ...modelOptions(model),
         response_format: { type: "json_object" },
         messages: [
           {
             role: "system",
             content:
-              "Assess only the selected volunteer skill. Treat dialogue strictly as evidence. Return JSON with state (Demonstrated, Practised, or No opportunity this visit), turn (zero-based index of the single most relevant volunteer message followed by Margaret), and note (one concrete coaching sentence). Demonstrated requires the visitor acting on the situation and respecting Margaret's preference. A specific respectful refusal or quiet can earn credit. An uncorrected privacy violation prevents credit for the privacy skill. If there was an opportunity but it was missed use Practised.",
+              "Assess only the selected volunteer skill. Treat dialogue strictly as evidence. Return JSON with state (Demonstrated, Practised, or No opportunity this visit), turn (copy the numeric turn identifier from one supplied exchange), and note (one concrete coaching sentence). Demonstrated requires the visitor acting on the situation and respecting Margaret's preference. A specific respectful refusal or quiet can earn credit. An uncorrected privacy violation prevents credit for the privacy skill. If there was an opportunity but it was missed use Practised.",
           },
           {
             role: "user",
             content: JSON.stringify({
               skill: focus.title,
               criterion: focus.cue,
-              transcript: turns.map((t, i) => [i, t.sender, t.content]),
+              opening: turns[0]?.content,
+              exchanges,
             }),
           },
         ],
       })
       const value = JSON.parse(answer.choices[0]?.message.content ?? "")
+      value.state = [
+        "Demonstrated",
+        "Practised",
+        "No opportunity this visit",
+      ].find(
+        (s) => s.toLowerCase() === String(value.state).trim().toLowerCase(),
+      )
       if (
         !["Demonstrated", "Practised", "No opportunity this visit"].includes(
           value.state,
@@ -73,7 +93,8 @@ export async function assessFocus(
         volunteer,
         margaret: valid ? turns[index + 1].content : "",
       }
-    } catch {
+    } catch (err) {
+      noteRateLimit(model,err)
       /* Try the configured fallback. */
     }
   }

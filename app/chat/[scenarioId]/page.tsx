@@ -515,7 +515,7 @@ export default function ChatTraining() {
 
             <Dialog open={showDifficultyPopup}>
                 <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto" showCloseButton={false} onEscapeKeyDown={(event) => event.preventDefault()} onInteractOutside={(event) => event.preventDefault()}>
-                    <DialogHeader className="text-left">
+                    <DialogHeader className="chapter-heading text-left">
                         <img className="chapter-strip" src={chapterImage(scenario_name)} alt="" />
                         <DialogTitle>{scenarioTitle}</DialogTitle>
                         <DialogDescription className="text-sm leading-relaxed">
@@ -550,7 +550,7 @@ export default function ChatTraining() {
                 </DialogContent>
             </Dialog>
 
-            <header className="journal-mast shrink-0 border-b border-border bg-card px-3 py-1.5 sm:px-4">
+            <header className="journal-mast chat-mast shrink-0 border-b border-border bg-card px-3 py-1.5 sm:px-4">
                 <div className="mx-auto flex max-w-5xl items-center gap-2">
                     <Button asChild variant="ghost" size="icon" className="size-11 shrink-0">
                         <Link href="/scenarios" aria-label="Back to practice">

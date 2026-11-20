@@ -11,6 +11,6 @@ export function getGroqClient(): Groq {
     throw new Error('GROQ_API_KEY not set')
   }
 
-  client ??= new Groq({ apiKey })
+  client ??= new Groq({ apiKey, maxRetries: 0 })
   return client
 }

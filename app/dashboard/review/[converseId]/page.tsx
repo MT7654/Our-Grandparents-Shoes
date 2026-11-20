@@ -121,12 +121,13 @@ export default function SessionReviewPage() {
           <Button asChild variant="ghost" className="mb-1 min-h-11 px-2 text-muted-foreground hover:text-foreground">
             <Link href="/dashboard"><ArrowLeft aria-hidden="true" className="size-4" /> Back to sessions</Link>
           </Button>
-          <h1 className="text-3xl font-bold leading-tight tracking-tight sm:text-4xl">Session review</h1>
+          <h1 className="text-3xl font-bold leading-tight tracking-tight sm:text-4xl">Visit journal</h1>
           <p className="text-base leading-relaxed text-muted-foreground">
             Feedback on your conversation with Margaret Chan.
           </p>
         </header>
 
+        <SkillDebrief vid={converseId}/>
         <section aria-labelledby="review-scenario" className={panel + " p-4"}>
           <div className="flex items-start gap-3">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent text-primary">
@@ -171,7 +172,6 @@ export default function SessionReviewPage() {
           </div>
         )}
 
-        <SkillDebrief vid={converseId}/>
         <Journal vid={converseId} scenario={review.scenario}/>
         {/* View Conversation History */}
         <Link

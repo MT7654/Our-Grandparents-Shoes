@@ -3,7 +3,7 @@
 import { MidConversationEvaluation, type Persona, ScenarioKeys, Prompts, Difficulty, Scenario } from "../types/types"
 import { type Database } from '@/supabase/types'
 import { getGroqClient } from '@/lib/llm/client'
-import { getModelNames } from '@/lib/llm/models'
+import { getModelNames, modelOptions, noteRateLimit } from '@/lib/llm/models'
 import { transcriptLineIndex } from './transcript'
 import { objectiveCriteria, practiceExchanges } from "@/lib/chat/live-rules"
 import { sceneFor } from '@/lib/visits/scenes'
@@ -102,8 +102,7 @@ export async function evaluateResponse(
                 ],
                 temperature,
                 max_completion_tokens: max_tokens,
-                reasoning_effort: 'low',
-                include_reasoning: false,
+                ...modelOptions(modelName),
                 response_format: { type: "json_object" }
             })
             const choice = completion.choices[0]
@@ -114,6 +113,7 @@ export async function evaluateResponse(
             break
         } catch (err) {
             completion = null
+            noteRateLimit(modelName,err)
             lastError = err instanceof Error ? err : new Error(String(err))
             console.warn(`Model ${modelName} failed, trying next...`, lastError.message)
         }
@@ -176,7 +176,8 @@ export async function evaluateResponse(
             grounded(result.margaretEvidence, personaReply)
         if (booking && result.objectiveMet) {
             result.objectiveMet = Array.isArray(result.stepEvidence) && result.stepEvidence.length === 6 &&
-                result.stepEvidence.every(line => transcript[transcriptLineIndex(line)]?.speaker === "volunteer")
+                result.stepEvidence.every(line => transcript[transcriptLineIndex(line)]?.speaker === "volunteer" ||
+                    transcript.some(turn => turn.speaker === "volunteer" && grounded(line, turn.text ?? "")))
         }
     }
 
