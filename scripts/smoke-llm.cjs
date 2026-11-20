@@ -69,6 +69,20 @@ async function main() {
   assert.equal(result.scores.length, 4)
   assert.ok(result.scores.every(s => Number.isInteger(s.value) && s.value >= 0 && s.value <= 100))
   console.log('PASS completion evaluation')
+  const doorstep = [
+    ['persona', 'Yes, who is it?'],
+    ['user', 'I’m Sam from the centre. Is now okay for a quick check-in at the door?'],
+    ['persona', 'A minute can. My radio cuts out but please leave it where it is.'],
+    ['user', 'I’ll leave the radio alone. Would you like the centre’s number in case you want someone to look at it later?'],
+    ['persona', 'Yes please, leave the number beside the radio.'],
+    ['user', 'I’ve left the number beside your radio. Thank you for your time. Bye, Auntie.'],
+    ['persona', 'Thank you, Sam. Bye.'],
+  ].map(([sender, content]) => ({ sender, content }))
+  const { objectiveCriteria } = require('../lib/chat/live-rules.ts')
+  const report = await evaluateCompletion(doorstep, objectiveCriteria['House Visit'])
+  assert.equal(report.completed, true, 'The volunteer and Margaret agreed to end the visit')
+  assert.equal(report.objective_met, true, 'A consent-based agreed next step earns credit')
+  console.log('PASS agreed doorstep ending with transcript evidence')
 }
 main().catch(error => {
   console.error('LLM smoke test failed:', error.message)

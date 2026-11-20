@@ -16,6 +16,7 @@ import type { EndConversationEvaluation, ScenarioKeys } from "@/lib/types/types"
 import scenarios from "../scenarios.json"
 import personas from "../personas.json"
 import { objectiveCriteria, practiceExchanges } from "./live-rules"
+import { followUpHints, houseGreeting } from "./hints"
 import {
   closeLiveVisit,
   commitLiveReply,
@@ -77,6 +78,9 @@ export async function endConversation(converseID: string, endEarly: boolean, own
   const name = closed.scenario_name
   const { scenario } = setup(name)
   const userTurns = messages.filter(m => m.sender === "user").length
+  const scene = sceneFor(name, messages)
+  const examples = new Set([houseGreeting, ...(followUpHints[name] ?? []), ...(scene ? [scene.visit.greeting.label, ...scene.visit.choices.map(c => c.label)] : [])])
+  const hasOwnReply = messages.some(m => m.sender === "user" && !examples.has(m.content.trim()))
   let evaluation: EndConversationEvaluation | null = null
   if (userTurns > 0) {
     try {
@@ -88,7 +92,9 @@ export async function endConversation(converseID: string, endEarly: boolean, own
   return transaction(null, db => saveLiveReport(db, {
     owner, vid: converseID,
     // Legacy guided results retain their previously persisted objective flags.
-    objectiveMet: name !== "Resolve a Task" && closed.end_reason === "turn_limit" && userTurns >= practiceExchanges && evaluation?.objective_met === true,
+    objectiveMet: name !== "Resolve a Task" && closed.end_reason !== null && hasOwnReply &&
+      userTurns >= practiceExchanges && evaluation?.objective_met === true &&
+      (closed.end_reason === "turn_limit" || evaluation.completed === true),
     feedback: evaluation?.feedback?.trim() || closed.feedback || (userTurns > 0 ? "Assessment unavailable" : "No replies to assess."),
     scores: evaluation?.scores ?? [],
   }))

@@ -1,6 +1,7 @@
 import { type EndConversationEvaluation } from '@/lib/types/types'
 import { getGroqClient } from '@/lib/llm/client'
 import { getModelNames } from '@/lib/llm/models'
+import { transcriptLineIndex } from './transcript'
 import { type Database } from '@/supabase/types'
 
 type Message = Database['public']['Tables']['messages']['Row']
@@ -19,12 +20,17 @@ const systemPrompt = `
         2. Dialogue flow and success in achieving the conversation objective (Did they guide the conversation effectively toward the intended goal with empathy, clarity, and active listening?).
     - "completed" should be true if the exchange reaches a mutually agreed ending, including deferral or quiet company.
     - "objective_met" should be true if the user successfully achieved the intended conversation objective with proper engagement.
+    - If the objective was met, identify the numbered volunteer line that addresses a particular detail Margaret shared, and the later Margaret line showing the outcome. Repeated stock questions, a friendly tone or simply saying goodbye do not establish success. A thoughtful close, including granting requested space, may be effective.
+    - Judge what both people established across the full visit. If Margaret opens by offering a few minutes, availability is already established. If she asks for space and the visitor grants it, that is meaningful follow-through. Do not recommend pressing her for more conversation. Recognise repairs after an initially clumsy reply.
+    - For feedback, name one concrete exchange accurately. If a criterion is missing, identify that criterion without discounting other steps that did happen.
     - Do not include extra commentary outside the JSON.
 
   Return format example:
   {
     "completed": true,
-    "objective_met": true,
+    "objective_met": false,
+    "volunteerLine": null,
+    "margaretLine": null,
     "feedback": "Concise feedback highlighting strengths and areas for improvement",
     "scores": [
       { "name": "Empathy", "value": 0 },
@@ -45,7 +51,7 @@ export async function evaluateCompletion(
   conversationHistory: Message[],
   objective: string,
   temperature = 0.3,
-  max_tokens = 2048
+  max_tokens = 4096
 ): Promise<EndConversationEvaluation> {
 
   const groq = getGroqClient()
@@ -64,7 +70,7 @@ export async function evaluateCompletion(
         ],
         temperature,
         max_completion_tokens: max_tokens,
-        reasoning_effort: 'low',
+        reasoning_effort: 'medium',
         include_reasoning: false,
         response_format: { type: "json_object" }
       })
@@ -88,7 +94,7 @@ export async function evaluateCompletion(
   const text = completion.choices?.[0]?.message?.content
   if (!text) throw new Error("LLM returned empty content")
 
-  let result: EndConversationEvaluation
+  let result: EndConversationEvaluation & { volunteerLine?: number; margaretLine?: number }
   try {
     result = JSON.parse(text) as EndConversationEvaluation
   } catch (err) {
@@ -98,7 +104,8 @@ export async function evaluateCompletion(
 
   // Ensure scores are integers between 0-100
   if (Array.isArray(result.scores)) {
-    result.scores = result.scores.map(score => ({
+    result.scores = result.scores.filter(score => score && typeof score.name === "string" &&
+      score.name.trim() && typeof score.value === "number" && Number.isFinite(score.value)).map(score => ({
       name: score.name,
       value: Math.min(100, Math.max(0, Math.round(score.value ?? 0)))
     }))
@@ -106,15 +113,18 @@ export async function evaluateCompletion(
     result.scores = []
   }
 
+  const volunteer = transcriptLineIndex(result.volunteerLine)
+  const margaret = transcriptLineIndex(result.margaretLine)
+  result.objective_met = result.objective_met === true && margaret > volunteer &&
+    conversationHistory[volunteer]?.sender === "user" && conversationHistory[margaret]?.sender === "persona"
   return result
 }
 
 /** Formats conversation history as text for the completion evaluation prompt. */
 function generateEvaluationPrompt(conversationHistory: Message[]): string {
-  const conversationText = conversationHistory.map(msg => {
-    const senderLabel = msg.sender === "user" ? "User" : "Persona"
-    return `[${msg.sent_at}] ${senderLabel}: ${msg.content}`
-  }).join("\n")
-
-  return `Conversation History:\n${conversationText}`
+  return JSON.stringify(conversationHistory.map((msg, index) => ({
+    line: index + 1,
+    speaker: msg.sender === "user" ? "Volunteer" : "Margaret",
+    words: msg.content,
+  })))
 }

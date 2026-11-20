@@ -1,6 +1,7 @@
 "use client"
 
 import { visits } from "@/lib/visits/scenes"
+import { followUpHints, houseGreeting } from "@/lib/chat/hints"
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -42,12 +43,6 @@ function isCloseReason(reason: unknown): reason is CloseReason {
 }
 
 type Progress = { turns?: number; completed?: boolean; end_reason?: unknown }
-
-const followUpHints: Record<string, string[]> = {
-    "House Visit": ["Is there anything you'd like me to help with today?", "Which of those would be most useful for you?"],
-    "Emotional Listening Ear": ["Would you like to tell me a bit more?", "Would you prefer to talk or just sit together for a while?"],
-    "Resolve a Task": ["What do you see on your phone now?", "Would you like to try that step yourself?"],
-}
 
 const default_persona: Persona = {
     name: "Margaret Chan",
@@ -254,7 +249,11 @@ export default function ChatTraining() {
     const hintOptions = difficulty !== "Easy" ? []
         : sentReplies === 0 && scene ? [scene.greeting.label]
         : sentReplies === 1 && scene ? scene.choices.map((choice) => choice.label)
-        : followUpHints[scenario_name] ?? []
+        : scenario_name === "House Visit" && !scene && sentReplies === 0
+            ? [houseGreeting]
+            : (followUpHints[scenario_name] ?? []).filter(hint =>
+                !messages.some(message => message.sender === "user" && message.content.trim() === hint)
+            )
 
     function useHint(hint: string) {
         if (inputValue.trim()) return
