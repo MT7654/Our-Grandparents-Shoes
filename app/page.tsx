@@ -5,13 +5,13 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 
 export default function LandingPage() {
-  const [role, setRole] = useState<string | null>(null)
+  const [role, setRole] = useState<string | null>()
   const [error, setError] = useState("")
   useEffect(() => {
     const controller = new AbortController()
     fetch("/api/auth/session", { signal: controller.signal, cache: "no-store" })
-      .then(async response => response.ok && setRole((await response.json()).user.role))
-      .catch(() => {})
+      .then(async response => setRole(response.ok ? (await response.json()).user.role : null))
+      .catch(() => { if (!controller.signal.aborted) setRole(null) })
     return () => controller.abort()
   }, [])
 
@@ -30,7 +30,7 @@ export default function LandingPage() {
         <h1 className="text-4xl font-semibold tracking-tight sm:text-6xl">Practice conversations with Margaret Chan.</h1>
         <p className="max-w-md text-lg leading-relaxed text-muted-foreground">Practise with Margaret in a live AI conversation, or explore a guided demo with suggested responses.</p>
         <div className="flex flex-wrap items-center gap-3">
-          <Button asChild><Link href={role === "admin" ? "/admin" : role ? "/scenarios" : "/auth"}>{role === "admin" ? "Coordinator dashboard" : role ? "Start live AI practice" : "Sign in for live AI practice"}</Link></Button>
+          <Button asChild><Link href={role === "admin" ? "/admin" : role !== null ? "/scenarios" : "/auth"}>{role === "admin" ? "Coordinator dashboard" : role === undefined ? "Open live AI practice" : role ? "Continue live AI practice" : "Sign in for live AI practice"}</Link></Button>
           <Button asChild variant="outline"><Link href={role === "user" ? "/dashboard" : "/guest"}>{role === "user" ? "My progress" : "Try guided demo"}</Link></Button>
           {role && <Button variant="ghost" onClick={signOut}>Sign out</Button>}
         </div>

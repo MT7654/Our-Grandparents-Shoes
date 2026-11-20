@@ -30,7 +30,8 @@ export default function AuthPage() {
           const result = await res.json()
           if (!controller.signal.aborted) {
             setBetaEnabled(result.enabled === true)
-            setBetaSessionPresent(result.betaSessionPresent === true)
+            if (result.active) location.replace("/scenarios")
+            else setBetaSessionPresent(result.needsAccountSwitch === true)
           }
         }
       })

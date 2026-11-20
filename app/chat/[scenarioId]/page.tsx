@@ -1,6 +1,5 @@
 "use client"
 
-import { VisitAvatar } from "@/components/visit-avatar"
 import { visits } from "@/lib/visits/scenes"
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
@@ -463,19 +462,6 @@ export default function ChatTraining() {
         return "bg-rose-500"
     }
 
-    const expressionBorder = () => {
-        switch (expression) {
-        case "happy":
-            return "border-green-400"
-        case "worried":
-            return "border-blue-400"
-        case "angry":
-            return "border-red-400"
-        default:
-            return "border-border"
-        }
-    }
-
     const expressionBadge = () => {
         switch (expression) {
         case "happy":
@@ -594,23 +580,16 @@ export default function ChatTraining() {
                 )}
             </header>
 
-            <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">
-                <div className="mx-auto grid min-h-full w-full min-w-0 max-w-5xl content-start gap-3 p-3 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:content-stretch">
-                    <section aria-label="Visit details" className="min-w-0 self-start overflow-hidden rounded-xl border border-border bg-card">
-                        <div className="relative isolate w-full overflow-hidden bg-secondary">
-                            {/* Decorative when the same persona name is visible beneath the portrait. */}
-                            <img
-                                style={useVisitPortrait ? { background: "center / cover url(/visit/flat.webp)" } : undefined}
-                                src={portrait}
-                                alt=""
-                                className={`h-[clamp(6rem,16dvh,9rem)] w-full border-b-4 object-contain object-center transition-colors duration-300 md:h-64 ${expressionBorder()}`}
-                            />
-                            {scene && <VisitAvatar expression={expression} gesture={conversationEnded ? "Return to activity" : sentReplies === 0 ? "Look toward object" : "Listen"} />}
-                        </div>
-                        <div className="flex items-center justify-between gap-2 px-3 py-2.5">
-                            <h2 className="min-w-0 break-words text-base font-bold">{persona.name}</h2>
-                            <Badge variant="secondary" className={`shrink-0 capitalize ${expressionBadge()}`}>{expression}</Badge>
-                        </div>
+            <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-2 px-3 py-2 md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:gap-4">
+                <section aria-label="Visit details" className="flex shrink-0 items-center gap-4 overflow-hidden rounded-xl border bg-card md:block md:self-start">
+                    <img src={portrait} alt={persona.name} className="size-[clamp(3.5rem,13dvh,7rem)] shrink-0 object-cover md:aspect-square md:h-auto md:w-full" />
+                    <div className="min-w-0 space-y-1 md:p-4">
+                        <h2 className="font-semibold">{persona.name}</h2>
+                        <Badge variant="secondary" className={`capitalize ${expressionBadge()}`}>{expression}</Badge>
+                    </div>
+                </section>
+                <div ref={scrollRef} aria-label="Visit conversation" tabIndex={0} className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain rounded-xl">
+                    <div className="rounded-xl border bg-card">
                         {scene && (
                             <details className="border-t border-border">
                                 <summary className="min-h-11 cursor-pointer px-3 py-2.5 text-sm font-semibold text-primary">Look around the flat</summary>
@@ -650,7 +629,7 @@ export default function ChatTraining() {
                                 )}
                             </div>
                         </details>
-                    </section>
+                    </div>
 
                     <section aria-label="Transcript" className="flex min-h-48 min-w-0 flex-col rounded-xl border border-border bg-card">
                         <h2 className="border-b border-border px-3 py-2.5 text-sm font-semibold md:px-4">Transcript</h2>

@@ -183,6 +183,18 @@ try {
         await page.getByText(visit.greeting.reply, { exact: true }).waitFor()
         await page.getByText("Look around the flat", { exact: true }).click()
         await page.locator("details[open] details > summary").first().click()
+        const portrait = page.getByRole("img", { name: persona.name, exact: true })
+        const scrollport = page.getByLabel("Visit conversation", { exact: true })
+        await scrollport.evaluate(el => { el.scrollTop = 0 })
+        const top = await portrait.evaluate(el => el.getBoundingClientRect().top)
+        assert.ok(await scrollport.evaluate(el => {
+          el.scrollTop = el.scrollHeight
+          return el.scrollTop > 0
+        }), "A long conversation must scroll independently")
+        assert.ok(await portrait.evaluate((el, before) => {
+          const rect = el.getBoundingClientRect()
+          return rect.top === before && rect.top >= 0 && rect.bottom <= innerHeight && el.naturalWidth > 0
+        }, top), "Margaret's face must stay visible while reading the transcript")
         await log.scrollIntoViewIfNeeded()
         assert.ok(await log.evaluate((el) => el.getBoundingClientRect().height > 100))
         await hints.click()

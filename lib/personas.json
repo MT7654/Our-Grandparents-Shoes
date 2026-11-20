@@ -9,14 +9,14 @@
             "Baking",
             "Family History"
         ],
-        "avatar": "/elderly-woman-cartoon-avatar-smiling-grandmother.jpg",
+        "avatar": "/visit/margaret-neutral.webp",
         "emotions": {
-            "angry": "/Margaret Chan_Angry.png",
-            "confused": "/Margaret Chan_Confused.png",
-            "happy": "/Margaret Chan_Happy.png",
-            "neutral": "/Margaret Chan_Neutral.png",
-            "scared": "/Margaret Chan_Scared.png",
-            "worried": "/Margaret Chan_Worried.png"
+            "angry": "/visit/margaret-angry.webp",
+            "confused": "/visit/margaret-confused.webp",
+            "happy": "/visit/margaret-happy.webp",
+            "neutral": "/visit/margaret-neutral.webp",
+            "scared": "/visit/margaret-scared.webp",
+            "worried": "/visit/margaret-worried.webp"
         }
     }
 }

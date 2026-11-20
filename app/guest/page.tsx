@@ -4,7 +4,6 @@ import Link from "next/link"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { VisitAvatar } from "@/components/visit-avatar"
 import { sceneFor, visits, type Visit } from "@/lib/visits/scenes"
 
 const scenarios = [...new Set(visits.map(visit => visit.scenario))]
@@ -20,6 +19,8 @@ export default function GuestPractice() {
   const [visit, setVisit] = useState<Visit | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const scene = visit && sceneFor(visit.scenario, messages)
+
+  const expression = scene?.ended ? "happy" : visit?.scenario === "Emotional Listening Ear" ? "worried" : "neutral"
 
   function start(scenario: string) {
     const variants = visits.filter(item => item.scenario === scenario)
@@ -40,9 +41,9 @@ export default function GuestPractice() {
           : "Choose a visit with Margaret"}</h1>
         {visit && scene ? (
           <>
-            <div className="relative overflow-hidden rounded-xl bg-white">
-              <img src="/visit/neutral.png" alt="Margaret Chan" className="h-44 w-full object-contain" />
-              <VisitAvatar expression="neutral" gesture={scene.ended ? "Return to activity" : "Listen"} />
+            <div className="sticky top-0 z-10 flex items-center gap-4 overflow-hidden rounded-xl border bg-card">
+              <img src={`/visit/margaret-${expression}.webp`} alt="Margaret Chan" className="size-[clamp(4rem,14dvh,8rem)] object-cover" />
+              <div><h2 className="font-semibold">Margaret Chan</h2><p className="capitalize text-muted-foreground">{expression}</p></div>
             </div>
             <ol aria-label="Conversation" aria-live="polite" className="space-y-3">
               {messages.map((message, index) => (

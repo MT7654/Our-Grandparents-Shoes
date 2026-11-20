@@ -2,7 +2,7 @@ import { isIP } from "node:net"
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 import { transaction } from "@/lib/neon/pool"
-import { authenticateBeta, betaCookie, normalizeLogin, revokeBetaSession, validPassword, type BetaTransaction } from "./credentials"
+import { authenticateBeta, betaCookie, betaSession, normalizeLogin, revokeBetaSession, validPassword, type BetaTransaction } from "./credentials"
 
 export const betaEnabled = () => process.env.CONVERSEBETTER_BETA_ACCOUNTS === "1"
 export const betaTx: BetaTransaction = (work) => transaction(null, work)
@@ -48,7 +48,8 @@ export async function betaRequest(request: Request, mode: "signup" | "login", en
   if (!sameOrigin(request)) return reject(403)
   try {
     const cookieStore = await cookies()
-    if (cookieStore.has(betaCookie)) return reject(400)
+    const token = cookieStore.get(betaCookie)?.value
+    if (token && await betaSession(betaTx, token)) return reject(400)
     const body = await boundedJson(request)
     const login = normalizeLogin(body?.email)
     const password = body?.password
