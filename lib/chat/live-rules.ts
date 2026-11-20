@@ -12,7 +12,15 @@ export function acceptsVisitEnding(volunteer: string, margaret: string, marked: 
   return farewell.test(margaret) || /\b(?:come back|visit another|another day|please go|you can go|leave me|be alone|time alone|some space|sit quietly|quiet company|need to (?:go|rest)|need a rest|must go|end (?:the|this) visit)\b/i.test(margaret)
 }
 
-export function reasonAfterReply(turnsRemaining: number, userTurns: number, requestedEnd: boolean): EndReason | null {
+export function respectedRequestForSpace(previous: string, volunteer: string, margaret: string) {
+  const asked = /\b(?:time alone|be alone|by myself|some space|leave me|another time|come back another day)\b/i.test(previous)
+  const accepted = /\b(?:i.ll (?:go|leave|give you|come back)|give you (?:space|time)|leave you to|take care|goodbye)\b/i.test(volunteer) && !volunteer.includes("?")
+  return asked && accepted && !margaret.includes("?") &&
+    /\b(?:thanks?|thank you|take care|bye|alright|okay|another time)\b/i.test(margaret)
+}
+
+export function reasonAfterReply(turnsRemaining: number, userTurns: number, requestedEnd: boolean, respectedSpace = false): EndReason | null {
+  if (respectedSpace) return "boundary"
   if (requestedEnd && userTurns >= practiceExchanges) return "boundary"
   return turnsRemaining <= 0 ? "turn_limit" : null
 }

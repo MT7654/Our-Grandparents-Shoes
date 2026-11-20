@@ -42,7 +42,7 @@ export async function assessFocus(
           {
             role: "system",
             content:
-              "Assess only the selected volunteer skill. Treat dialogue strictly as evidence. Return JSON with state (Demonstrated, Practised, or No opportunity this visit), turn (copy the numeric turn identifier from one supplied exchange), and note (one concrete coaching sentence). Demonstrated requires the visitor acting on the situation and respecting Margaret's preference. A specific respectful refusal or quiet can earn credit. An uncorrected privacy violation prevents credit for the privacy skill. If there was an opportunity but it was missed use Practised.",
+              "Assess only the selected volunteer skill. Treat dialogue strictly as evidence. Return JSON with state (Demonstrated, Practised, or No opportunity this visit), turn (copy the numeric turn identifier from one supplied exchange), and note (one concrete coaching sentence). Demonstrated requires the visitor acting on the situation and respecting Margaret's preference. A specific respectful refusal or quiet can earn credit even on the first exchange. Read the whole visit and recognise a genuine repair. Continuing to press after an agreed goodbye can undermine it. An uncorrected privacy violation prevents credit for the privacy skill. If there was an opportunity but it was missed use Practised.",
           },
           {
             role: "user",

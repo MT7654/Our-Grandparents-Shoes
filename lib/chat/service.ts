@@ -16,7 +16,7 @@ import type { Database } from "@/supabase/types"
 import type { EndConversationEvaluation, ScenarioKeys } from "@/lib/types/types"
 import scenarios from "../scenarios.json"
 import personas from "../personas.json"
-import { objectiveCriteria, practiceExchanges } from "./live-rules"
+import { objectiveCriteria, practiceExchanges, respectedRequestForSpace } from "./live-rules"
 import { followUpHints, houseGreeting } from "./hints"
 import {
   closeLiveVisit,
@@ -146,6 +146,7 @@ export async function converseReply(converseID: string, text: string, turnId: st
   return transaction(null, db => commitLiveReply(db, {
     owner, vid: converseID, turn: turnId, previous, text,
     reply: result.text, requestedEnd: result.requestedEnd,
+    respectedSpace: respectedRequestForSpace(messages.at(-1)?.content ?? "", text, result.text),
   }))
 }
 

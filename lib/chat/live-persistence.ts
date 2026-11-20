@@ -58,7 +58,7 @@ export async function getLiveReplay(db: LiveDb, owner: string, vid: string, turn
 }
 
 export async function commitLiveReply(db: LiveDb, input: {
-  owner: string; vid: string; turn: string; previous: string; text: string; reply: string; requestedEnd: boolean
+  owner: string; vid: string; turn: string; previous: string; text: string; reply: string; requestedEnd: boolean; respectedSpace?: boolean
 }) {
   const { owner, vid, turn, previous, text, reply, requestedEnd } = input
   const c = await owned(db, owner, vid, true)
@@ -85,7 +85,7 @@ export async function commitLiveReply(db: LiveDb, input: {
     "select count(*)::integer as n from public.messages where vid=$1 and sender='user'", [vid],
   )).rows[0]
   const turns = c.turns - 1
-  const reason = reasonAfterReply(turns, n, requestedEnd)
+  const reason = reasonAfterReply(turns, n, requestedEnd, input.respectedSpace)
   const final = (await db.query<Conversation>(
     "update public.conversations set turns=$3,completed=$4,end_reason=$5 where vid=$1 and uid=$2 returning *",
     [vid, owner, turns, reason !== null, reason],
