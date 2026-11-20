@@ -1,14 +1,12 @@
 "use client"
 
 import { VisitAvatar } from "@/components/visit-avatar"
-import { sceneFor } from "@/lib/visits/scenes"
+import { visits } from "@/lib/visits/scenes"
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import Link from "next/link"
 import { ArrowLeft, Send, Lightbulb, AlertCircle, Target, X, ClipboardList } from "lucide-react"
 import { useParams, useRouter } from "next/navigation"
@@ -30,6 +28,27 @@ import { Spinner } from "@/components/ui/spinner"
 type Message = Database['public']['Tables']['messages']['Row']
 type Expression = Database['public']['Enums']['eval_new_expression']
 type Sentiment = Database['public']['Enums']['eval_sentiment']
+
+const closeCopy = {
+    objective_met: "You met the visit objective.",
+    boundary: "Margaret indicated that she wanted to end the visit.",
+    turn_limit: "This visit reached the practice turn limit.",
+    ended_early: "You ended the visit early.",
+} as const
+
+type CloseReason = keyof typeof closeCopy
+
+function isCloseReason(reason: unknown): reason is CloseReason {
+    return typeof reason === "string" && Object.prototype.hasOwnProperty.call(closeCopy, reason)
+}
+
+type Progress = { turns?: number; completed?: boolean; end_reason?: unknown }
+
+const followUpHints: Record<string, string[]> = {
+    "House Visit": ["Is there anything you'd like me to help with today?", "Would you rather I come back another time?"],
+    "Emotional Listening Ear": ["Would you like to tell me a bit more?", "Would you prefer to talk or just sit together for a while?"],
+    "Resolve a Task": ["Would you show me how you usually do it?", "What would you like me to do, if anything?"],
+}
 
 const default_persona: Persona = {
     name: "Margaret Chan",
@@ -56,6 +75,8 @@ export default function ChatTraining() {
 
     const submission = useRef<{text:string;id:string}|null>(null)
     const scrollRef = useRef<HTMLDivElement>(null)
+    const inputRef = useRef<HTMLInputElement>(null)
+    const hintsRef = useRef<HTMLDetailsElement>(null)
 
     // UI
     const [loading, setLoading] = useState(false)
@@ -84,12 +105,23 @@ export default function ChatTraining() {
     const [suggestion, setSuggestion] = useState<String>("")
     const [lastEvaluation, setLastEvaluation] = useState(false)
     const [turnsRemain, setTurnsRemain] = useState<number>(0)
-    const [conversationEnded, setConversationEnded] = useState(false) 
+    const [conversationEnded, setConversationEnded] = useState(false)
+    const [endReason, setEndReason] = useState<CloseReason | null>(null)
     const [assessmentRetry,setAssessmentRetry]=useState<{userMessageId:string;personaMessageId:string}|null>(null)
     const [messageError, setMessageError] = useState<string | null>(null)
     const [showSteps, setShowSteps] = useState(false)
-    const [endEarly, setEndEarly] = useState(false)
+    const [showEndConfirm, setShowEndConfirm] = useState(false)
     const [evaluating, setEvaluating] = useState(false)
+
+    function applyProgress(progress: Progress) {
+        if (typeof progress.turns === "number") setTurnsRemain(progress.turns)
+        if (isCloseReason(progress.end_reason)) {
+            setEndReason(progress.end_reason)
+            setConversationEnded(true)
+        } else if (progress.completed === true) {
+            setConversationEnded(true)
+        }
+    }
 
     // Initial load: try to resume active session; if none, we'll show difficulty popup
     useEffect(() => {
@@ -127,7 +159,7 @@ export default function ChatTraining() {
                     if (persona) setPersona(persona)
                     if (conversation) {
                         setVerseId(conversation.vid)
-                        setTurnsRemain(conversation.turns)
+                        applyProgress(conversation)
                         setDifficulty(conversation.difficulty)
                     }
                     if (messages) setMessages(messages)
@@ -188,7 +220,7 @@ export default function ChatTraining() {
                 if (persona) setPersona(persona)
                 if (conversation) {
                     setVerseId(conversation.vid)
-                    setTurnsRemain(conversation.turns)
+                    applyProgress(conversation)
                     setDifficulty(conversation.difficulty)
                 }
                 if (messages) setMessages(messages)
@@ -217,9 +249,22 @@ export default function ChatTraining() {
     }, [scenario_name, difficulty, verseId, router, toast])
 
     // Converse (two-phase: reply first, then evaluation)
-    const scene = sceneFor(scenario_name, messages)
+    const opening = messages.find((message) => message.sender === "persona")?.content.split("\n")[0]
+    const scene = visits.find((visit) => visit.scenario === scenario_name && visit.opening === opening)
+    const sentReplies = messages.filter((message) => message.sender === "user").length
+    const hintOptions = difficulty !== "Easy" ? []
+        : sentReplies === 0 && scene ? [scene.greeting.label]
+        : sentReplies === 1 && scene ? scene.choices.map((choice) => choice.label)
+        : followUpHints[scenario_name] ?? []
+
+    function useHint(hint: string) {
+        if (inputValue.trim()) return
+        setInputValue(hint)
+        if (hintsRef.current) hintsRef.current.open = false
+        inputRef.current?.focus()
+    }
     const converse = async (userText = inputValue) => {
-        if (!userText.trim() || botLoading || conversationEnded || evaluating) {
+        if (!verseId || !userText.trim() || botLoading || conversationEnded || evaluating || assessmentRetry) {
             return
         }
 
@@ -264,7 +309,7 @@ export default function ChatTraining() {
                 throw new Error(phase1.error)
             }
 
-            const { user_message, persona_message, completed } = phase1
+            const { user_message, persona_message } = phase1
 
             submission.current=null
             // Show persona reply immediately
@@ -277,9 +322,7 @@ export default function ChatTraining() {
             })
             setBotLoading(false)
 
-            if (completed) {
-                setConversationEnded(true)
-            }
+            applyProgress(phase1)
 
             // Phase 2: Run evaluation in background
             if (phase1.pendingEvaluation) {
@@ -306,14 +349,7 @@ export default function ChatTraining() {
                             setLastEvaluation(true)
                         }
 
-                        if (evalData.turns != null) {
-                            setTurnsRemain(evalData.turns)
-                            setConversationEnded(evalData.turns <= 0)
-                        }
-
-                        if (evalData.completed) {
-                            setConversationEnded(prev => prev || evalData.completed)
-                        }
+                        applyProgress(evalData)
 
                         // Update persona message content if completion changed it
                         if (evalData.completionOverride) {
@@ -349,7 +385,8 @@ export default function ChatTraining() {
     }
 
     // End Conversation (Save Data)
-    const end = async () => {
+    const end = async (early = false) => {
+        setShowEndConfirm(false)
         setLoading(true)
 
         try {
@@ -360,7 +397,7 @@ export default function ChatTraining() {
                 },
                 body: JSON.stringify({
                     converseId: verseId,
-                    end_early: endEarly
+                    end_early: early
                 })
             })
 
@@ -379,28 +416,24 @@ export default function ChatTraining() {
                 description: errorMessage,
                 variant: "destructive",
             })
-            // Still navigate to completion page even if save failed
-            // The completion page will handle the error state
-            router.push(`/dashboard/review/${verseId}`)
+            // Keep the transcript available so the volunteer can try again.
         } finally {
             setLoading(false)
         }
     }
 
     /* ---------------------------------------------------------------- */
-    /*  Auto-scroll on new messages                                     */
+    /*  Keep the latest reply in view when conversation content changes. */
     /* ---------------------------------------------------------------- */
 
     useEffect(() => {
-        if (scrollRef.current) {
-        // Use setTimeout to ensure DOM has updated before scrolling
-        setTimeout(() => {
-            if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-            }
-        }, 100)
-        }
-    }, [messages, botLoading])
+        if (!messages.length) return
+        const frame = requestAnimationFrame(() => {
+            const scrollport = scrollRef.current
+            if (scrollport) scrollport.scrollTop = scrollport.scrollHeight
+        })
+        return () => cancelAnimationFrame(frame)
+    }, [messages.length, botLoading])
 
     /* ---------------------------------------------------------------- */
     /*  Convert Date String to Local Date                               */
@@ -414,14 +447,6 @@ export default function ChatTraining() {
     /* ---------------------------------------------------------------- */
     /*  UI update helpers                                                */
     /* ---------------------------------------------------------------- */
-
-    const handleEndEarly = () => {
-        setEndEarly(true)
-    }
-
-    useEffect(() => {
-        if (endEarly) end()
-    }, [endEarly])
 
     const handleDifficultyChange = (value: "Easy" | "Hard") => {
         setShowDifficultyPopup(false)
@@ -464,247 +489,219 @@ export default function ChatTraining() {
         }
     }
 
-    const showTurnWarning = turnsRemain <= 2 && !conversationEnded
-
-    /* ---------------------------------------------------------------- */
-    /*  Render                                                           */
-    /* ---------------------------------------------------------------- */
+    const showTurnWarning = !!verseId && turnsRemain > 0 && turnsRemain <= 2 && !conversationEnded
+    const scenarioTitle = scenario?.name ?? scenario_name
+    const isMargaret = persona.name === default_persona.name
+    const useVisitPortrait = !!scene || isMargaret
+    const portraitExpression = verseId && ["neutral", "happy", "worried", "confused", "scared", "angry"].includes(expression)
+        ? expression
+        : "neutral"
+    const portrait = useVisitPortrait
+        ? `/visit/margaret-${portraitExpression}.webp`
+        : persona.emotions[expression.toLowerCase()]
+    const observations = !scene ? []
+        : scenario_name === "House Visit" ? [
+            ["Doorway", "Margaret has stayed by the door."],
+            ["Chair", "The chair is tucked under the table."],
+            ["Sleeve", "Her needle is still threaded."],
+        ] : scenario_name === "Emotional Listening Ear" ? [
+            ["Radio", "Music is playing softly."],
+            ["Chair", "There is space to sit nearby."],
+            ["Cup", "Margaret turns her cup in her hands."],
+        ] : scene.opening.includes("recipe") ? [
+            ["Tin", "Margaret keeps her recipes upright."],
+            ["Divider", "The divider separates everyday favourites."],
+            ["Recipe cards", "The cards have handwritten titles."],
+        ] : [
+            ["Packets", "The paper has a crease across the top."],
+            ["Pencil", "The labels are handwritten."],
+            ["Seeds", "Several types are waiting to be labelled."],
+        ]
 
     return (
-        <div className="h-dvh flex flex-col bg-[var(--visit-paper)] text-[var(--visit-ink)]">
-        <LoadingOverlay isLoading={loading} />
+        <div className="flex h-dvh min-w-0 flex-col bg-background text-foreground">
+            <LoadingOverlay isLoading={loading} />
 
-        {/* Difficulty popup only when starting a new conversation (no active session) */}
-        <Dialog open={showDifficultyPopup}>
-            <DialogContent
-                showCloseButton={false}
-                onEscapeKeyDown={(e) => e.preventDefault()}
-                onPointerDownOutside={(e) => e.preventDefault()}
-                onInteractOutside={(e) => e.preventDefault()}
-            >
-                <DialogHeader>
-                    <DialogTitle>Select difficulty</DialogTitle>
-                    <DialogDescription>
-                        Choose a difficulty level to start a new conversation.
-                    </DialogDescription>
-                </DialogHeader>
-
-                <DialogFooter className="sm:justify-between">
-                    <Button
-                        className="w-full sm:w-auto"
-                        variant="outline"
-                        onClick={() => handleDifficultyChange("Easy")}
-                        autoFocus
-                    >
-                        Easy
-                    </Button>
-                    <Button
-                        className="w-full sm:w-auto"
-                        onClick={() => handleDifficultyChange("Hard")}
-                    >
-                        Hard
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-
-        {/* ── Header ─────────────────────────────────────────────── */}
-        <header className="bg-white border-b border-gray-200 shadow-sm px-4 py-2.5">
-            <div className="max-w-3xl mx-auto flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-                <Link href="/scenarios" aria-label="Back to practice">
-                <Button aria-label="Back to practice"
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2 text-muted-foreground hover:text-foreground bg-transparent"
-                >
-                    <ArrowLeft className="w-4 h-4" />
-                </Button>
-                </Link>
-                <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-bold text-foreground">{scenario?.name}</span>
-                    {!!scenario?.objective && (
-                    <Popover open={objectiveOpen} onOpenChange={setObjectiveOpen}>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-7 w-7 text-muted-foreground hover:text-foreground bg-transparent"
-                                            aria-label="View objective"
-                                        >
-                                            <Target className="h-4 w-4" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                </TooltipTrigger>
-                                <TooltipContent sideOffset={6}>
-                                    {"Objective"}
-                                </TooltipContent>
-                            </Tooltip>
-                            <PopoverContent align="start" className="w-[360px] p-0">
-                                <div className={`${scenario?.design.bgColor} border rounded-md px-3 py-2`}>
-                                <div className="flex items-center justify-between gap-2">
-                                    <div className="flex items-center gap-2">
-                                    <Target className={`h-4 w-4 ${scenario?.design.textColor}`} />
-                                    <h4 className={`text-xs font-bold ${scenario?.design.textColor} uppercase tracking-wide`}>
-                                        Objective
-                                    </h4>
-                                    </div>
-                                    <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-white/60"
-                                    aria-label="Close objective"
-                                    onClick={() => setObjectiveOpen(false)}
-                                    >
-                                    <X className="h-3.5 w-3.5" />
-                                    </Button>
-                                </div>
-                                    <p className="mt-1 text-sm text-foreground leading-relaxed">
-                                        {scenario?.objective}
-                                    </p>
-                                </div>
-                            </PopoverContent>
-                        </Popover>
-                    )}
-                </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-                <Badge variant="secondary" className="text-xs">
-                    {difficulty ?? "Difficulty"}
-                </Badge>
-            </div>
-            </div>
-
-            {/* Turn warning */}
-            {showTurnWarning && (
-            <div className="max-w-3xl mx-auto mt-2 flex items-center gap-2 text-amber-800 bg-amber-100 px-3 py-1.5 rounded">
-                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                <span className="text-xs font-medium">
-                {turnsRemain} {turnsRemain === 1 ? "turn" : "turns"} remaining
-                </span>
-            </div>
-            )}
-        </header>
-
-        {/* ── Chat Card (fills remaining space) ──────────────────── */}
-        <Card className="flex-1 min-h-0 flex flex-col md:grid md:grid-cols-2 mx-3 my-3 max-w-5xl w-full self-center overflow-hidden border-gray-200">
-            {/* Fixed top: Full-width avatar + name overlay */}
-            <div className="flex-shrink-0 border-b border-gray-200 bg-white">
-                {/* Full-width avatar banner */}
-                <div className="relative w-full">
-                    <img
-                        style={scene ? {background:'center / cover url(/visit/flat.webp)'} : undefined}
-                        src={scene ? '/visit/'+expression+'.png' : persona.emotions[expression.toLowerCase()]}
-                        alt={persona.name}
-                        className={`w-full h-[min(19dvh,10rem)] md:h-68 object-contain object-center border-b-4 ${expressionBorder()} transition-colors duration-300`}
-                    />
-                    {scene && <VisitAvatar expression={expression} gesture={scene.ended && messages.some(m=>m.sender==="persona" && m.content.startsWith("She folds the top twice")) ? "Demonstrate fold" : scene.ended ? "Return to activity" : scene.choices.length === 1 ? "Look toward object" : scenario_name === "Resolve a Task" ? "Decline gently" : "Listen"}/>}
-                    {/* Name + expression overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-4 pb-3 pt-8">
-                        <div className="flex items-end justify-between">
-                            <h3 className="text-base font-bold text-white drop-shadow-sm">{persona.name}</h3>
-                            <Badge variant="secondary" className={`text-xs capitalize ${expressionBadge()}`}>
-                                {expression}
-                            </Badge>
-                        </div>
-                    </div>
-                </div>
-
-                {scene && <details className="px-4 py-2"><summary>Look around the flat</summary><div className="flex flex-wrap gap-2">{(scenario_name==="House Visit"?[["Doorway","Margaret has stayed by the door."],["Chair","The chair is tucked under the table."],["Sleeve","Her needle is still threaded."]]:scenario_name==="Emotional Listening Ear"?[["Radio","Music is playing softly."],["Chair","There is space to sit nearby."],["Cup","Margaret turns her cup in her hands."]]:scene.visit.opening.includes("recipe")?[["Tin","Margaret keeps her recipes upright."],["Divider","The divider separates everyday favourites."],["Recipe cards","The cards have handwritten titles."]]:[["Packets","The paper has a crease across the top."],["Pencil","The labels are handwritten."],["Seeds","Several types are waiting to be labelled."]]).map(([name,hint])=><details key={name}><summary>{name}</summary><p>{hint}</p></details>)}</div></details>}
-                {/* Tip + Rapport directly under picture */}
-                <details className="px-4 pt-3 pb-3 space-y-2 bg-white"><summary>Coaching and rapport</summary>
-                    {scenario_name != "Resolve a Task" && (
-                    <div className="flex items-center gap-3">
-                        <span className="text-xs font-semibold text-muted-foreground">Rapport</span>
-                        <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
-                            <div
-                                className={`h-full ${getHealthBarColor()} transition-all duration-500`}
-                                style={{ width: `${rapport}%` }}
-                            />
-                        </div>
-                        <span className="text-xs font-bold text-foreground tabular-nums w-8 text-right">
-                            {rapport}%
-                        </span>
-                    </div>
-                    )}
-
-                    {lastEvaluation && !conversationEnded && (
-                        <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex items-start gap-2">
-                            <Lightbulb className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
-                            <div className="text-xs text-amber-700 leading-relaxed">
-                                <p>{`Tip: ${suggestion}`}</p>
-                            </div>
-                        </div>
-                    )}  
-                    {!scene && scenario_name === "Resolve a Task" && (
-                        <button
-                            onClick={() => setShowSteps(true)}
-                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 flex items-center gap-2 hover:bg-gray-50 transition-colors cursor-pointer"
+            <Dialog open={showDifficultyPopup}>
+                <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto" showCloseButton={false} onEscapeKeyDown={(event) => event.preventDefault()} onInteractOutside={(event) => event.preventDefault()}>
+                    <DialogHeader className="text-left">
+                        <DialogTitle>Select difficulty</DialogTitle>
+                        <DialogDescription className="text-sm leading-relaxed">
+                            Choose how you want to practise {scenarioTitle}.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-3">
+                        {([
+                            ["Easy", "Practise a more approachable visit with optional reply hints."],
+                            ["Hard", "Practise a more challenging visit without reply hints."],
+                        ] as const).map(([level, description]) => (
+                            <Button
+                                key={level}
+                                type="button"
+                                variant="outline"
+                                className="h-auto min-h-16 w-full flex-col items-start justify-center gap-1 whitespace-normal rounded-xl border-input px-4 py-3 text-left hover:bg-secondary"
+                                onClick={() => handleDifficultyChange(level)}
+                            >
+                                <span className="text-base font-semibold">{level}</span>
+                                <span className="text-sm font-normal leading-snug text-muted-foreground">{description}</span>
+                            </Button>
+                        ))}
+                        <Link
+                            href="/scenarios"
+                            className="inline-flex min-h-11 items-center justify-center rounded-md text-sm font-semibold text-primary underline underline-offset-4"
                         >
-                            <ClipboardList className="w-3.5 h-3.5 text-foreground flex-shrink-0" />
-                            <p className="text-xs text-foreground font-medium">
-                                View Steps to Book HealthHub Appointment
-                            </p>
-                        </button>
-                    )}
-                </details>
-            </div>
-
-            {/* Scrollable message log */}
-            <div
-            role="log" aria-live="polite" ref={scrollRef}
-            className="flex-1 min-h-0 overflow-y-auto px-4 pt-3 pb-4 space-y-3 bg-gray-50"
-            >
-            {messages.map((message) => (
-                <div
-                key={message.mid}
-                className={`flex flex-col ${message.sender === "user" ? "items-end" : "items-start"}`}
-                >
-                {/* Bubble */}
-                <div
-                    className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 shadow-sm ${
-                    message.sender === "user"
-                        ? "bg-primary text-white"
-                        : "bg-white border border-gray-200 text-foreground"
-                    }`}
-                >
-                    <p className="text-xs leading-relaxed">{message.content}</p>
-                    <span
-                    className={`text-xs mt-1 block ${
-                        message.sender === "user" ? "text-white/90" : "text-gray-400"
-                    }`}
-                    >
-                    {toLocalDate(message.sent_at)}
-                    </span>
-                </div>
-
-                </div>
-            ))}
-
-            {/* Bot typing indicator (always left, always last) */}
-            {botLoading && (
-                <div className="flex flex-col items-start">
-                    <div className="max-w-[80%] rounded-2xl px-3.5 py-2.5 shadow-sm bg-white border border-gray-200 text-foreground">
-                        <div className="flex items-center gap-2">
-                            <Spinner className="text-primary" />
-                            <span className="text-xs text-muted-foreground">Typing…</span>
-                        </div>
+                            Back to practice
+                        </Link>
                     </div>
-                </div>
-            )}
-            </div>
-        </Card>
+                </DialogContent>
+            </Dialog>
 
-        {assessmentRetry && <button disabled={evaluating} className="bg-white underline p-2" onClick={async()=>{
-            setEvaluating(true)
-            try {
-                const response=await fetch("/api/chat/evaluate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({converseId:verseId,...assessmentRetry})})
-                if(response.ok){const data=await response.json();if(data.evaluation){setExpression(data.evaluation.expression);setSuggestion(data.evaluation.suggestion);setRapport(data.evaluation.rapport);setLastEvaluation(true)}setAssessmentRetry(null)}
-            }finally{setEvaluating(false)}
-        }}>Assessment unavailable · Retry assessment</button>}
+            <header className="shrink-0 border-b border-border bg-card px-3 py-1.5 sm:px-4">
+                <div className="mx-auto flex max-w-5xl items-center gap-2">
+                    <Button asChild variant="ghost" size="icon" className="size-11 shrink-0">
+                        <Link href="/scenarios" aria-label="Back to practice">
+                            <ArrowLeft aria-hidden="true" className="size-5" />
+                        </Link>
+                    </Button>
+                    <div className="flex min-w-0 flex-1 items-center gap-1">
+                        <h1 className="min-w-0 break-words text-base font-bold leading-tight">{scenarioTitle}</h1>
+                        {!!scenario?.objective && (
+                            <Popover open={objectiveOpen} onOpenChange={setObjectiveOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="size-11 shrink-0" aria-label="View objective">
+                                        <Target aria-hidden="true" className="size-5" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent align="start" collisionPadding={12} className="w-[min(22rem,calc(100vw-1.5rem))] max-w-[var(--radix-popover-content-available-width)]">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <h2 className="text-sm font-semibold">Objective</h2>
+                                        <Button variant="ghost" size="icon" className="size-9 shrink-0" aria-label="Close objective" onClick={() => setObjectiveOpen(false)}>
+                                            <X aria-hidden="true" className="size-4" />
+                                        </Button>
+                                    </div>
+                                    <p className="text-sm leading-relaxed">{scenario.objective}</p>
+                                </PopoverContent>
+                            </Popover>
+                        )}
+                    </div>
+                    {difficulty && <Badge variant="secondary" className="shrink-0 text-sm">{difficulty}</Badge>}
+                </div>
+                {showTurnWarning && (
+                    <div className="mx-auto mt-1 flex max-w-5xl items-center gap-2 rounded-md bg-amber-100 px-3 py-1.5 text-sm font-medium text-amber-900">
+                        <AlertCircle aria-hidden="true" className="size-4 shrink-0" />
+                        {turnsRemain} {turnsRemain === 1 ? "turn" : "turns"} remaining
+                    </div>
+                )}
+            </header>
+
+            <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">
+                <div className="mx-auto grid min-h-full w-full min-w-0 max-w-5xl content-start gap-3 p-3 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:content-stretch">
+                    <section aria-label="Visit details" className="min-w-0 self-start overflow-hidden rounded-xl border border-border bg-card">
+                        <div className="relative isolate w-full overflow-hidden bg-secondary">
+                            {/* Decorative when the same persona name is visible beneath the portrait. */}
+                            <img
+                                style={useVisitPortrait ? { background: "center / cover url(/visit/flat.webp)" } : undefined}
+                                src={portrait}
+                                alt=""
+                                className={`h-[clamp(6rem,16dvh,9rem)] w-full border-b-4 object-contain object-center transition-colors duration-300 md:h-64 ${expressionBorder()}`}
+                            />
+                            {scene && <VisitAvatar expression={expression} gesture={conversationEnded ? "Return to activity" : sentReplies === 0 ? "Look toward object" : "Listen"} />}
+                        </div>
+                        <div className="flex items-center justify-between gap-2 px-3 py-2.5">
+                            <h2 className="min-w-0 break-words text-base font-bold">{persona.name}</h2>
+                            <Badge variant="secondary" className={`shrink-0 capitalize ${expressionBadge()}`}>{expression}</Badge>
+                        </div>
+                        {scene && (
+                            <details className="border-t border-border">
+                                <summary className="min-h-11 cursor-pointer px-3 py-2.5 text-sm font-semibold text-primary">Look around the flat</summary>
+                                <div className="grid gap-2 px-3 pb-3 md:grid-cols-1">
+                                    {observations.map(([name, hint]) => (
+                                        <details key={name} className="rounded-lg bg-secondary px-3">
+                                            <summary className="min-h-11 cursor-pointer py-2.5 text-sm font-semibold">{name}</summary>
+                                            <p className="pb-3 text-sm leading-relaxed">{hint}</p>
+                                        </details>
+                                    ))}
+                                </div>
+                            </details>
+                        )}
+                        <details className="border-t border-border">
+                            <summary className="min-h-11 cursor-pointer px-3 py-2.5 text-sm font-semibold text-primary">Coaching and rapport</summary>
+                            <div className="space-y-3 px-3 pb-3">
+                                {scenario_name !== "Resolve a Task" && (
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-sm font-semibold text-muted-foreground">Rapport</span>
+                                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-secondary">
+                                            <div className={`h-full transition-all duration-500 ${getHealthBarColor()}`} style={{ width: `${rapport}%` }} />
+                                        </div>
+                                        <span className="text-sm font-bold tabular-nums">{rapport}%</span>
+                                    </div>
+                                )}
+                                {lastEvaluation && !conversationEnded && difficulty === "Easy" && (
+                                    <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm leading-relaxed text-amber-900">
+                                        <Lightbulb aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+                                        <p>{`Tip: ${suggestion}`}</p>
+                                    </div>
+                                )}
+                                {!scene && scenario_name === "Resolve a Task" && (
+                                    <Button type="button" variant="outline" onClick={() => setShowSteps(true)} className="h-auto min-h-11 w-full justify-start whitespace-normal border-input px-3 py-2 text-left">
+                                        <ClipboardList aria-hidden="true" className="size-4 shrink-0" />
+                                        View steps to book a HealthHub appointment
+                                    </Button>
+                                )}
+                            </div>
+                        </details>
+                    </section>
+
+                    <section aria-label="Transcript" className="flex min-h-48 min-w-0 flex-col rounded-xl border border-border bg-card">
+                        <h2 className="border-b border-border px-3 py-2.5 text-sm font-semibold md:px-4">Transcript</h2>
+                        <div role="log" aria-label="Conversation messages" aria-live="polite" className="flex-1 space-y-3 px-3 py-3 md:px-4">
+                            {messages.map((message) => (
+                                <div key={message.mid} className={`flex min-w-0 flex-col ${message.sender === "user" ? "items-end" : "items-start"}`}>
+                                    <div className={`max-w-[92%] rounded-xl px-3 py-2.5 md:max-w-[85%] ${message.sender === "user" ? "bg-primary text-primary-foreground" : "border border-border bg-secondary text-foreground"}`}>
+                                        <p className="text-base leading-relaxed [overflow-wrap:anywhere]">{message.content}</p>
+                                        <time dateTime={message.sent_at} className={`mt-1 block text-xs ${message.sender === "user" ? "text-primary-foreground" : "text-muted-foreground"}`}>
+                                            {toLocalDate(message.sent_at)}
+                                        </time>
+                                    </div>
+                                </div>
+                            ))}
+                            {botLoading && (
+                                <div className="flex items-center gap-2 rounded-xl border border-border bg-secondary px-3 py-2.5 text-sm text-muted-foreground">
+                                    <Spinner className="text-primary" />
+                                    Typing…
+                                </div>
+                            )}
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            {assessmentRetry && (
+                <Button type="button" variant="outline" disabled={evaluating} className="mx-3 my-1 min-h-11 self-center" onClick={async () => {
+                    setEvaluating(true)
+                    try {
+                        const response = await fetch("/api/chat/evaluate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ converseId: verseId, ...assessmentRetry }) })
+                        if (!response.ok) throw new Error("The assessment is still unavailable.")
+                        const data = await response.json()
+                        if (data.evaluation) {
+                            setExpression(data.evaluation.expression)
+                            setSuggestion(data.evaluation.suggestion)
+                            setRapport(data.evaluation.rapport)
+                            setSentiment(data.evaluation.sentiment)
+                            setLastEvaluation(true)
+                        }
+                        applyProgress(data)
+                        if (data.completionOverride) {
+                            setMessages((previous) => previous.map((message) => message.mid === assessmentRetry.personaMessageId ? { ...message, content: data.completionOverride } : message))
+                        }
+                        setAssessmentRetry(null)
+                    } catch {
+                        toast({ title: "Assessment is still unavailable", description: "Please try again.", variant: "destructive" })
+                    } finally {
+                        setEvaluating(false)
+                    }
+                }}>Retry assessment</Button>
+            )}
         {/* Message send error popup */}
         <Dialog
             open={!!messageError}
@@ -769,60 +766,76 @@ export default function ChatTraining() {
             </DialogContent>
         </Dialog>
 
-        {/* ── Bottom controls ────────────────────────────────────── */}
-        <div className="bg-white border-t border-border shadow-lg px-4 py-2.5">
-            <div className="max-w-3xl mx-auto space-y-2">
-                {!conversationEnded && scene && <div className="flex flex-wrap gap-2">{scene.choices.map(choice => <Button key={choice.label} variant="outline" className="h-auto whitespace-normal border-[var(--visit-border)] text-[var(--visit-sage)]" disabled={botLoading || evaluating} onClick={() => converse(choice.label)}>{choice.label}</Button>)}</div>}
-                {conversationEnded || scene?.ended ? (
-                    <Button 
-                        className="w-full bg-primary hover:bg-primary/90 text-white font-semibold h-9 text-sm"
-                        onClick={end}
-                    >
-                        View Results
-                    </Button>
-                ) : (
-                    <div className="flex gap-2 items-center">
-                        <Button
-                            onClick={handleEndEarly}
-                            variant="outline"
-                            size="sm"
-                            className="h-10 px-3 text-xs whitespace-nowrap text-muted-foreground hover:text-foreground border-border bg-transparent"
-                        >
-                            End Early
-                        </Button>
+            <Dialog open={showEndConfirm} onOpenChange={setShowEndConfirm}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>End this visit early?</DialogTitle>
+                        <DialogDescription>The practice you have completed so far will be included in your results.</DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setShowEndConfirm(false)}>Keep practising</Button>
+                        <Button type="button" onClick={() => void end(true)}>End and view results</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
-                        <div className="relative flex-1">
-                            <Input
-                                aria-label="Say something" placeholder="Say something…"
-                                value={inputValue}
-                                onChange={(e) => setInputValue(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter" && !e.shiftKey) {
-                                        e.preventDefault()
-                                        converse()
-                                    }
-                                }}
-                                maxLength={200}
-                                disabled={botLoading || evaluating}
-                                className="flex-1 h-10 text-sm bg-gray-50 border-border disabled:opacity-50 pr-16"
-                            />
-                            <span className={`absolute right-2 top-1/2 -translate-y-1/2 text-xs pointer-events-none ${inputValue.length > 200 ? 'text-red-500' : 'text-gray-400'}`}>
-                                {inputValue.length}/200
-                            </span>
+            <footer className="shrink-0 border-t border-border bg-card px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-4">
+                <div className="mx-auto max-w-5xl space-y-2">
+                    {!!verseId && !conversationEnded && hintOptions.length > 0 && (
+                        <details ref={hintsRef} className="rounded-lg border border-border bg-background">
+                            <summary className="min-h-11 cursor-pointer rounded-lg px-3 py-2.5 text-sm font-semibold text-primary">Show reply hints</summary>
+                            <section aria-label="Reply hints" className="px-3 pb-2">
+                                <p className="mb-2 text-sm text-muted-foreground" id="reply-hint-help">
+                                    {inputValue.trim() ? "Clear your draft to use a hint. Your current draft has not changed." : "Choose an example to edit in your reply. Nothing will be sent."}
+                                </p>
+                                <div className="grid max-h-[min(18dvh,11rem)] min-w-0 gap-1.5 overflow-y-auto overscroll-contain pr-1 md:grid-cols-2">
+                                    {hintOptions.map((hint) => (
+                                        <Button key={hint} type="button" variant="outline" className="h-auto min-h-11 w-full min-w-0 justify-start whitespace-normal break-words border-input px-3 py-2 text-left text-sm leading-snug text-primary" disabled={!!inputValue.trim() || botLoading || evaluating || !!assessmentRetry} onClick={() => useHint(hint)}>
+                                            <span className="min-w-0 break-words">{hint}</span>
+                                        </Button>
+                                    ))}
+                                </div>
+                            </section>
+                        </details>
+                    )}
+                    {conversationEnded ? (
+                        <div className="space-y-2">
+                            <p className="text-sm font-medium text-foreground" role="status">{endReason ? closeCopy[endReason] : "The visit has ended."}</p>
+                            <Button type="button" className="min-h-11 w-full text-base font-semibold" disabled={loading || evaluating} onClick={() => void end()}>
+                                View results
+                            </Button>
                         </div>
-
-                        <Button
-                            aria-label="Send message" onClick={() => converse()}
-                            size="icon"
-                            disabled={botLoading || evaluating}
-                            className="h-10 w-10 bg-primary hover:bg-primary/90 disabled:opacity-50"
-                        >
-                            <Send className="w-4 h-4" />
-                        </Button>
-                    </div>
-                )}
-            </div>
+                    ) : (
+                        <form onSubmit={(event) => { event.preventDefault(); void converse() }} className="space-y-0.5">
+                            <div className="flex min-w-0 items-center gap-2">
+                                <Input
+                                    ref={inputRef}
+                                    aria-label="Type your reply"
+                                    aria-describedby="reply-length"
+                                    placeholder="Say something…"
+                                    value={inputValue}
+                                    onChange={(event) => setInputValue(event.target.value)}
+                                    maxLength={200}
+                                    disabled={!verseId || botLoading || evaluating || !!assessmentRetry}
+                                    className="h-11 min-w-0 flex-1 border-input bg-background text-base md:text-base"
+                                />
+                                <Button type="submit" aria-label="Send reply" className="h-11 shrink-0 gap-2 px-3 sm:px-4" disabled={!inputValue.trim() || !verseId || botLoading || evaluating || !!assessmentRetry}>
+                                    <Send aria-hidden="true" className="size-4" />
+                                    Send
+                                </Button>
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                                <Button type="button" variant="ghost" size="sm" className="min-h-10 px-2 text-sm font-semibold text-muted-foreground hover:text-foreground" onClick={() => setShowEndConfirm(true)} disabled={!verseId || botLoading || evaluating}>
+                                    End visit early
+                                </Button>
+                                <span id="reply-length" className="pr-1 text-sm tabular-nums text-muted-foreground">
+                                    <span className="sr-only">Characters used: </span>{inputValue.length}/200
+                                </span>
+                            </div>
+                        </form>
+                    )}
+                </div>
+            </footer>
         </div>
-    </div>
-  )
+    )
 }

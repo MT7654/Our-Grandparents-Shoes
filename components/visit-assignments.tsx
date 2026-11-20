@@ -31,8 +31,8 @@ export function Assignments() {
       .catch(() => setFailed(true))
   }, [])
   return (
-    <section id="assignments" className="space-y-2 mb-6">
-      <h2 className="font-semibold">Assignments</h2>
+    <section id="assignments" aria-labelledby="assignments-heading" className="mb-5 scroll-mt-4 space-y-2 rounded-xl border border-border bg-card px-4 py-3 text-sm leading-relaxed text-muted-foreground">
+      <h2 id="assignments-heading" className="text-base font-semibold text-foreground">Assignments</h2>
       {!data
         ? failed
           ? "Assignments unavailable"
@@ -40,7 +40,7 @@ export function Assignments() {
         : data.assignments.length === 0
           ? "No assignments due."
           : data.assignments.map((a) => (
-              <article key={a.id} className="border rounded p-3">
+              <article key={a.id} className="space-y-1 rounded-lg border border-border bg-background p-3">
                 <p>
                   {a.difficulty} · Due {a.due_date} (Singapore)
                 </p>
@@ -54,7 +54,7 @@ export function Assignments() {
                   return (
                     <p key={k}>
                       <Link
-                        className="underline"
+                        className="font-medium text-primary underline underline-offset-2"
                         href={
                           attempt?.completed
                             ? "/dashboard/review/" + attempt.vid

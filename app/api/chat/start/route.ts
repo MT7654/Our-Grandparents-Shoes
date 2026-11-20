@@ -1,3 +1,4 @@
+import { LiveChatError } from "@/lib/chat/live-persistence"
 import { practiceContext } from '@/lib/visits/context'
 import { NextResponse, type NextRequest } from 'next/server'
 import { startConversation } from '@/lib/chat/service'
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
         }
 
         const context = await practiceContext(body.context, scenario_name, guardResult.session.user.id)
-        const conversation = await startConversation(scenario_name, context.difficulty ?? difficulty_level, context.key, context.callback)
+        const conversation = await startConversation(guardResult.session.user.id, scenario_name, context.difficulty ?? difficulty_level, context.key, context.callback)
 
         return NextResponse.json(
             {
@@ -56,6 +57,9 @@ export async function POST(request: NextRequest) {
             { status: 200 }
         )
     } catch (error) {
+        if (error instanceof LiveChatError) {
+            return NextResponse.json({ error: error.message }, { status: error.status })
+        }
         console.error('POST /chat/start error: ', error)
         const errorMessage = error instanceof Error ? error.message : 'Failed to start conversation'
         return NextResponse.json(

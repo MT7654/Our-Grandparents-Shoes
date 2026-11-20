@@ -58,6 +58,7 @@ export type MidConversationEvaluation = {
   feedback: Message['feedback'],
   status: Message['status'],
   taskCompleted?: boolean
+  objectiveMet?: boolean
 }
 
 export type DisplayBadge = {

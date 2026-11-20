@@ -1,3 +1,5 @@
+import { isUuid } from "@/lib/chat/live-rules"
+import { LiveChatError } from "@/lib/chat/live-persistence"
 import { NextResponse, type NextRequest } from 'next/server'
 import { converseEvaluate } from '@/lib/chat/service'
 import { guard } from '@/lib/auth/guard'
@@ -22,14 +24,14 @@ export async function POST(request: NextRequest) {
         }
         const { converseId, userMessageId, personaMessageId } = body
 
-        if (!converseId || !userMessageId || !personaMessageId) {
+        if (![converseId, userMessageId, personaMessageId].every(isUuid)) {
             return NextResponse.json(
                 { error: 'converseId, userMessageId, and personaMessageId are required' },
                 { status: 400 }
             )
         }
 
-        const data = await converseEvaluate(converseId, userMessageId, personaMessageId)
+        const data = await converseEvaluate(converseId, userMessageId, personaMessageId, guardResult.session.user.id)
 
         if (!data) {
             return NextResponse.json(
@@ -40,10 +42,12 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json(data)
     } catch (error) {
+        if (error instanceof LiveChatError) {
+            return NextResponse.json({ error: error.message }, { status: error.status })
+        }
         console.error('POST /chat/evaluate error: ', error)
-        const errorMessage = error instanceof Error ? error.message : 'Failed to evaluate message'
         return NextResponse.json(
-            { error: errorMessage },
+            { error: 'Feedback could not be generated. You can retry the assessment.' },
             { status: 500 }
         )
     }

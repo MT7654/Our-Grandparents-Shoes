@@ -3,10 +3,10 @@
 import { Assignments } from "@/components/visit-assignments"
 import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Link from "next/link"
-import { ArrowLeft, AlertCircle, Home, Heart, CheckSquare, LucideIcon } from "lucide-react"
+import { ArrowLeft, AlertCircle, Home, Heart, CheckSquare, ArrowDown, LucideIcon } from "lucide-react"
 import { Scenario, Persona } from '@/lib/types/types'
 import LoadingOverlay from '@/components/loading-overlay'
 import { useToast } from "@/hooks/use-toast"
@@ -101,33 +101,30 @@ export default function ScenarioSelection() {
   }
 
   return (
-    <div className="min-h-screen bg-background relative">
-
-      {/* Loading Screen */}
+    <main className="min-h-dvh bg-background">
       <LoadingOverlay isLoading={loading} />
-
-      {/* Logout Button Top Right */}
-      <div className="absolute top-4 right-4">
-        <Button variant="outline" onClick={logout}>Sign out</Button>
-      </div>
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-5xl mx-auto">
-          {/* Header */}
-          <div className="mb-8">
-            <Link href="/">
-              <Button variant="ghost" className="mb-4">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Home
-              </Button>
-            </Link>
-
-            <h1 className="text-4xl font-bold mb-2">Live AI practice</h1>
-            <p className="text-lg text-muted-foreground">
-              Choose a visit with Margaret Chan. Type your own replies or use the suggested responses.
-            </p>
-          </div>
-
-          <nav aria-label="Practice sections" className="section-links"><a href="#practice">Choose a visit</a><a href="#assignments">Assignments</a></nav><Assignments/><div id="practice" />
+      <div className="mx-auto max-w-5xl px-4 py-5 sm:px-6 sm:py-8">
+        <div className="mb-5 flex items-center justify-between gap-2">
+          <Button asChild variant="ghost" className="min-h-11 px-2 text-muted-foreground hover:text-foreground">
+            <Link href="/"><ArrowLeft aria-hidden="true" className="size-4" /> Home</Link>
+          </Button>
+          <Button variant="outline" className="min-h-11" onClick={logout}>Sign out</Button>
+        </div>
+        <header className="mb-5 space-y-2">
+          <h1 className="text-3xl font-bold leading-tight tracking-tight sm:text-4xl">Live AI practice</h1>
+          <p className="max-w-prose text-base leading-relaxed text-muted-foreground">
+            Choose a visit with Margaret Chan and type your own replies. On Easy, you can open optional reply hints.
+          </p>
+        </header>
+        <nav aria-label="Practice sections" className="mb-5 flex flex-wrap gap-2">
+          <Button asChild variant="secondary" className="min-h-11">
+            <a href="#practice">Choose a visit <ArrowDown aria-hidden="true" className="size-4" /></a>
+          </Button>
+          <Button asChild variant="outline" className="min-h-11">
+            <a href="#assignments">Assignments</a>
+          </Button>
+        </nav>
+        <Assignments />
           {/* Error Display */}
           {error && (
             <Alert variant="destructive" className="mb-8">
@@ -149,62 +146,55 @@ export default function ScenarioSelection() {
 
           {/* Persona Cards */}
           {!error && (
-            <>
-            {/* Persona Context - Static */}
-            <Card className="mb-8 border-2">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-4">
+            <section id="practice" aria-labelledby="practice-heading" className="scroll-mt-4 space-y-4">
+              <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3.5 sm:gap-4 sm:p-4">
+                <div className="size-14 shrink-0 overflow-hidden rounded-full bg-accent sm:size-16">
                   <img
-                    src= {persona.avatar}
-                    alt= {persona.name}
-                    className="w-20 h-20 rounded-full object-cover border-2 border-border"
+                    src="/visit/margaret-neutral.webp"
+                    alt=""
+                    className="size-full object-cover object-top"
+                    width={64}
+                    height={64}
                   />
-                  <div>
-                    <CardTitle className="text-2xl">{persona.name}</CardTitle>
-                    <CardDescription className="text-base mt-1 leding-relaxed">
-                      {`${persona.personality} You'll practice different scenarios with Margaret.`}
-                    </CardDescription>
-                  </div>
                 </div>
-              </CardHeader>
-            </Card>
-
-            {/* Scenario Selection Cards */}
-            <div className="grid gap-4 md:grid-cols-3">
+                <div className="min-w-0">
+                  <p className="text-lg font-semibold leading-snug text-foreground">{persona.name}</p>
+                  <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">{persona.personality}</p>
+                </div>
+              </div>
+              <h2 id="practice-heading" className="text-xl font-semibold leading-snug">Choose a visit</h2>
+              <div className="grid gap-3 md:grid-cols-3">
               {scenarios.map((scenario) => {
                 const Icon = icons[scenario.design.icon]
                 return (
                   <Card
                     key={scenario.id}
-                    className="border bg-card"
+                    className="gap-4 border-border bg-card py-4 sm:py-5"
                   >
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start gap-4">
-                        <div className="rounded-lg bg-accent p-3">
-                          <Icon className="size-6 text-primary" />
+                    <CardHeader className="px-4 sm:px-5">
+                      <div className="flex items-start gap-3">
+                        <div className="shrink-0 rounded-lg bg-accent p-2.5">
+                          <Icon aria-hidden="true" className="size-5 text-primary" />
                         </div>
-                        <div className="flex-1">
-                          <CardTitle className="text-2xl mb-1">{scenario.name}</CardTitle>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="mb-1 text-lg font-semibold leading-snug">{scenario.name}</h3>
                           <CardDescription className="text-base leading-relaxed">{scenario.description}</CardDescription>
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="flex flex-1 flex-col gap-4 px-4 sm:px-5">
                       <div>
-                        <h3 className="font-semibold mb-2 text-sm text-muted-foreground uppercase tracking-wide">
-                          Easy or Hard · Practice focus
-                        </h3>
-                        <ul className="space-y-1.5">
+                        <h4 className="mb-2 text-sm font-semibold text-foreground">
+                          What you’ll practise
+                        </h4>
+                        <ul className="list-disc space-y-1.5 pl-5 text-sm leading-relaxed marker:text-primary">
                           {scenario.instructions.map((instruction, index) => (
-                            <li key={index} className="text-sm leading-relaxed flex items-start gap-2">
-                              <span className="text-muted-foreground mt-0.5">•</span>
-                              <span>{instruction}</span>
-                            </li>
+                            <li key={index}>{instruction}</li>
                           ))}
                         </ul>
                       </div>
 
-                      <Button asChild className="w-full" size="lg">
+                      <Button asChild className="mt-auto min-h-11 w-full" size="lg">
                         <Link href={`/chat/${scenario.id}${typeof window === "undefined" ? "" : location.search}`}>
                           {scenario.design.buttonCta}
                         </Link>
@@ -213,8 +203,8 @@ export default function ScenarioSelection() {
                   </Card>
                 )
               })}
-            </div>
-            </>
+              </div>
+            </section>
           )}
 
           {/* Empty State */}
@@ -227,8 +217,7 @@ export default function ScenarioSelection() {
               </AlertDescription>
             </Alert>
           )}
-        </div>
       </div>
-    </div>
+    </main>
   )
 }

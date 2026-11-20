@@ -1,3 +1,4 @@
+import { LiveChatError } from "@/lib/chat/live-persistence"
 import { practiceContext } from '@/lib/visits/context'
 import { NextResponse, type NextRequest } from 'next/server'
 import { resumeConversation } from '@/lib/chat/service'
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
         }
 
         const context = await practiceContext(body.context, scenario_name, guardResult.session.user.id)
-        const conversation = await resumeConversation(scenario_name, context.key)
+        const conversation = await resumeConversation(guardResult.session.user.id, scenario_name, context.key)
 
         if (conversation == null) {
             return NextResponse.json(
@@ -49,6 +50,9 @@ export async function POST(request: NextRequest) {
             { status: 200 }
         )
     } catch (error) {
+        if (error instanceof LiveChatError) {
+            return NextResponse.json({ error: error.message }, { status: error.status })
+        }
         console.error('POST /chat/resume error: ', error)
         const errorMessage = error instanceof Error ? error.message : 'Failed to resume conversation'
         return NextResponse.json(

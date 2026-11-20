@@ -238,6 +238,7 @@ export type Database = {
           practice_context: string
           completed: boolean
           created_at: string
+          end_reason: "objective_met" | "boundary" | "turn_limit" | "ended_early" | null
           difficulty: Database["public"]["Enums"]["difficulty_level"]
           feedback: string
           objective_met: boolean
@@ -250,6 +251,7 @@ export type Database = {
           practice_context?: string
           completed?: boolean
           created_at?: string
+          end_reason?: "objective_met" | "boundary" | "turn_limit" | "ended_early" | null
           difficulty?: Database["public"]["Enums"]["difficulty_level"]
           feedback?: string
           objective_met?: boolean
@@ -262,6 +264,7 @@ export type Database = {
           practice_context?: string
           completed?: boolean
           created_at?: string
+          end_reason?: "objective_met" | "boundary" | "turn_limit" | "ended_early" | null
           difficulty?: Database["public"]["Enums"]["difficulty_level"]
           feedback?: string
           objective_met?: boolean

@@ -53,52 +53,54 @@ export function Journal({
       setStatus("Could not save. Please try again.")
     }
   }
-  if (!entry) return <p role="status">{status}</p>
+  if (!entry) return status ? <p role="status" className="text-sm text-muted-foreground">{status}</p> : null
   return (
-    <section className="workspace-panel space-y-4 border rounded-xl p-5 bg-card">
-      <h2 className="text-xl font-semibold">Visit journal</h2>
+    <section aria-labelledby="visit-journal-heading" className="space-y-4 rounded-xl border border-border bg-card p-4 text-base leading-relaxed text-card-foreground">
+      <h2 id="visit-journal-heading" className="text-lg font-semibold leading-snug">Visit journal</h2>
       <img
         src="/visit/flat.webp"
         alt="Margaret’s table with her radio, recipe cards and seed packets"
-        className="h-32 w-full object-cover rounded"
+        className="h-28 w-full rounded-lg object-cover sm:h-36"
       />
       <p>{scenarios[scenario].objective}</p>
-      <blockquote>{entry.moment.content}</blockquote>
+      <blockquote className="rounded-r-lg border-l-4 border-border bg-secondary px-3 py-2 [overflow-wrap:anywhere]">{entry.moment.content}</blockquote>
       <Link
-        className="underline"
+        className="font-semibold text-primary underline underline-offset-4"
         href={"/dashboard/review/" + vid + "/chat#" + entry.moment.mid}
       >
         Read this exchange
       </Link>
-      <details>
-        <summary>Retry this moment</summary>
-        <div className="flex flex-wrap gap-2 my-3">
-          {entry.choices.map((choice) => (
-            <button
-              className="border rounded p-2 bg-white"
-              key={choice}
-              onClick={() => save({ choice, id: crypto.randomUUID() })}
-            >
-              {choice}
-            </button>
-          ))}
-        </div>
-        <p aria-live="polite">{outcome}</p>
-      </details>
+      {entry.choices.length > 0 && (
+        <details>
+          <summary className="min-h-11 cursor-pointer rounded-lg border border-border px-3 py-2 font-semibold text-primary">Retry this moment</summary>
+          <div className="flex flex-wrap gap-2 my-3">
+            {entry.choices.map((choice) => (
+              <button
+                className="min-h-11 w-full rounded-lg border border-input bg-card px-3 py-2 text-left text-primary hover:bg-accent [overflow-wrap:anywhere]"
+                key={choice}
+                onClick={() => save({ choice, id: crypto.randomUUID() })}
+              >
+                {choice}
+              </button>
+            ))}
+          </div>
+          <p aria-live="polite">{outcome}</p>
+        </details>
+      )}
       <label className="block">
         Private reflection
         <textarea
           maxLength={4000}
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          className="block w-full bg-white border p-2"
+          className="mt-1 block min-h-24 w-full rounded-lg border border-input bg-card p-2 text-base"
         />
       </label>
-      <button className="underline" onClick={() => save({ reflection: note })}>
+      <button className="font-semibold text-primary underline underline-offset-4" onClick={() => save({ reflection: note })}>
         Save reflection
       </button>
       <span role="status">{status}</span>
-      <div className="section-links">
+      <div className="flex flex-wrap gap-x-4 gap-y-2 border-t border-border pt-3 [&_a]:font-medium [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-4">
         <Link href={"/chat/" + scenarios[scenario].id}>
           Practise this scenario again
         </Link>

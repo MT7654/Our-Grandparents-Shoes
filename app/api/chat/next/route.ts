@@ -1,3 +1,5 @@
+import { isUuid } from "@/lib/chat/live-rules"
+import { LiveChatError } from "@/lib/chat/live-persistence"
 import { NextResponse, type NextRequest } from 'next/server'
 import { converseReply } from '@/lib/chat/service'
 import type { Database } from '@/supabase/types'
@@ -26,7 +28,7 @@ export async function POST(request: NextRequest) {
         }
         const { converseId, latestMessage, turnId } = body
 
-        if (!converseId || latestMessage === null || latestMessage === undefined) {
+        if (!isUuid(converseId) || (turnId !== undefined && !isUuid(turnId)) || latestMessage === null || latestMessage === undefined) {
             return NextResponse.json(
                 { error: 'Conversation ID and message are required' },
                 { status: 400 }
@@ -51,10 +53,12 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json(data)
     } catch (error) {
+        if (error instanceof LiveChatError) {
+            return NextResponse.json({ error: error.message }, { status: error.status })
+        }
         console.error('POST /chat/next error: ', error)
-        const errorMessage = error instanceof Error ? error.message : 'Failed to process message'
         return NextResponse.json(
-            { error: errorMessage },
+            { error: 'Margaret could not reply right now. Your turn has not been used; please retry.' },
             { status: 500 }
         )
     }

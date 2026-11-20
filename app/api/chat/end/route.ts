@@ -1,3 +1,5 @@
+import { isUuid } from "@/lib/chat/live-rules"
+import { LiveChatError } from "@/lib/chat/live-persistence"
 import { NextResponse, type NextRequest } from 'next/server'
 import { endConversation, fetchCompleteConversation } from '@/lib/chat/service'
 import { guard } from '@/lib/auth/guard'
@@ -22,14 +24,14 @@ export async function POST(request: NextRequest) {
         const converseId: Conversation['vid'] | undefined = body?.converseId
         const end_early: boolean | undefined = body?.end_early
 
-        if (!converseId || end_early === undefined) {
+        if (!isUuid(converseId) || typeof end_early !== "boolean") {
             return NextResponse.json(
                 { error: 'Conversation ID and required parameters are required' },
                 { status: 400 }
             )
         }
 
-        const savedConversation = await endConversation(converseId, end_early)
+        const savedConversation = await endConversation(converseId, end_early, guardResult.session.user.id)
 
         if (!savedConversation) {
             return NextResponse.json(
@@ -40,6 +42,9 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json(savedConversation)
     } catch (error) {
+        if (error instanceof LiveChatError) {
+            return NextResponse.json({ error: error.message }, { status: error.status })
+        }
         console.error('Error ending conversation: ', error)
 
         return NextResponse.json(
@@ -58,7 +63,7 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url)
         const converseId = searchParams.get('id')
 
-        if (!converseId) {
+        if (!isUuid(converseId)) {
             return NextResponse.json(
                 { error: "Conversation ID is required" },
                 { status: 400 }
@@ -76,6 +81,9 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(complete_evaluation)
     } catch (error) {
+        if (error instanceof LiveChatError) {
+            return NextResponse.json({ error: error.message }, { status: error.status })
+        }
         console.error('GET /chat/end error: ', error)
         const errorMessage = error instanceof Error ? error.message : 'Failed to fetch conversation results'
         return NextResponse.json(

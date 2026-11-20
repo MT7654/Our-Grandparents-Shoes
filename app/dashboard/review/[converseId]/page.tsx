@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import {
   ArrowLeft,
+  ChevronRight,
   CheckCircle2,
   XCircle,
   ThumbsUp,
@@ -22,29 +23,22 @@ import type { Review } from '@/lib/types/types'
 import LoadingOverlay from '@/components/loading-overlay'
 import { useToast } from "@/hooks/use-toast"
 
+const panel = "rounded-xl border border-border bg-card text-card-foreground"
+const scenarioLabels = {
+  "Emotional Listening Ear": "Listening Ear",
+} as const
+
 function getScenarioIcon(scenario: string) {
   switch (scenario) {
     case "House Visit":
-      return <Home className="w-4 h-4 text-primary" />
+      return Home
+    case "Emotional Listening Ear":
     case "Listening Ear":
-      return <Heart className="w-4 h-4 text-purple-600" />
+      return Heart
     case "Resolve a Task":
-      return <CheckSquare className="w-4 h-4 text-green-600" />
+      return CheckSquare
     default:
-      return null
-  }
-}
-
-function getScenarioBg(scenario: string) {
-  switch (scenario) {
-    case "House Visit":
-      return "bg-secondary border-border"
-    case "Listening Ear":
-      return "bg-purple-50 border-purple-200"
-    case "Resolve a Task":
-      return "bg-green-50 border-green-200"
-    default:
-      return "bg-gray-50 border-gray-200"
+      return MessageCircle
   }
 }
 
@@ -109,128 +103,107 @@ export default function SessionReviewPage() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center space-y-4">
-          <p className="text-sm text-muted-foreground">{review == null ? 'Session not found.' : error ?? 'Something went wrong.'}</p>
-          <Link href="/dashboard">
-            <Button className="bg-primary hover:bg-primary/90 text-white">Back to Dashboard</Button>
-          </Link>
+          <p className="text-sm text-muted-foreground">{error ?? 'Session not found.'}</p>
+          <Button asChild><Link href="/dashboard">Back to dashboard</Link></Button>
         </div>
       </div>
     )
   }
 
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
-        {/* Header */}
-        <div>
-          <Link href="/dashboard">
-            <Button variant="ghost" className="mb-4 bg-transparent text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Sessions
-            </Button>
-          </Link>
-          <h1 className="text-2xl font-bold text-foreground">Session Review</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Detailed feedback for your conversation with Margaret Chan.
-          </p>
-        </div>
+  const ScenarioIcon = getScenarioIcon(review.scenario)
+  const scenarioLabel = review.scenario === "Emotional Listening Ear" ? scenarioLabels[review.scenario] : review.scenario
 
-        {/* Session Meta */}
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg border ${getScenarioBg(review.scenario)}`}>
-              {getScenarioIcon(review.scenario)}
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-semibold text-foreground">{review.scenario}</span>
-                <Badge variant="outline" className="text-xs px-1.5 py-0 border-border text-muted-foreground">
-                  {review.difficulty}
-                </Badge>
+  return (
+    <main className="min-h-dvh bg-background">
+      <div className="mx-auto max-w-2xl space-y-4 px-4 py-5 sm:px-6 sm:py-8">
+        <header className="space-y-2">
+          <Button asChild variant="ghost" className="mb-1 min-h-11 px-2 text-muted-foreground hover:text-foreground">
+            <Link href="/dashboard"><ArrowLeft aria-hidden="true" className="size-4" /> Back to sessions</Link>
+          </Button>
+          <h1 className="text-3xl font-bold leading-tight tracking-tight sm:text-4xl">Session review</h1>
+          <p className="text-base leading-relaxed text-muted-foreground">
+            Feedback on your conversation with Margaret Chan.
+          </p>
+        </header>
+
+        <section aria-labelledby="review-scenario" className={panel + " p-4"}>
+          <div className="flex items-start gap-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent text-primary">
+              <ScenarioIcon aria-hidden="true" className="size-5" />
+            </span>
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <h2 id="review-scenario" className="text-lg font-semibold leading-snug">{scenarioLabel}</h2>
+                <Badge variant="secondary" className="text-sm capitalize">{review.difficulty}</Badge>
               </div>
-              <span className="text-xs text-muted-foreground">
+              <time dateTime={review.date} className="block text-sm text-muted-foreground">
                 {new Date(review.date).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
+                  month: "short", day: "numeric", year: "numeric",
                 })}
-              </span>
+              </time>
             </div>
           </div>
-        </div>
-
-        {/* Objective Status */}
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">
-            Objective Status
-          </h2>
-          <div className="flex items-center gap-2">
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border pt-3">
+            <p className="text-sm font-semibold text-foreground">Practice objective</p>
             {review.objective_met ? (
-              <>
-                <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
-                <Badge className="bg-green-100 text-green-800 border-0 text-sm font-semibold">
-                  Completed
-                </Badge>
-              </>
+              <Badge className="gap-1.5 border-0 bg-green-100 text-sm font-semibold text-green-900">
+                <CheckCircle2 aria-hidden="true" className="size-4" /> Completed
+              </Badge>
             ) : (
-              <>
-                <XCircle className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-                <Badge className="bg-gray-100 text-foreground border-0 text-sm font-semibold">
-                  Not Completed
-                </Badge>
-              </>
+              <Badge variant="secondary" className="gap-1.5 text-sm font-semibold">
+                <XCircle aria-hidden="true" className="size-4" /> Not completed
+              </Badge>
             )}
           </div>
-        </div>
+        </section>
 
         {/* Overall Feedback */}
         {review.feedback && (
-          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div className={panel + " overflow-hidden"}>
             <div className="flex items-center gap-2 px-4 py-3 bg-secondary border-b border-border">
               <MessageCircle className="w-4 h-4 text-primary" />
-              <h2 className="text-sm font-bold text-primary">Overall Feedback</h2>
+              <h2 className="text-base font-semibold text-primary">Overall feedback</h2>
             </div>
             <div className="p-4">
-              <p className="text-sm text-foreground leading-relaxed">{review.feedback}</p>
+              <p className="text-base text-foreground leading-relaxed [overflow-wrap:anywhere]">{review.feedback}</p>
             </div>
           </div>
         )}
 
         <Journal vid={converseId} scenario={review.scenario}/>
         {/* View Conversation History */}
-        <Link href={`/dashboard/review/${converseId}/chat`}>
-          <div className="bg-white border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer mb-8">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <MessageSquare className="w-5 h-5 text-primary" />
-                <div>
-                  <p className="text-sm font-semibold text-foreground">View Conversation History</p>
-                  <p className="text-xs text-muted-foreground">Review the full conversation log</p>
-                </div>
-              </div>
-              <ArrowLeft className="w-4 h-4 text-gray-400 rotate-180" />
-            </div>
-          </div>
+        <Link
+          href={`/dashboard/review/${converseId}/chat`}
+          className={panel + " flex items-center justify-between gap-3 p-4 transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"}
+        >
+          <span className="flex min-w-0 items-center gap-3">
+            <MessageSquare aria-hidden="true" className="size-5 shrink-0 text-primary" />
+            <span>
+              <span className="block font-semibold">View conversation history</span>
+              <span className="block text-sm text-muted-foreground">Read the full conversation</span>
+            </span>
+          </span>
+          <ChevronRight aria-hidden="true" className="size-5 shrink-0 text-primary" />
         </Link>
 
         {/* Good Conversational Prompts */}
         {review.goodPrompts.length > 0 && (
-          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div className={panel + " overflow-hidden"}>
             <div className="flex items-center gap-2 px-4 py-3 bg-green-50 border-b border-green-200">
               <ThumbsUp className="w-4 h-4 text-green-700" />
-              <h2 className="text-sm font-bold text-green-800">Good Conversational Prompts</h2>
+              <h2 className="text-base font-semibold text-green-900">What worked</h2>
             </div>
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-border">
               {review.goodPrompts.map((item, index) => (
                 <div key={index} className="p-4 space-y-2">
                   <div className="bg-secondary border border-border rounded-lg px-3 py-2">
-                    <p className="text-sm text-primary font-medium leading-relaxed">
+                    <p className="text-base font-medium leading-relaxed text-primary [overflow-wrap:anywhere]">
                       {'"'}
                       {item.userMessage}
                       {'"'}
                     </p>
                   </div>
-                  <p className="text-sm text-foreground leading-relaxed pl-1">{item.explanation}</p>{item.mid && <Link className='underline text-sm' href={`/dashboard/review/${converseId}/chat#${item.mid}`}>Read this exchange</Link>}
+                  <p className="text-base text-foreground leading-relaxed [overflow-wrap:anywhere] pl-1">{item.explanation}</p>{item.mid && <Link className='underline text-sm' href={`/dashboard/review/${converseId}/chat#${item.mid}`}>Read this exchange</Link>}
                 </div>
               ))}
             </div>
@@ -239,45 +212,37 @@ export default function SessionReviewPage() {
 
         {/* Needs Improvement */}
         {review.needsImprovement.length > 0 && (
-          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div className={panel + " overflow-hidden"}>
             <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 border-b border-amber-200">
               <AlertTriangle className="w-4 h-4 text-amber-700" />
-              <h2 className="text-sm font-bold text-amber-800">Needs Improvement</h2>
+              <h2 className="text-base font-semibold text-amber-900">What to try next</h2>
             </div>
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-border">
               {review.needsImprovement.map((item, index) => (
                 <div key={index} className="p-4 space-y-2">
                   <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                    <p className="text-sm text-amber-900 font-medium leading-relaxed">
+                    <p className="text-base font-medium leading-relaxed text-amber-900 [overflow-wrap:anywhere]">
                       {'"'}
                       {item.userMessage}
                       {'"'}
                     </p>
                   </div>
-                  <p className="text-sm text-foreground leading-relaxed pl-1">{item.explanation}</p>{item.mid && <Link className='underline text-sm' href={`/dashboard/review/${converseId}/chat#${item.mid}`}>Read this exchange</Link>}
+                  <p className="text-base text-foreground leading-relaxed [overflow-wrap:anywhere] pl-1">{item.explanation}</p>{item.mid && <Link className='underline text-sm' href={`/dashboard/review/${converseId}/chat#${item.mid}`}>Read this exchange</Link>}
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-2">
-          <Link href="/scenarios" className="flex-1">
-            <Button
-              variant="outline"
-              className="w-full bg-transparent border-border text-foreground hover:bg-gray-100"
-            >
-              Try Another Scenario
-            </Button>
-          </Link>
-          <Link href="/dashboard" className="flex-1">
-            <Button className="w-full bg-primary hover:bg-primary/90 text-white">
-              Back to Dashboard
-            </Button>
-          </Link>
+        <div className="flex flex-col gap-3 pt-2 sm:flex-row">
+          <Button asChild variant="outline" className="min-h-11 flex-1">
+            <Link href="/scenarios">Try another scenario</Link>
+          </Button>
+          <Button asChild className="min-h-11 flex-1">
+            <Link href="/dashboard">Back to dashboard</Link>
+          </Button>
         </div>
       </div>
-    </div>
+    </main>
   )
 }
