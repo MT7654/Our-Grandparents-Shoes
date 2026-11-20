@@ -17,8 +17,20 @@ try {
       const page = await context.newPage()
       const errors = []
       page.on("pageerror", error => errors.push(error.message))
-      await page.goto(origin + "/auth")
-      await page.getByRole("link", { name: "Continue as guest" }).click()
+      await page.goto(origin + "/")
+      const brand = page.getByRole("banner").getByRole("link", { name: "ConverseBetter Beta" })
+      await brand.getByText("Beta", { exact: true }).waitFor()
+      assert.ok(await brand.evaluate(el => {
+        const [name, badge] = el.children
+        const n = name.getBoundingClientRect(), b = badge.getBoundingClientRect()
+        return b.left > n.right && b.right <= innerWidth && Math.max(n.top, b.top) < Math.min(n.bottom, b.bottom)
+      }), "Beta badge must be next to the brand and fit the viewport")
+      await page.getByRole("link", { name: /Sign in for live AI practice/i }).click()
+      await page.getByText(/Volunteers can sign in for live AI practice and type their own responses/).waitFor()
+      await page.getByRole("link", { name: "Try guided demo" }).click()
+      await page.getByText("Guided demo", { exact: true }).waitFor()
+      await page.getByText(/This guided demo is not live AI practice/).waitFor()
+      await brand.getByText("Beta", { exact: true }).waitFor()
       for (const [name, greeting, response] of [
         ["House Visit", "Hello, I'm your volunteer. Is now a good time?", "Would another time suit you better?"],
         ["Emotional Listening Ear", "Would you like some company?", "Sit quietly with Margaret"],
@@ -31,7 +43,7 @@ try {
         assert.equal(await page.locator("main").evaluate(el => el.scrollWidth > innerWidth), false)
         await page.getByRole("button", { name: "Choose another visit" }).click()
       }
-      await page.getByRole("link", { name: "Back to sign in" }).click()
+      await page.getByRole("link", { name: "Sign in for live AI practice" }).click()
       await page.getByRole("heading", { name: "Sign in" }).waitFor()
       assert.deepEqual(errors, [])
       console.log(origin, width, "px — all guest visits passed")

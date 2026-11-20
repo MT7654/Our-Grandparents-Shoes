@@ -121,9 +121,9 @@ export default function ScenarioSelection() {
               </Button>
             </Link>
 
-            <h1 className="text-4xl font-bold mb-2">Practice</h1>
+            <h1 className="text-4xl font-bold mb-2">Live AI practice</h1>
             <p className="text-lg text-muted-foreground">
-              Choose a visit with Margaret Chan.
+              Choose a visit with Margaret Chan. Type your own replies or use the suggested responses.
             </p>
           </div>
 

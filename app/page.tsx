@@ -28,10 +28,10 @@ export default function LandingPage() {
     <main className="mx-auto grid max-w-6xl items-center gap-10 px-6 py-12 md:min-h-[75dvh] md:grid-cols-2 md:px-10">
       <div className="space-y-6">
         <h1 className="text-4xl font-semibold tracking-tight sm:text-6xl">Practice conversations with Margaret Chan.</h1>
-        <p className="max-w-md text-lg leading-relaxed text-muted-foreground">Visit Margaret at home, listen to what’s on her mind, or lend a hand with an everyday task.</p>
+        <p className="max-w-md text-lg leading-relaxed text-muted-foreground">Practise with Margaret in a live AI conversation, or explore a guided demo with suggested responses.</p>
         <div className="flex flex-wrap items-center gap-3">
-          <Button asChild><Link href={role === "admin" ? "/admin" : role ? "/scenarios" : "/auth"}>{role === "admin" ? "Coordinator dashboard" : role ? "Start practice" : "Sign in"}</Link></Button>
-          <Button asChild variant="outline"><Link href={role === "user" ? "/dashboard" : "/guest"}>{role === "user" ? "My progress" : "Continue as guest"}</Link></Button>
+          <Button asChild><Link href={role === "admin" ? "/admin" : role ? "/scenarios" : "/auth"}>{role === "admin" ? "Coordinator dashboard" : role ? "Start live AI practice" : "Sign in for live AI practice"}</Link></Button>
+          <Button asChild variant="outline"><Link href={role === "user" ? "/dashboard" : "/guest"}>{role === "user" ? "My progress" : "Try guided demo"}</Link></Button>
           {role && <Button variant="ghost" onClick={signOut}>Sign out</Button>}
         </div>
         <p role="status">{error}</p>

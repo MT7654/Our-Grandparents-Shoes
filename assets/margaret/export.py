@@ -7,7 +7,13 @@ scene = bpy.data.scenes.new("Margaret seated")
 bpy.context.window.scene = scene
 def material(name, rgb):
     m = bpy.data.materials.new(name)
-    m.diffuse_color = (*rgb, 1)
+    rgba = (*rgb, 1)
+    m.diffuse_color = rgba
+    m.use_nodes = True
+    bsdf = m.node_tree.nodes.get("Principled BSDF")
+    bsdf.inputs["Base Color"].default_value = rgba
+    bsdf.inputs["Metallic"].default_value = 0.0
+    bsdf.inputs["Roughness"].default_value = 0.65
     return m
 skin = material("Warm ochre", (.67,.39,.25))
 sage = material("Sage linen", (.34,.41,.24))

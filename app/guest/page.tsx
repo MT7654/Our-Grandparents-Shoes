@@ -31,9 +31,9 @@ export default function GuestPractice() {
   return (
     <main className="min-h-dvh bg-[var(--visit-paper)] px-4 py-6 text-[var(--visit-ink)] sm:py-10">
       <div className="mx-auto max-w-xl space-y-5">
-        <nav aria-label="Guest navigation" className="flex items-center justify-between">
-          <span className="font-medium">Guest practice</span>
-          <Link href="/auth" className="underline">Back to sign in</Link>
+        <nav aria-label="Guest navigation" className="flex flex-wrap items-center justify-between gap-2">
+          <span className="font-medium">Guided demo</span>
+          <Link href="/auth" className="underline">Sign in for live AI practice</Link>
         </nav>
         <h1 className="text-3xl font-semibold">{visit
           ? visit.scenario.replace("Emotional Listening Ear", "Listening Ear")
@@ -73,7 +73,7 @@ export default function GuestPractice() {
           </>
         ) : (
           <>
-            <p>Choose a response at each step. Guest visits are not saved.</p>
+            <p>Choose from scripted responses at each step. This guided demo is not live AI practice, and guest visits are not saved.</p>
             {scenarios.map(name => (
               <Card key={name} className="gap-2 p-5">
                 <h2 className="text-xl font-semibold">{name.replace("Emotional Listening Ear", "Listening Ear")}</h2>

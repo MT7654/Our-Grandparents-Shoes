@@ -107,6 +107,11 @@ export default function AuthPage() {
                 ? "Create an account"
                 : mode === "reset" ? "Set a new password" : "Verify your email"}
         </h1>
+        {mode === "login" && (
+          <p className="text-sm text-muted-foreground">
+            Volunteers can sign in for live AI practice and type their own responses to Margaret.
+          </p>
+        )}
         {mode === "recover" && (
           <p>
             Use your original account email and choose a new password. Your past
@@ -184,10 +189,10 @@ export default function AuthPage() {
         {mode === "login" && (
           <div className="space-y-2 border-t pt-4">
             <Button asChild variant="outline" className="w-full">
-              <Link href="/guest">Continue as guest</Link>
+              <Link href="/guest">Try guided demo</Link>
             </Button>
             <p className="text-sm text-muted-foreground">
-              Try a guided visit with Margaret. Guest visits are not saved.
+              Choose from scripted responses in a guided visit. No account is needed, and the visit is not saved.
             </p>
           </div>
         )}
