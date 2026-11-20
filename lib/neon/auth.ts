@@ -18,6 +18,9 @@ export const identity = cache(async () => {
       "select pg_advisory_xact_lock(hashtextextended(lower($1),0))",
       [email]
     )
+    // A cached session must not recreate an account removed by its coordinator.
+    const active = await db.query('select 1 from neon_auth."user" where id=$1 and "emailVerified" and lower(email)=lower($2)',[subject,email])
+    if (!active.rowCount) return null
     const {
       rows: [account]
     } = await db.query(

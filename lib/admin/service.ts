@@ -1,4 +1,3 @@
-import {auth} from '@/lib/neon/auth'
 import {transaction} from '@/lib/neon/pool'
 import { createClient, createServiceClient } from '@/lib/neon/data'
 import type { DisplayBadge, Filters, ScenarioKeys } from '@/lib/types/types'
@@ -36,13 +35,13 @@ export const deleteUser = async (userId: string) => {
         throw new Error('User ID is required')
     }
 
-    const account=await transaction(null,async db=>(await db.query("select neon_id from cb_identity.accounts where id=$1",[userId])).rows[0])
-    if(!account)throw Error("Account unavailable")
-    if(account.neon_id){
-        const result=await auth().admin.removeUser({userId:account.neon_id})
-        if(result.error)throw Error("Unable to remove sign-in account")
-    }
-    await transaction(null,db=>db.query("delete from cb_identity.accounts where id=$1",[userId]))
+    await transaction(null,async db=>{
+        const {rows:[account]}=await db.query("select neon_id from cb_identity.accounts where id=$1 for update",[userId])
+        if(!account)throw Error("Account unavailable")
+        if(account.neon_id)await db.query('delete from neon_auth."user" where id=$1',[account.neon_id])
+        await db.query("delete from cb_identity.accounts where id=$1",[userId])
+    })
+
     return { success: true, message: 'User deleted successfully' }
 }
 
