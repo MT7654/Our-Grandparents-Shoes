@@ -1,5 +1,8 @@
 import { createNeonAuth } from "@neondatabase/auth/next/server"
 import { cache } from "react"
+import { cookies } from "next/headers"
+import { betaCookie, betaNamespace, betaSession } from "@/lib/beta/credentials"
+import { betaEnabled, betaTx } from "@/lib/beta/runtime"
 import { transaction } from "./pool"
 export const auth = () =>
   createNeonAuth({
@@ -10,9 +13,12 @@ export const auth = () =>
 // Only server-verified Neon sessions can acquire an application identity.
 // Keep the immutable historical UUID separate from the new provider subject.
 export const identity = cache(async () => {
+  const token = (await cookies()).get(betaCookie)?.value
+  if (token) return betaEnabled() ? betaSession(betaTx, token) : null
   const { data } = await auth().getSession()
   if (!data?.user?.emailVerified) return null
   const { id: subject, email, name } = data.user
+  if (email.toLowerCase().endsWith(betaNamespace)) return null
   return transaction(null, async (db) => {
     await db.query(
       "select pg_advisory_xact_lock(hashtextextended(lower($1),0))",
