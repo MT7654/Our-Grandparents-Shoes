@@ -6,6 +6,7 @@ try{
  const page=await browser.newPage()
  const base=process.env.CB_TEST_ORIGIN||"http://localhost:3188"
  await page.goto(base+"/auth")
+ await page.getByRole("button",{name:"Sign in as a volunteer"}).click()
  await page.getByRole("button",{name:"Restore an existing account"}).click()
  await page.getByLabel("Email",{exact:true}).fill(process.env.CB_TEST_EMAIL)
  await page.getByRole("button",{name:"Send verification code"}).click()

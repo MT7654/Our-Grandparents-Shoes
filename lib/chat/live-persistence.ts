@@ -127,7 +127,7 @@ export async function recordLiveAssessment(db: LiveDb, input: {
     const { n } = (await db.query<{ n: number }>(
       "select count(*)::integer as n from public.messages where vid=$1 and sender='user'", [vid],
     )).rows[0]
-    const reason = reasonAfterAssessment({userTurns:n, objectiveMet:verdict.objectiveMet === true, rapport, minimumRapport:minimum})
+    const reason = reasonAfterAssessment({scenario:c.scenario_name, userTurns:n, objectiveMet:verdict.objectiveMet === true, rapport, minimumRapport:minimum})
     if ((!c.completed && reason) || (reason === "objective_met" && !c.objective_met)) {
       c = (await db.query<Conversation>(
         `update public.conversations set completed=true,end_reason=case when completed then end_reason else $3 end,

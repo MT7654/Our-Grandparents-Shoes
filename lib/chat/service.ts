@@ -1,5 +1,5 @@
 import { transaction } from "@/lib/neon/pool"
-import { visits } from "../visits/scenes"
+import { sceneFor } from "../visits/scenes"
 import {
   getConversationByConversationID,
   getExistingConversationByScenario,
@@ -54,8 +54,8 @@ export async function startConversation(
   const { scenario, persona } = setup(scenarioName)
   const existing = await resumeConversation(owner, scenarioName, context)
   if (existing) return existing
-  const variants = visits.filter(visit => visit.scenario === scenarioName)
-  const opening = variants[Math.floor(Math.random() * variants.length)]?.opening ?? scenario.starting_messages[0]
+  const openings = scenario.starting_messages
+  const opening = openings[Math.floor(Math.random() * openings.length)]
   const { min_turns, max_turns } = scenario.constraints
   const turns = min_turns + Math.floor(Math.random() * (max_turns - min_turns + 1))
   const created = await transaction(null, db => createLiveVisit(db, {
@@ -80,7 +80,7 @@ export async function endConversation(converseID: string, endEarly: boolean, own
   let evaluation: EndConversationEvaluation | null = null
   if (userTurns > 0) {
     try {
-      evaluation = await evaluateCompletion(messages, scenario.objective + "\n" + objectiveCriteria[name])
+      evaluation = await evaluateCompletion(messages, name === "Resolve a Task" && sceneFor(name, messages) ? "Guide Margaret through the practical task in her opening, with her agreement." : scenario.objective + "\n" + objectiveCriteria[name])
     } catch {
       // A report failure must not reopen the visit, erase the saved outcome, or invent scores.
     }
@@ -88,7 +88,7 @@ export async function endConversation(converseID: string, endEarly: boolean, own
   return transaction(null, db => saveLiveReport(db, {
     owner, vid: converseID,
     // Legacy guided results retain their previously persisted objective flags.
-    objectiveMet: closed.end_reason !== null && userTurns >= practiceExchanges && evaluation?.objective_met === true,
+    objectiveMet: name !== "Resolve a Task" && closed.end_reason === "turn_limit" && userTurns >= practiceExchanges && evaluation?.objective_met === true,
     feedback: evaluation?.feedback?.trim() || closed.feedback || (userTurns > 0 ? "Assessment unavailable" : "No replies to assess."),
     scores: evaluation?.scores ?? [],
   }))

@@ -7,6 +7,12 @@ const compiled = await build({
   bundle: true, platform: "node", format: "esm", write: false,
 })
 const live = await import("data:text/javascript;base64," + Buffer.from(compiled.outputFiles[0].text).toString("base64"))
+const rules = await import("../lib/chat/live-rules.ts")
+for (const scenario of ["House Visit", "Emotional Listening Ear"]) {
+  for (const userTurns of [3, 4, 7, 9]) {
+    assert.equal(rules.reasonAfterAssessment({ scenario, userTurns, objectiveMet: true, rapport: 95, minimumRapport: 10 }), null)
+  }
+}
 const db = new PGlite()
 const tx = work => db.transaction(work)
 const user = crypto.randomUUID()
@@ -35,7 +41,7 @@ try {
   await db.exec(readFileSync("db/migrations/20261120143000_live_practice_end_reason.sql", "utf8"))
   assert.deepEqual((await db.query("select completed,objective_met,end_reason from conversations where vid=$1", [prior])).rows[0], {completed:true, objective_met:true, end_reason:null})
   for (const [difficulty, wanted] of cases) {
-    const fresh = {owner:user, scenario, difficulty, turns:wanted==="turn_limit" ? 3 : 10, context:"test:"+wanted, opening:"Starting a visit."}
+    const fresh = {owner:user, scenario:wanted === "objective_met" ? "Resolve a Task" : scenario, difficulty, turns:wanted==="turn_limit" ? 3 : 10, context:"test:"+wanted, opening:"Starting a visit."}
     const visit = await tx(d => live.createLiveVisit(d, fresh))
     assert.equal(await tx(d => live.createLiveVisit(d, fresh)), null)
     const vid = visit.conversation.vid
@@ -59,7 +65,7 @@ try {
       assert.deepEqual(await tx(d => live.commitLiveReply(d, input)), last)
       await assert.rejects(tx(d => live.getLiveReplay(d, user, vid, input.turn, "Changed text")), {status:409})
       const check = {
-        owner:user, vid, turn:input.turn, reply:last.persona_message.mid, verdict:{...assessment, objectiveMet:wanted === "objective_met"}, starting:0, minimum:0,
+        owner:user, vid, turn:input.turn, reply:last.persona_message.mid, verdict:{...assessment, objectiveMet:true}, starting:0, minimum:0,
       }
       await assert.rejects(tx(d => live.recordLiveAssessment(d, {...check,owner:other})), {status:404})
       const after = await tx(d => live.recordLiveAssessment(d, check))

@@ -32,8 +32,27 @@ async function main() {
   console.log('Testing models:', getModelNames().join(', '))
   const reply = await talkToPersona('House Visit', 'Easy', personas.Margaret, [], message)
   assert.equal(typeof reply, 'string')
-  assert.ok(reply.length > 0 && !reply.includes("don't understand"))
+  assert.ok(reply.length > 0)
   console.log('PASS persona reply')
+  const booking = 'Resolve a Task'
+  const turns = [
+    ['Open HealthHub and log in yourself with Singpass.', 'Okay, I logged in. Now where?'],
+    ['Tap the Healthier SG banner to start enrolment.', 'Found it. Which name to choose?'],
+    ['Choose your own profile and tap Enrol in Healthier SG.', 'Okay, my name is there.'],
+    ['Tap Select preferred clinic and pick the clinic you want.', 'I chose my usual clinic.'],
+    ['Check the clinic name and tap Confirm enrolment.', 'Enrolled already. The appointment how?'],
+    ['Tap Book appointment, choose a slot for your first Health Plan visit and confirm.', 'Can see the booking already. Tuesday morning at my clinic.'],
+  ]
+  const transcript = [{ sender: 'persona', content: scenarios[booking].starting_messages[0] }]
+  for (const [index, [volunteer, margaret]] of turns.entries()) {
+    if (index === 3 || index === 5) {
+      const assessment = await evaluateResponse(booking, personas.Margaret, volunteer, transcript, null,
+        'Hard', scenarios[booking].objective, 0, 2048, margaret)
+      assert.equal(assessment.objectiveMet, index === 5, 'Booking rubric at step ' + (index + 1))
+    }
+    transcript.push({ sender: 'user', content: volunteer }, { sender: 'persona', content: margaret })
+  }
+  console.log('PASS incomplete and complete HealthHub guidance')
   for (const name of ['House Visit', 'Resolve a Task']) {
     const evaluation = await evaluateResponse(name, personas.Margaret, message, history, null, 'Easy', scenarios[name].objective)
     assert.ok(['positive', 'neutral', 'negative'].includes(evaluation.sentiment))

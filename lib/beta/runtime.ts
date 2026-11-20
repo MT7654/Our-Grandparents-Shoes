@@ -21,7 +21,7 @@ export function sameOrigin(request: Request) {
   }
 }
 const headers = { "Cache-Control": "no-store" }
-const generic = "Unable to finish beta sign-in. Check your details or use existing account sign-in or recovery."
+const generic = "Unable to sign in. Check your details or choose the older account sign-in option."
 const reject = (status: number) => NextResponse.json({ error: generic }, { status, headers })
 
 async function boundedJson(request: Request): Promise<Record<string,unknown> | null> {

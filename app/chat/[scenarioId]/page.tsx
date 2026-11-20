@@ -44,9 +44,9 @@ function isCloseReason(reason: unknown): reason is CloseReason {
 type Progress = { turns?: number; completed?: boolean; end_reason?: unknown }
 
 const followUpHints: Record<string, string[]> = {
-    "House Visit": ["Is there anything you'd like me to help with today?", "Would you rather I come back another time?"],
+    "House Visit": ["Is there anything you'd like me to help with today?", "Which of those would be most useful for you?"],
     "Emotional Listening Ear": ["Would you like to tell me a bit more?", "Would you prefer to talk or just sit together for a while?"],
-    "Resolve a Task": ["Would you show me how you usually do it?", "What would you like me to do, if anything?"],
+    "Resolve a Task": ["What do you see on your phone now?", "Would you like to try that step yourself?"],
 }
 
 const default_persona: Persona = {
@@ -621,7 +621,7 @@ export default function ChatTraining() {
                                         <p>{`Tip: ${suggestion}`}</p>
                                     </div>
                                 )}
-                                {!scene && scenario_name === "Resolve a Task" && (
+                                {!scene && difficulty === "Easy" && scenario_name === "Resolve a Task" && (
                                     <Button type="button" variant="outline" onClick={() => setShowSteps(true)} className="h-auto min-h-11 w-full justify-start whitespace-normal border-input px-3 py-2 text-left">
                                         <ClipboardList aria-hidden="true" className="size-4 shrink-0" />
                                         View steps to book a HealthHub appointment
