@@ -5,7 +5,7 @@ import { type Database } from '@/supabase/types'
 import { getGroqClient } from '@/lib/llm/client'
 import { getModelNames, modelOptions, noteRateLimit } from '@/lib/llm/models'
 import { transcriptLineIndex } from './transcript'
-import { objectiveCriteria, practiceExchanges } from "@/lib/chat/live-rules"
+import { bookingStillPlanned, objectiveCriteria, practiceExchanges } from "@/lib/chat/live-rules"
 import { sceneFor } from '@/lib/visits/scenes'
 import prompts from '@/lib/prompts.json'
 import scenarios from '@/lib/scenarios.json'
@@ -175,7 +175,7 @@ export async function evaluateResponse(
                 (booking && history.some(m => m.sender === "user" && grounded(result.volunteerEvidence, m.content)))) &&
             grounded(result.margaretEvidence, personaReply)
         if (booking && result.objectiveMet) {
-            result.objectiveMet = Array.isArray(result.stepEvidence) && result.stepEvidence.length === 6 &&
+            result.objectiveMet = !bookingStillPlanned(personaReply) && Array.isArray(result.stepEvidence) && result.stepEvidence.length === 6 &&
                 result.stepEvidence.every(line => transcript[transcriptLineIndex(line)]?.speaker === "volunteer" ||
                     transcript.some(turn => turn.speaker === "volunteer" && grounded(line, turn.text ?? "")))
         }

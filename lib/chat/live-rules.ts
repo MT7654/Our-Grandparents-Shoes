@@ -4,6 +4,13 @@ export type EndReason = "objective_met" | "boundary" | "turn_limit" | "ended_ear
 // No suggested phrase, canned response, or general positivity completes it.
 export const practiceExchanges = 3
 
+export function bookingStillPlanned(reply: string) {
+  const sentences = reply.toLowerCase().replaceAll("’", "'").split(/[.!?\n]+/).map(s => s.trim())
+  const planned = sentences.some(s => /\b(?:i'll|i will|i need to|i'm going to|i plan to|going to)\b[^.!?]*\b(?:choose|pick|select|tap confirm|confirm (?:it|the booking)|book (?:it|the appointment))\b/.test(s))
+  const confirmation = sentences.some(s => /\b(?:shows?|says?|see|received|got|have|is|was|has been)\b.{0,40}\b(?:booking confirmed|appointment confirmed|confirmed appointment|booking confirmation)\b|\b(?:i(?:'ve| have)? (?:booked|confirmed)|appointment (?:is|was|has been) (?:booked|confirmed))\b/.test(s))
+  return planned && !confirmation
+}
+
 export function acceptsVisitEnding(volunteer: string, margaret: string, marked: boolean) {
   const farewell = /\b(?:goodbye|bye(?:-bye)?|take care|see you (?:next time|soon|later))\b/i
   if (farewell.test(volunteer) && farewell.test(margaret) && !margaret.includes("?")) return true
