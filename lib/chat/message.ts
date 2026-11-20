@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/neon/data'
 import type { Database } from '@/supabase/types'
 
 type Message = Database['public']['Tables']['messages']['Row']

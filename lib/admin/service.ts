@@ -1,8 +1,10 @@
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import {auth} from '@/lib/neon/auth'
+import {transaction} from '@/lib/neon/pool'
+import { createClient, createServiceClient } from '@/lib/neon/data'
 import type { DisplayBadge, Filters, ScenarioKeys } from '@/lib/types/types'
 import scenarios from '@/lib/scenarios.json'
 
-export const getAdminDashboardData = async (limit: number, _highPerformingThreshold: number, filters: Filters) => {
+export const getAdminDashboardData = async (limit: number, filters: Filters) => {
     const supabase = await createClient()
     const volunteerNameFilter = filters.volunteer_name ? filters.volunteer_name : ''
 
@@ -25,7 +27,6 @@ export const getAdminDashboardData = async (limit: number, _highPerformingThresh
     return {
         totalVolunteers: totalVolunteers || 0,
         totalChats: totalConversations || 0,
-        highPerformingVolunteers: 0,
         volunteerDetails
     }
 }
@@ -35,17 +36,13 @@ export const deleteUser = async (userId: string) => {
         throw new Error('User ID is required')
     }
 
-    // Create admin client with service role
-    const supabaseAdmin = await createServiceClient()
-
-    // Delete user from auth (profiles will cascade delete due to ON DELETE CASCADE)
-    const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
-
-    if (error) {
-        console.error('Error deleting user:', error)
-        throw new Error(`Failed to delete user: ${error.message}`)
+    const account=await transaction(null,async db=>(await db.query("select neon_id from cb_identity.accounts where id=$1",[userId])).rows[0])
+    if(!account)throw Error("Account unavailable")
+    if(account.neon_id){
+        const result=await auth().admin.removeUser({userId:account.neon_id})
+        if(result.error)throw Error("Unable to remove sign-in account")
     }
-
+    await transaction(null,db=>db.query("delete from cb_identity.accounts where id=$1",[userId]))
     return { success: true, message: 'User deleted successfully' }
 }
 
@@ -146,7 +143,13 @@ export const getVolunteerDashboardData = async (uid: string) => {
         completion_rate: completionRate,
     }
 
+    const [lastPractice,assignments]=await Promise.all([
+        supabase.from("messages").select("sent_at,conversations!inner(uid)").eq("conversations.uid",uid).eq("sender","user").order("sent_at",{ascending:false}).limit(1).maybeSingle(),
+        supabase.from("visit_assignment_status").select("*").eq("uid",uid)
+    ])
+    if(lastPractice.error || assignments.error)throw Error("Unable to load practice history")
     return {
+        last_practice:lastPractice.data?.sent_at, assignments:assignments.data,
         volunteer_name: profile.full_name,
         past_conversations: enrichedSessions,
         user_statistics: userStatistics,

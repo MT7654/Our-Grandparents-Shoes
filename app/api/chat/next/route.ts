@@ -22,9 +22,9 @@ export async function POST(request: NextRequest) {
         const body = (await request.json()) as {
             converseId: Conversation['vid'],
             latestMessage: Message['content'],
-            history?: Message[]
+            turnId?: string
         }
-        const { converseId, latestMessage, history } = body
+        const { converseId, latestMessage, turnId } = body
 
         if (!converseId || latestMessage === null || latestMessage === undefined) {
             return NextResponse.json(
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        const data = await converseReply(converseId, latestMessage, history)
+        const data = await converseReply(converseId, latestMessage, turnId ?? crypto.randomUUID(), guardResult.session.user.id)
 
         if (!data) {
             return NextResponse.json(

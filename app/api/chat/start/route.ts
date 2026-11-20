@@ -1,3 +1,4 @@
+import { practiceContext } from '@/lib/visits/context'
 import { NextResponse, type NextRequest } from 'next/server'
 import { startConversation } from '@/lib/chat/service'
 import { type ScenarioKeys } from '@/lib/types/types'
@@ -44,7 +45,8 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        const conversation = await startConversation(scenario_name, difficulty_level)
+        const context = await practiceContext(body.context, scenario_name, guardResult.session.user.id)
+        const conversation = await startConversation(scenario_name, context.difficulty ?? difficulty_level, context.key, context.callback)
 
         return NextResponse.json(
             {

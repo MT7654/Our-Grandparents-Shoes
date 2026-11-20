@@ -33,6 +33,8 @@ export default function VolunteerDetailPage() {
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [lastPractice,setLastPractice]=useState<string|null>(null)
+  const [assignments,setAssignments]=useState<{assignment_id:string;due_date:string;started:boolean;completed:boolean;scenarios:string[]}[]>([])
   const [volunteerName, setVolunteerName] = useState<string>('')
   const [pastSessions, setPastSessions] = useState<PastSession[]>([])
   const [statistics, setStatistics] = useState<VolunteerStatistics | null>(null)
@@ -60,6 +62,7 @@ export default function VolunteerDetailPage() {
         const data = await response.json()
         const { volunteer_name, past_conversations, user_statistics, user_achievements } = data
 
+        setLastPractice(data.last_practice);setAssignments(data.assignments??[])
         setVolunteerName(volunteer_name || 'Unknown Volunteer')
         setPastSessions(past_conversations || [])
         setStatistics(user_statistics || null)
@@ -112,7 +115,8 @@ export default function VolunteerDetailPage() {
 
             <div>
               <h1 className="text-4xl font-bold mb-2">{volunteerName || 'Volunteer'}</h1>
-              <p className="text-lg text-muted-foreground">Volunteer progress and statistics</p>
+              <p className="text-lg text-muted-foreground">Last practice · {lastPractice?new Date(lastPractice).toLocaleDateString("en-SG",{timeZone:"Asia/Singapore"}):"No recorded practice"}</p>
+              {assignments.map(a=><p key={a.assignment_id}>{a.scenarios.join(", ")} · {a.completed?"Completed":a.started?"Started":"Assigned"} · Due {a.due_date}</p>)}
             </div>
           </div>
 

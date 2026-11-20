@@ -4,6 +4,7 @@ import { type Persona, ScenarioKeys, Prompts, Difficulty, Scenario } from "../ty
 import { type Database } from '@/supabase/types'
 import { getGroqClient } from '@/lib/llm/client'
 import { getModelNames } from '@/lib/llm/models'
+import { sceneFor } from '@/lib/visits/scenes'
 import prompts from '@/lib/prompts.json'
 import scenarios from '@/lib/scenarios.json'
 
@@ -39,7 +40,12 @@ export async function talkToPersona(
 
     const groq = getGroqClient()
     const conversationalPrompt = generateConversationPrompt(personaProfile, conversationHistory, difficulty_level)
-    const systemPrompt = generateSystemPrompt(scenarioName, difficulty_level)
+    const scene = sceneFor(scenarioName, conversationHistory)
+    const systemPrompt = scene ? [
+        "Speak briefly as Margaret Chan in the situation described below. Respond to the volunteer's actual words. If you are unsure, ask a natural question.",
+        scene.visit.opening, "Leave the current decision open. Respect silence and privacy. Do not introduce new events or personal disclosures.",
+        outputFormat
+    ].join("\n") : generateSystemPrompt(scenarioName, difficulty_level)
 
     let completion: any = null
     let lastError: Error | null = null

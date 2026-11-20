@@ -1,3 +1,5 @@
+import { createServiceClient } from '@/lib/neon/data'
+import { visits, sceneFor, resolveChoice } from '../visits/scenes'
 import {
     createConversation,
     saveConversation,
@@ -28,11 +30,11 @@ export { getUserConversations, saveUserMessage, savePersonaMessage, saveEvaluati
  * Returns null if no active conversation exists for that scenario.
  */
 export const resumeConversation = async (
-    scenario_name: Conversation['scenario_name']
+    scenario_name: Conversation['scenario_name'], context = 'standalone'
 ) => {
     const scenario = scenarios[scenario_name as ScenarioKeys] as Scenario
     const persona = personas[scenario.persona as PersonaKeys] as Persona
-    const conversation = await getExistingConversationByScenario(scenario_name)
+    const conversation = await getExistingConversationByScenario(scenario_name, context)
 
     if (!conversation) {
         return null
@@ -52,20 +54,21 @@ export const resumeConversation = async (
  */
 export const startConversation = async (
     scenario_name: Conversation['scenario_name'],
-    difficulty_level: Conversation['difficulty']
+    difficulty_level: Conversation['difficulty'], context = 'standalone', callback?: string
 ) => {
     const scenario = scenarios[scenario_name as ScenarioKeys] as Scenario
     const persona = personas[scenario.persona as PersonaKeys]
-    const conversation = await getExistingConversationByScenario(scenario_name)
-    const first_message = scenario.starting_messages[Math.floor(Math.random() * scenario.starting_messages.length)]
+    const conversation = await getExistingConversationByScenario(scenario_name, context)
+    const variants = visits.filter(visit => visit.scenario === scenario_name)
+    const first_message = variants[Math.floor(Math.random() * variants.length)].opening
 
     const max_turns = scenarios[scenario_name as ScenarioKeys].constraints.max_turns
     const min_turns = scenarios[scenario_name as ScenarioKeys].constraints.min_turns
     const turns = min_turns === max_turns ? min_turns : Math.floor(Math.random() * (max_turns - min_turns + 1)) + min_turns
 
     if (!conversation) {
-        const new_conversation = await createConversation(scenario_name, difficulty_level, turns)
-        const new_message = await savePersonaMessage(new_conversation.vid, first_message)
+        const new_conversation = await createConversation(scenario_name, difficulty_level, turns, context)
+        const new_message = await savePersonaMessage(new_conversation.vid, callback ? first_message + '\n' + callback : first_message)
 
         return {
             scenario,
@@ -101,13 +104,21 @@ export const endConversation = async (
         throw new Error(`No messages found for conversation ID "${converseID}"`)
     }
 
-    const evaluation: EndConversationEvaluation = await evaluateCompletion(messages)
+    const scene = sceneFor(conversation.scenario_name, messages)
+    const saved = await getScores(converseID)
+    if (conversation.completed && saved.length) return { ...conversation, scores:saved }
+    let evaluation: EndConversationEvaluation
+    try { evaluation = await evaluateCompletion(messages, scenarios[conversation.scenario_name as ScenarioKeys].objective) } catch(error) {
+        if (!scene) throw error
+        const saved = await saveConversation(converseID, scene.ended || end_early, 'Assessment unavailable')
+        return {...saved, scores:[]}
+    }
 
     // Update completion base on end_early or completed
     conversation.completed = conversation.completed || end_early ? true : evaluation.completed
     
     const final_conversation = await saveConversation(converseID, conversation.completed, evaluation.feedback)
-    const scores = await saveScores(converseID, evaluation.scores)
+    const scores = evaluation.scores.length ? await saveScores(converseID, evaluation.scores) : []
 
     if (!scores) {
         throw new Error(`Failed to save scores for conversation ID "${converseID}"`)
@@ -155,9 +166,7 @@ export const fetchCompleteConversation = async (
 
     const scenario = scenarios[conversation.scenario_name as ScenarioKeys]
 
-    if (!scores || scores.length === 0) {
-        throw new Error(`No scores found for conversation ID "${converseID}"`)
-    }
+    if (!scores?.length) return {...conversation, scores:{}, average:null, objective:scenario.objective}
 
     const values = scores.map(s => s.metric_value)
     const total = values.reduce((acc, v) => (acc + v), 0 as number)
@@ -310,19 +319,11 @@ export const converse = async (
 export const converseReply = async (
     converseID: Conversation['vid'],
     latestMessage: string,
-    clientMessages?: Database['public']['Tables']['messages']['Row'][]
+    turnId: string, ownerId: string
 ) => {
     const { completed, turns } = await checkForCompletion(converseID)
 
-    let conversation, messages
-    if (clientMessages && clientMessages.length > 0) {
-        conversation = await getConversationByConversationID(converseID)
-        messages = clientMessages
-    } else {
-        const full = await fetchFullConversation(converseID)
-        conversation = full.conversation
-        messages = full.messages
-    }
+    const { conversation, messages } = await fetchFullConversation(converseID)
 
     if (!conversation || !messages) {
         throw new Error('Failed to fetch conversation or messages')
@@ -337,7 +338,11 @@ export const converseReply = async (
     }
 
     // If conversation was already completed before this turn, use custom reply
-    let custom_reply = ""
+    const scene = sceneFor(conversation.scenario_name, messages)
+    const existing = messages.some(m=>m.mid===turnId && m.sender==='user')
+    if (!existing && (scene?.ended || completed)) throw new Error('This visit has ended')
+    const action = resolveChoice(scene?.choices ?? [], latestMessage)
+    let custom_reply = action?.reply ?? ''
     if (completed && turns <= 0) {
         custom_reply = scenario.turn_end_message
     } else if (completed) {
@@ -345,9 +350,16 @@ export const converseReply = async (
     }
 
     // Get persona reply (skip LLM call if we already have a custom reply)
-    const reply = custom_reply !== ''
+    const reply = existing ? '' : custom_reply !== ''
         ? custom_reply
         : await talkToPersona(conversation.scenario_name, conversation.difficulty, persona, messages, latestMessage)
+
+    if (scene) {
+        const db = await createServiceClient()
+        const { data, error } = await db.rpc('commit_visit_turn', {owner_id: ownerId,visit_id: converseID,turn_id: turnId,previous_id: messages.at(-1)?.mid,volunteer_text: latestMessage,reply_text: reply,action_text: action?.label ?? null,event_name: action ? scene.visit.choices.includes(action) ? 'resolution' : 'turning_point' : null,ending: !!action && scene.visit.choices.includes(action)})
+        if (error) throw Error(error.message)
+        return data
+    }
 
     // Save user message without feedback, and persona message
     const [user_message, persona_reply] = await Promise.all([
@@ -392,12 +404,12 @@ export const converseEvaluate = async (
 
     // Find the latest user message content from the saved messages
     const userMsg = messages.find(m => m.mid === userMessageId)
-    if (!userMsg) {
+    if (!userMsg || userMsg.sender !== 'user' || !messages.some(m=>m.mid===personaMessageId && m.sender==='persona')) {
         throw new Error('User message not found')
     }
 
     // Exclude the latest user and persona messages from history for evaluation
-    const history = messages.filter(m => m.mid !== userMessageId && m.mid !== personaMessageId)
+    const history = messages.slice(0, messages.findIndex(m => m.mid === userMessageId))
 
     const verdict = await evaluateResponse(
         conversation.scenario_name,
@@ -409,6 +421,12 @@ export const converseEvaluate = async (
         scenario.objective
     )
 
+    if (sceneFor(conversation.scenario_name, messages)) {
+        const db = await createServiceClient()
+        const {data,error} = await db.rpc('assess_visit_turn',{visit_id:converseID,turn_id:userMessageId,reply_id_arg:personaMessageId,verdict,starting:scenario.constraints.starting_score})
+        if(error)throw Error(error.message)
+        return data
+    }
     // Update user message with feedback
     await updateUserMessageFeedback(userMessageId, verdict.feedback, verdict.status)
 
@@ -433,20 +451,21 @@ export const converseEvaluate = async (
     const { completed, turns } = await checkForCompletion(converseID)
     let updated_completion = false
 
-    if (verdict.taskCompleted) {
+    const scene = sceneFor(conversation.scenario_name, messages)
+    if (scene ? scene.ended : verdict.taskCompleted) {
         const { completed: c } = await updateCompletion(converseID, true, true)
         updated_completion = c
-    } else if (new_rapport > scenario.constraints.score_upper_limit) {
+    } else if (!scene && new_rapport > scenario.constraints.score_upper_limit) {
         const { completed: c } = await updateCompletion(converseID, true, true)
         updated_completion = c
-    } else if (new_rapport < scenario.constraints.score_bottom_limit) {
+    } else if (!scene && new_rapport < scenario.constraints.score_bottom_limit) {
         const { completed: c } = await updateCompletion(converseID, true, false)
         updated_completion = c
     }
 
     // Handle completion content override on persona message
     let completionOverride: string | null = null
-    if (updated_completion) {
+    if (updated_completion && !scene) {
         if (verdict.taskCompleted) {
             completionOverride = scenario.score_end_message
         } else {

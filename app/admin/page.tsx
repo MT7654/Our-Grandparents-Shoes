@@ -1,5 +1,7 @@
 "use client"
 
+import { Cohorts } from "@/components/visit-cohorts"
+import { Participation } from "@/components/participation"
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -20,7 +22,6 @@ import LoadingOverlay from "@/components/loading-overlay"
 import { Filters, User } from "@/lib/types/types"
 
 type Volunteer = User
-const HIGH_PERFORMING_THRESHOLD = 80
 
 export default function AdminPage() {
   const router = useRouter()
@@ -29,7 +30,6 @@ export default function AdminPage() {
   // Admin Dashboard Details
   const [volunteerNum, setVolunteerNum] = useState<number>(0)
   const [chatNum, setChatNum] = useState<number>(0)
-  const [highPerformNum, setHighPerformNum] = useState<number>(0)
   const [volunteers, setVolunteers] = useState<Volunteer[]>([])
 
   // User Changeable Variables
@@ -64,7 +64,6 @@ export default function AdminPage() {
           },
           body: JSON.stringify({
             limit,
-            highPerformingThreshold:HIGH_PERFORMING_THRESHOLD,
             filters,
           }),
         })
@@ -77,13 +76,11 @@ export default function AdminPage() {
         const { 
           totalVolunteers, 
           totalChats, 
-          highPerformingVolunteers, 
           volunteerDetails
         } = await data.json()
 
         setVolunteerNum(totalVolunteers || 0)
         setChatNum(totalChats || 0)
-        setHighPerformNum(highPerformingVolunteers || 0)
         setVolunteers(sortVolunteersByLastActive(volunteerDetails || []))
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Failed to load admin data"
@@ -151,7 +148,6 @@ export default function AdminPage() {
         },
         body: JSON.stringify({
           limit,
-          highPerformingThreshold: HIGH_PERFORMING_THRESHOLD,
           filters,
         }),
       })
@@ -160,14 +156,12 @@ export default function AdminPage() {
         const {
           totalVolunteers,
           totalChats,
-          highPerformingVolunteers,
           volunteerDetails,
           chatProgressWithAverageScores,
         } = await data.json()
 
         setVolunteerNum(totalVolunteers || 0)
         setChatNum(totalChats || 0)
-        setHighPerformNum(highPerformingVolunteers || 0)
         setVolunteers(sortVolunteersByLastActive(volunteerDetails || []))
       }
     } catch (error) {
@@ -240,8 +234,8 @@ export default function AdminPage() {
           </Button>
         </div>
 
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <Participation /><Cohorts />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <Card className="border-2">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Volunteers</CardTitle>
@@ -255,18 +249,7 @@ export default function AdminPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-2">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">High-Performing Volunteers</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{highPerformNum}</div>
-              <p className="text-xs text-muted-foreground">
-                Score ≥ {HIGH_PERFORMING_THRESHOLD}%
-              </p>
-            </CardContent>
-          </Card>
+
 
           <Card className="border-2">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

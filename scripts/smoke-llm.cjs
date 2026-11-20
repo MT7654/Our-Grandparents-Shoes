@@ -43,7 +43,7 @@ async function main() {
     if (name === 'Resolve a Task') assert.equal(typeof evaluation.taskCompleted, 'boolean')
     console.log('PASS mid-conversation evaluation:', name)
   }
-  const result = await evaluateCompletion(history)
+  const result = await evaluateCompletion(history, "Complete a polite and efficient home visit.")
   assert.equal(typeof result.completed, 'boolean')
   assert.equal(typeof result.objective_met, 'boolean')
   assert.equal(typeof result.feedback, 'string')

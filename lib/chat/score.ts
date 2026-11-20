@@ -1,4 +1,4 @@
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/neon/data'
 import type { Database } from '@/supabase/types'
 import { type Score } from '@/lib/types/types'
 

@@ -118,6 +118,7 @@ export type Difficulty = "Easy" | "Hard"
 export type Prompts = Record<string, Record<string, string[]>>
 
 interface Feedback {
+    mid?: string,
   userMessage: Message['content'],
   explanation: Message['feedback']
 }

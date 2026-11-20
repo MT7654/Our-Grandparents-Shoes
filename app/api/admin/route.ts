@@ -11,16 +11,16 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json()
-        const { limit, highPerformingThreshold, filters } = body
+        const { limit, filters } = body
 
-        if (!limit || !highPerformingThreshold || !filters) {
+        if (!limit || !filters) {
             return NextResponse.json(
                 { error: 'Missing required fields' },
                 { status: 400 }
             )
         }
 
-        const data = await getAdminDashboardData(limit, highPerformingThreshold, filters)
+        const data = await getAdminDashboardData(limit, filters)
 
         return NextResponse.json(data)
     } catch (error) {

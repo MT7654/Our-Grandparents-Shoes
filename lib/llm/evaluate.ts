@@ -4,6 +4,7 @@ import { MidConversationEvaluation, type Persona, ScenarioKeys, Prompts, Difficu
 import { type Database } from '@/supabase/types'
 import { getGroqClient } from '@/lib/llm/client'
 import { getModelNames } from '@/lib/llm/models'
+import { sceneFor } from '@/lib/visits/scenes'
 import prompts from '@/lib/prompts.json'
 import scenarios from '@/lib/scenarios.json'
 
@@ -64,7 +65,12 @@ export async function evaluateResponse(
     const scenario: Scenario = scenarios[scenarioName as ScenarioKeys]
 
     const evaluationPrompt = generateEvaluationPrompt(persona, history, objective, lastEvaluation, difficulty_level)
-    const systemPrompt = generateSystemPrompt(scenarioName, difficulty_level)
+    const scene = sceneFor(scenarioName, history)
+    const systemPrompt = scene ? [
+        "Coach the volunteer against this objective: "+objective, scene.visit.opening,
+        "Ground feedback in their specific words or action. Respect declining help, brief visits, silence and privacy. Expressing sadness can be appropriate.",
+        outputFormat.replace("<expression_range>", scenario.constraints.approved_expressions.join("|"))
+    ].join("\n") : generateSystemPrompt(scenarioName, difficulty_level)
 
     let completion: any = null
     let lastError: Error | null = null

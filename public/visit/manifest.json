@@ -1,0 +1,18 @@
+{
+  "model": "margaret.glb",
+  "expressions": [
+    "neutral",
+    "happy",
+    "worried",
+    "confused",
+    "scared",
+    "angry"
+  ],
+  "clips": [
+    "Look toward object",
+    "Listen",
+    "Decline gently",
+    "Return to activity",
+    "Demonstrate fold"
+  ]
+}

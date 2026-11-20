@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/neon/data'
 import type { Database } from '@/supabase/types'
 import type { DisplayBadge, Review } from '@/lib/types/types'
 
@@ -36,11 +36,11 @@ export const getConversationReviews = async (
     const supabase = await createClient()
 
     const [reviewResult, convoResult] = await Promise.all([
-        supabase.from('review_sessions').select('*').eq('vid', converseID),
+        supabase.from('messages').select('mid,content,status,feedback').eq('vid', converseID).eq('sender','user').order('sent_at'),
         supabase.from('conversations').select('*').eq('vid', converseID).single(),
     ]);
 
-    const reviewData = reviewResult.data as ReviewSession[]
+    const reviewData = reviewResult.data
     const convoData = convoResult.data as Conversation
 
     if (reviewResult.error) {
@@ -58,14 +58,14 @@ export const getConversationReviews = async (
         throw new Error('Failed to fetch conversation: Conversation not found')
     }
 
-    const rows = (reviewData || []) as ReviewSession[]
+    const rows = reviewData || []
 
     const goodPrompts = rows
         .filter((r) => r.status === 'good' && r.content != null && r.feedback != null)
-        .map((r) => ({ userMessage: r.content!, explanation: r.feedback! }))
+        .map((r) => ({ mid:r.mid, userMessage: r.content!, explanation: r.feedback! }))
     const needsImprovement = rows
         .filter((r) => r.status === 'needs improvement' && r.content != null && r.feedback != null)
-        .map((r) => ({ userMessage: r.content!, explanation: r.feedback! }))
+        .map((r) => ({ mid:r.mid, userMessage: r.content!, explanation: r.feedback! }))
 
     const review: Review = {
         scenario: convoData.scenario_name,

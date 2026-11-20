@@ -1,5 +1,7 @@
 "use client"
 
+import { VisitAvatar } from "@/components/visit-avatar"
+import { sceneFor } from "@/lib/visits/scenes"
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -52,6 +54,7 @@ export default function ChatTraining() {
     const router = useRouter()
     const { toast } = useToast()
 
+    const submission = useRef<{text:string;id:string}|null>(null)
     const scrollRef = useRef<HTMLDivElement>(null)
 
     // UI
@@ -82,6 +85,7 @@ export default function ChatTraining() {
     const [lastEvaluation, setLastEvaluation] = useState(false)
     const [turnsRemain, setTurnsRemain] = useState<number>(0)
     const [conversationEnded, setConversationEnded] = useState(false) 
+    const [assessmentRetry,setAssessmentRetry]=useState<{userMessageId:string;personaMessageId:string}|null>(null)
     const [messageError, setMessageError] = useState<string | null>(null)
     const [showSteps, setShowSteps] = useState(false)
     const [endEarly, setEndEarly] = useState(false)
@@ -95,7 +99,7 @@ export default function ChatTraining() {
                 const response = await fetch('/api/chat/resume', {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ scenario_name }),
+                    body: JSON.stringify({ context: new URLSearchParams(location.search).get('context'), scenario_name }),
                 })
 
                 if (!response.ok) {
@@ -109,7 +113,9 @@ export default function ChatTraining() {
                 const { scenario, persona, conversation, messages, evaluation } = data
 
                 if (scenario === undefined || persona === undefined || conversation === undefined || messages === undefined || evaluation === undefined) {
-                    setShowDifficultyPopup(true)
+                    const assigned = new URLSearchParams(location.search).get('difficulty')
+                    if (assigned === 'Easy' || assigned === 'Hard') setDifficulty(assigned)
+                    else setShowDifficultyPopup(true)
                     setLoading(false)
                     return
                 } else {                    
@@ -160,7 +166,7 @@ export default function ChatTraining() {
                 const response = await fetch('/api/chat/start', {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ scenario_name, difficulty_level: difficulty }),
+                    body: JSON.stringify({ context: new URLSearchParams(location.search).get('context'), scenario_name, difficulty_level: difficulty }),
                 })
 
                 if (!response.ok) {
@@ -211,12 +217,13 @@ export default function ChatTraining() {
     }, [scenario_name, difficulty, verseId, router, toast])
 
     // Converse (two-phase: reply first, then evaluation)
-    const converse = async () => {
-        if (!inputValue.trim() || conversationEnded || evaluating) {
+    const scene = sceneFor(scenario_name, messages)
+    const converse = async (userText = inputValue) => {
+        if (!userText.trim() || botLoading || conversationEnded || evaluating) {
             return
         }
 
-        const userText = inputValue
+        if(submission.current?.text!==userText) submission.current={text:userText,id:crypto.randomUUID()}
         setInputValue("")
 
         // Optimistic: add user message to local state immediately
@@ -242,7 +249,7 @@ export default function ChatTraining() {
                 body: JSON.stringify({
                     converseId: verseId,
                     latestMessage: userText,
-                    history: messages
+                    turnId: submission.current.id
                 })
             })
 
@@ -259,6 +266,7 @@ export default function ChatTraining() {
 
             const { user_message, persona_message, completed } = phase1
 
+            submission.current=null
             // Show persona reply immediately
             setMessages(prev => {
                 const withoutOptimistic = prev.filter(m => m.mid !== optimisticUserMsg.mid)
@@ -316,10 +324,10 @@ export default function ChatTraining() {
                             ))
                         }
                     } else {
-                        console.error('Evaluation request failed')
+                        setAssessmentRetry({userMessageId:user_message.mid,personaMessageId:persona_message.mid})
                     }
                 } catch (evalError) {
-                    console.error('Evaluation Error: ', evalError)
+                    setAssessmentRetry({userMessageId:user_message.mid,personaMessageId:persona_message.mid})
                 } finally {
                     setEvaluating(false)
                 }
@@ -327,6 +335,7 @@ export default function ChatTraining() {
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Failed to send message'
             console.error('Converse Error: ', error)
+            setInputValue(userText)
             // Remove the optimistic message on error
             setMessages(prev => prev.filter(m => m.mid !== optimisticUserMsg.mid))
             setMessageError(errorMessage)
@@ -462,7 +471,7 @@ export default function ChatTraining() {
     /* ---------------------------------------------------------------- */
 
     return (
-        <div className="h-dvh flex flex-col bg-[#F5F6F8]">
+        <div className="h-dvh flex flex-col bg-[var(--visit-paper)] text-[var(--visit-ink)]">
         <LoadingOverlay isLoading={loading} />
 
         {/* Difficulty popup only when starting a new conversation (no active session) */}
@@ -503,8 +512,8 @@ export default function ChatTraining() {
         <header className="bg-white border-b border-gray-200 shadow-sm px-4 py-2.5">
             <div className="max-w-3xl mx-auto flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-                <Link href="/scenarios">
-                <Button
+                <Link href="/scenarios" aria-label="Back to practice">
+                <Button aria-label="Back to practice"
                     variant="ghost"
                     size="sm"
                     className="h-8 px-2 text-gray-600 hover:text-gray-900 bg-transparent"
@@ -581,16 +590,18 @@ export default function ChatTraining() {
         </header>
 
         {/* ── Chat Card (fills remaining space) ──────────────────── */}
-        <Card className="flex-1 min-h-0 flex flex-col mx-3 my-3 max-w-3xl w-full self-center overflow-hidden border-gray-200">
+        <Card className="flex-1 min-h-0 flex flex-col md:grid md:grid-cols-2 mx-3 my-3 max-w-5xl w-full self-center overflow-hidden border-gray-200">
             {/* Fixed top: Full-width avatar + name overlay */}
             <div className="flex-shrink-0 border-b border-gray-200 bg-white">
                 {/* Full-width avatar banner */}
                 <div className="relative w-full">
                     <img
-                        src={persona.emotions[expression.toLowerCase()]}
+                        style={scene ? {background:'center / cover url(/visit/flat.webp)'} : undefined}
+                        src={scene ? '/visit/'+expression+'.png' : persona.emotions[expression.toLowerCase()]}
                         alt={persona.name}
-                        className={`w-full h-60 sm:h-68 object-cover object-center border-b-4 ${expressionBorder()} transition-colors duration-300`}
+                        className={`w-full h-[min(19dvh,10rem)] md:h-68 object-contain object-center border-b-4 ${expressionBorder()} transition-colors duration-300`}
                     />
+                    {scene && <VisitAvatar expression={expression} gesture={scene.ended && messages.some(m=>m.sender==="persona" && m.content.startsWith("She folds the top twice")) ? "Demonstrate fold" : scene.ended ? "Return to activity" : scene.choices.length === 1 ? "Look toward object" : scenario_name === "Resolve a Task" ? "Decline gently" : "Listen"}/>}
                     {/* Name + expression overlay */}
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-4 pb-3 pt-8">
                         <div className="flex items-end justify-between">
@@ -602,8 +613,9 @@ export default function ChatTraining() {
                     </div>
                 </div>
 
+                {scene && <details className="px-4 py-2"><summary>Look around the flat</summary><div className="flex flex-wrap gap-2">{(scenario_name==="House Visit"?[["Doorway","Margaret has stayed by the door."],["Chair","The chair is tucked under the table."],["Sleeve","Her needle is still threaded."]]:scenario_name==="Emotional Listening Ear"?[["Radio","Music is playing softly."],["Chair","There is space to sit nearby."],["Cup","Margaret turns her cup in her hands."]]:scene.visit.opening.includes("recipe")?[["Tin","Margaret keeps her recipes upright."],["Divider","The divider separates everyday favourites."],["Recipe cards","The cards have handwritten titles."]]:[["Packets","The paper has a crease across the top."],["Pencil","The labels are handwritten."],["Seeds","Several types are waiting to be labelled."]]).map(([name,hint])=><details key={name}><summary>{name}</summary><p>{hint}</p></details>)}</div></details>}
                 {/* Tip + Rapport directly under picture */}
-                <div className="px-4 pt-3 pb-3 space-y-2 bg-white">
+                <details className="px-4 pt-3 pb-3 space-y-2 bg-white"><summary>Coaching and rapport</summary>
                     {scenario_name != "Resolve a Task" && (
                     <div className="flex items-center gap-3">
                         <span className="text-xs font-semibold text-gray-600">Rapport</span>
@@ -624,14 +636,10 @@ export default function ChatTraining() {
                             <Lightbulb className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
                             <div className="text-xs text-amber-700 leading-relaxed">
                                 <p>{`Tip: ${suggestion}`}</p>
-                                <div className="my-1 border-t border-gray-200" />
-                                <p className="mt-1 text-amber-800">
-                                    Please avoid being too direct, and respond with empathy rather than overly brief replies.
-                                </p>
                             </div>
                         </div>
                     )}  
-                    {scenario_name === "Resolve a Task" && (
+                    {!scene && scenario_name === "Resolve a Task" && (
                         <button
                             onClick={() => setShowSteps(true)}
                             className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 flex items-center gap-2 hover:bg-gray-50 transition-colors cursor-pointer"
@@ -642,12 +650,12 @@ export default function ChatTraining() {
                             </p>
                         </button>
                     )}
-                </div>
+                </details>
             </div>
 
             {/* Scrollable message log */}
             <div
-            ref={scrollRef}
+            role="log" aria-live="polite" ref={scrollRef}
             className="flex-1 min-h-0 overflow-y-auto px-4 pt-3 pb-4 space-y-3 bg-gray-50"
             >
             {messages.map((message) => (
@@ -690,6 +698,13 @@ export default function ChatTraining() {
             </div>
         </Card>
 
+        {assessmentRetry && <button disabled={evaluating} className="bg-white underline p-2" onClick={async()=>{
+            setEvaluating(true)
+            try {
+                const response=await fetch("/api/chat/evaluate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({converseId:verseId,...assessmentRetry})})
+                if(response.ok){const data=await response.json();if(data.evaluation){setExpression(data.evaluation.expression);setSuggestion(data.evaluation.suggestion);setRapport(data.evaluation.rapport);setLastEvaluation(true)}setAssessmentRetry(null)}
+            }finally{setEvaluating(false)}
+        }}>Assessment unavailable · Retry assessment</button>}
         {/* Message send error popup */}
         <Dialog
             open={!!messageError}
@@ -757,7 +772,8 @@ export default function ChatTraining() {
         {/* ── Bottom controls ────────────────────────────────────── */}
         <div className="bg-white border-t border-gray-300 shadow-lg px-4 py-2.5">
             <div className="max-w-3xl mx-auto space-y-2">
-                {conversationEnded ? (
+                {!conversationEnded && scene && <div className="flex flex-wrap gap-2">{scene.choices.map(choice => <Button key={choice.label} variant="outline" className="h-auto whitespace-normal border-[var(--visit-border)] text-[var(--visit-sage)]" disabled={botLoading || evaluating} onClick={() => converse(choice.label)}>{choice.label}</Button>)}</div>}
+                {conversationEnded || scene?.ended ? (
                     <Button 
                         className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold h-9 text-sm"
                         onClick={end}
@@ -777,7 +793,7 @@ export default function ChatTraining() {
 
                         <div className="relative flex-1">
                             <Input
-                                placeholder="Type your message..."
+                                aria-label="Say something" placeholder="Say something…"
                                 value={inputValue}
                                 onChange={(e) => setInputValue(e.target.value)}
                                 onKeyDown={(e) => {
@@ -796,7 +812,7 @@ export default function ChatTraining() {
                         </div>
 
                         <Button
-                            onClick={converse}
+                            aria-label="Send message" onClick={() => converse()}
                             size="icon"
                             disabled={botLoading || evaluating}
                             className="h-10 w-10 bg-blue-600 hover:bg-blue-700 disabled:opacity-50"

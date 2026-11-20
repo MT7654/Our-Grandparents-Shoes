@@ -95,7 +95,7 @@ export default function ReviewChatView() {
                             <div className="text-center text-gray-400 py-8">No messages in this conversation.</div>
                         )}
                         {messages.map((message) => (
-                            <div key={message.mid} className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
+                            <div key={message.mid} id={message.mid} className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
                                 <div
                                     className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
                                         message.sender === "user" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-900"

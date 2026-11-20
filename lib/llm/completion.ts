@@ -17,7 +17,7 @@ const systemPrompt = `
     - Focus on evaluating the conversation based on:
         1. User's participation and engagement (Did they attempt a structured conversation flow with multiple meaningful prompts and follow-ups?).
         2. Dialogue flow and success in achieving the conversation objective (Did they guide the conversation effectively toward the intended goal with empathy, clarity, and active listening?).
-    - "completed" should be true if the user attempted a structured conversation flow with at least 3 follow-ups.
+    - "completed" should be true if the exchange reaches a mutually agreed ending, including deferral or quiet company.
     - "objective_met" should be true if the user successfully achieved the intended conversation objective with proper engagement.
     - Do not include extra commentary outside the JSON.
 
@@ -34,7 +34,7 @@ const systemPrompt = `
     ]
   }
 
-  Remember only return "completed" as true if there are at least 3 follow ups by the user.
+  Respect privacy, autonomy and time. Support feedback with specific recorded words or actions.
 `
 
 /**
@@ -43,12 +43,13 @@ const systemPrompt = `
  */
 export async function evaluateCompletion(
   conversationHistory: Message[],
+  objective: string,
   temperature = 0.3,
   max_tokens = 2048
 ): Promise<EndConversationEvaluation> {
 
   const groq = getGroqClient()
-  const evaluationPrompt = generateEvaluationPrompt(conversationHistory)
+  const evaluationPrompt = "Scenario objective: " + objective + "\n" + generateEvaluationPrompt(conversationHistory)
 
   let completion: any = null
   let lastError: Error | null = null
@@ -102,13 +103,7 @@ export async function evaluateCompletion(
       value: Math.min(100, Math.max(0, Math.round(score.value ?? 0)))
     }))
   } else {
-    // Fallback if scores missing
-    result.scores = [
-      { name: "empathy", value: 0 },
-      { name: "clarity", value: 0 },
-      { name: "conversationFlow", value: 0 },
-      { name: "activeListening", value: 0 }
-    ]
+    result.scores = []
   }
 
   return result

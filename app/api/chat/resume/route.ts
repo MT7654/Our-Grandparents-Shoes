@@ -1,3 +1,4 @@
+import { practiceContext } from '@/lib/visits/context'
 import { NextResponse, type NextRequest } from 'next/server'
 import { resumeConversation } from '@/lib/chat/service'
 import { type ScenarioKeys } from '@/lib/types/types'
@@ -34,7 +35,8 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        const conversation = await resumeConversation(scenario_name)
+        const context = await practiceContext(body.context, scenario_name, guardResult.session.user.id)
+        const conversation = await resumeConversation(scenario_name, context.key)
 
         if (conversation == null) {
             return NextResponse.json(

@@ -1,5 +1,6 @@
 "use client"
 
+import { Assignments } from "@/components/visit-assignments"
 import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -27,6 +28,7 @@ function getScenarioIcon(scenario: string | null) {
   switch (scenario) {
     case "House Visit":
       return <Home className="w-4 h-4 text-blue-600" />
+    case "Emotional Listening Ear":
     case "Listening Ear":
       return <Heart className="w-4 h-4 text-purple-600" />
     case "Resolve a Task":
@@ -41,6 +43,7 @@ function getScenarioBg(scenario: string | null) {
   switch (scenario) {
     case "House Visit":
       return "bg-blue-50 border-blue-200"
+    case "Emotional Listening Ear":
     case "Listening Ear":
       return "bg-purple-50 border-purple-200"
     case "Resolve a Task":
@@ -64,6 +67,7 @@ function getIcon(badge_label: string) {
 export default function ProgressDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [assessments,setAssessments] = useState<{vid:string;scenario_name:string;difficulty:string;created_at:string;scores:{metric_name:string;metric_value:number}[]}[]>([])
   const [pastSessions, setPastSessions] = useState<PastSession[]>([])
   const [badges, setBadges] = useState<DisplayBadge[]>([])
   const { toast } = useToast()
@@ -89,6 +93,7 @@ export default function ProgressDashboard() {
         const data = await response.json()
         const { past_conversations, user_achievements } = data
 
+        setAssessments(data.assessments ?? [])
         setPastSessions(past_conversations || [])
         setBadges(user_achievements || [])
       } catch (error) {
@@ -132,7 +137,7 @@ export default function ProgressDashboard() {
 
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">My Sessions</h1>
+              <h1 className="text-2xl font-bold text-gray-900">My progress</h1>
               <p className="text-sm text-gray-600 mt-1">Review your past conversations</p>
             </div>
             <Link href="/scenarios">
@@ -144,6 +149,10 @@ export default function ProgressDashboard() {
           </div>
         </div>
 
+        <Assignments/>
+        <details className="mb-6 bg-white border rounded p-4"><summary>Skill trends</summary>
+          {Object.entries(Object.groupBy(assessments,a=>a.scenario_name+" · "+a.difficulty)).map(([label,group])=><section key={label}><h3 className="font-semibold mt-3">{label.replace("Emotional Listening Ear","Listening Ear")}</h3>
+          {group?.map(a=><p key={a.vid}>{new Date(a.created_at).toLocaleDateString()} · {a.scores.length?a.scores.map(s=>s.metric_name+" "+s.metric_value).join(" · "):"Assessment unavailable"}</p>)}</section>)}</details>
         {/* Past Conversations - Primary Section */}
         <div className="mb-8">
           <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Past Conversations</h2>
@@ -170,7 +179,7 @@ export default function ProgressDashboard() {
                         {/* Session Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-semibold text-gray-900">{session.scenario_name}</span>
+                            <span className="text-sm font-semibold text-gray-900">{session.scenario_name==="Emotional Listening Ear"?"Listening Ear":session.scenario_name}</span>
                             <Badge
                               variant="outline"
                               className="text-xs px-1.5 py-0 border-gray-300 text-gray-600"

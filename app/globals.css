@@ -5,6 +5,10 @@
 
 /* Updated color palette for warm, friendly conversation trainer theme */
 :root {
+  --visit-paper: #faf6ec;
+  --visit-ink: #292821;
+  --visit-sage: #46583e;
+  --visit-border: #cfc9b9;
   --background: oklch(0.99 0.01 90);
   --foreground: oklch(0.25 0.02 280);
   --card: oklch(1 0 0);

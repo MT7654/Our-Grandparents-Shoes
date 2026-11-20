@@ -1,4 +1,4 @@
-import { createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/neon/data'
 import type { Database } from '@/supabase/types'
 
 type Evaluation = Database['public']['Tables']['evaluations']['Row']

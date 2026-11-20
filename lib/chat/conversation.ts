@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import {identity} from '@/lib/neon/auth'
+import { createClient } from '@/lib/neon/data'
 import type { Database } from '@/supabase/types'
 
 type Conversation = Database['public']['Tables']['conversations']['Row']
@@ -10,6 +11,7 @@ export const createConversation = async (
     scenario: Conversation['scenario_name'],
     difficulty_level: Conversation['difficulty'],
     number_of_turns: number,
+    context = 'standalone',
 ) => {
     const supabase = await createClient()
 
@@ -18,6 +20,7 @@ export const createConversation = async (
         .insert({
             scenario_name: scenario,
             turns: number_of_turns,
+            practice_context: context,
             difficulty: difficulty_level
         })
         .select()
@@ -27,7 +30,7 @@ export const createConversation = async (
         // 23505 = unique constraint violation (race condition, e.g. React Strict Mode double-mount)
         // Fall back to fetching the existing active conversation
         if (error.code === '23505') {
-            const existing = await getExistingConversationByScenario(scenario)
+            const existing = await getExistingConversationByScenario(scenario, context)
             if (existing) return existing
         }
         console.error("Error creating conversation: ", error)
@@ -182,7 +185,7 @@ export const saveConversation = async (
  * Returns null when no active conversation exists (PGRST116).
  */
 export const getExistingConversationByScenario = async (
-    scenario: Conversation['scenario_name']
+    scenario: Conversation['scenario_name'], context = 'standalone'
 ) => {
     const supabase = await createClient()
 
@@ -190,6 +193,7 @@ export const getExistingConversationByScenario = async (
         .from('conversations')
         .select('*')
         .eq('scenario_name', scenario)
+        .eq('practice_context', context)
         .eq('completed', false)
         .single()
     
@@ -237,7 +241,7 @@ export const getConversationByConversationID = async (
 export const getUserConversations = async () => {
     const supabase = await createClient()
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await identity()
 
     if (!user) {
         throw new Error('User not authenticated')

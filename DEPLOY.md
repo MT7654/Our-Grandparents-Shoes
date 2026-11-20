@@ -1,124 +1,23 @@
-# Deploying to Vercel - Step by Step Guide
+# ConverseBetter deployment
 
-## Step 1: Initialize Git Repository
+Both Vercel projects, `our-grandparents-shoes` and `v0-senior-conversation-trainer`, use the same Neon application data and Neon Auth service. Configure these server-only environment variables on both projects before deploying:
 
-If you haven't already, initialize git and commit your code:
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | TLS connection to the pooled Neon endpoint. The server switches to the restricted member role for volunteer queries. |
+| `NEON_AUTH_BASE_URL` | Managed Neon Auth endpoint for the application branch. |
+| `NEON_AUTH_COOKIE_SECRET` | Secure random cookie signing key, at least 32 characters. |
+| `GROQ_API_KEY` | Dialogue and assessments. |
+| `NEXT_PUBLIC_DISABLE_VISIT_3D` | Set to `1` and rebuild to switch practice to portraits. |
 
-```bash
-# Initialize git repository
-git init
+Allow each actual production origin in Neon Auth. Enable email/password, required email verification and email codes. Existing volunteers select **Restore an existing account**, enter their original email, then use the reset code to choose a password. The verified Neon subject is linked to the existing UUID. Role and ownership come from the migrated profile.
 
-# Add all files
-git add .
+## Historical import and verification
 
-# Create initial commit
-git commit -m "Initial commit - Senior Conversation Trainer"
-```
+The source import uses the Supabase service-role key only on the migration workstation. Source credentials and the direct Neon connection string belong in ignored local environment files. Keep record payloads out of logs.
 
-## Step 2: Push to GitHub
-
-1. **Create a new repository on GitHub:**
-   - Go to [github.com](https://github.com) and sign in
-   - Click the "+" icon in the top right → "New repository"
-   - Name it (e.g., `senior-conversation-trainer`)
-   - Choose Public or Private
-   - **Don't** initialize with README, .gitignore, or license (you already have these)
-   - Click "Create repository"
-
-2. **Push your code to GitHub:**
-   ```bash
-   # Add GitHub remote (replace YOUR_USERNAME and REPO_NAME)
-   git remote add origin https://github.com/YOUR_USERNAME/REPO_NAME.git
-   
-   # Rename branch to main (if needed)
-   git branch -M main
-   
-   # Push to GitHub
-   git push -u origin main
-   ```
-
-## Step 3: Deploy to Vercel
-
-1. **Go to Vercel:**
-   - Visit [vercel.com](https://vercel.com)
-   - Click "Sign Up" or "Log In"
-   - **Sign in with GitHub** (this connects your GitHub account)
-
-2. **Import your project:**
-   - Click "Add New..." → "Project"
-   - You'll see your GitHub repositories listed
-   - Find and click "Import" next to your `senior-conversation-trainer` repository
-
-3. **Configure the project:**
-   - **Framework Preset:** Vercel should auto-detect "Next.js" ✅
-   - **Root Directory:** Leave as `./` (default)
-   - **Build Command:** Leave as default (`npm run build`)
-   - **Output Directory:** Leave as default (`.next`)
-   - **Install Command:** Leave as default (`npm install`)
-
-4. **Add Environment Variable:**
-   - Scroll down to "Environment Variables"
-   - Click "Add" or "Add Environment Variable"
-   - **Name:** `NEXT_PUBLIC_GROQ_API_KEY`
-   - **Value:** Your Groq API key (get it from https://console.groq.com/)
-   - Make sure it's added for all environments (Production, Preview, Development)
-   - Click "Add"
-
-5. **Deploy:**
-   - Click "Deploy" button
-   - Wait 1-2 minutes for the build to complete
-   - Your app will be live at a URL like: `https://senior-conversation-trainer.vercel.app`
-
-## Step 4: Automatic Deployments (Future Updates)
-
-Once connected, Vercel will automatically deploy:
-- **Every push to `main` branch** → Production deployment
-- **Every pull request** → Preview deployment
-- **Every push to other branches** → Preview deployment
-
-To update your app:
-```bash
-# Make your changes, then:
-git add .
-git commit -m "Your commit message"
-git push
-```
-
-Vercel will automatically detect the push and redeploy! 🚀
-
-## Troubleshooting
-
-### Build Fails?
-- Check the build logs in Vercel dashboard
-- Make sure all dependencies are in `package.json`
-- Verify environment variables are set correctly
-
-### API Not Working?
-- Double-check the environment variable name: `NEXT_PUBLIC_GROQ_API_KEY`
-- Make sure it's set for all environments (Production, Preview, Development)
-- Restart the deployment after adding environment variables
-
-### Need Custom Domain?
-- Go to your project in Vercel dashboard
-- Click "Settings" → "Domains"
-- Add your custom domain
-
-## Quick Commands Reference
-
-```bash
-# Initialize git (if not done)
-git init
-git add .
-git commit -m "Initial commit"
-
-# Connect to GitHub (replace with your repo URL)
-git remote add origin https://github.com/YOUR_USERNAME/REPO_NAME.git
-git branch -M main
-git push -u origin main
-
-# Future updates
-git add .
-git commit -m "Update message"
-git push
-```
-
+1. Run `node --env-file=.env --env-file=.env.neon.local scripts/neon/import-history.mjs`. This makes two ordered source reads and compares a canonical digest with a private Neon snapshot.
+2. For an empty destination only, run `node --env-file=.env.neon.local scripts/neon/initialize.mjs`. The historical Supabase migration scripts run inside an ephemeral PostgreSQL database. Only the resulting schema is materialized in Neon. Foreign keys, constraints, row policies, indexes and existing IDs are retained.
+3. Before cutover, repeat the source import and run `node --env-file=.env.neon.local scripts/neon/reconcile.mjs`. If reconciliation reports differences, synchronize those records before routing traffic. Repeat after the old deployments stop receiving writes.
+4. Run `node --env-file=.env.local scripts/neon/verify.mjs`, `node scripts/verify-visit-report.mjs`, the TypeScript check and the production build. Run `node scripts/verify-visit-browser.mjs` with the installed Playwright Chromium binary (or set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`).
+5. Deploy to each Vercel project, verify sign-in, restored history, admin usage and asset delivery, and retain the preceding revisions. A rollback to a Supabase-backed revision requires reconciling writes made in Neon first.

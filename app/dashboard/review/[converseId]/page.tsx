@@ -1,5 +1,6 @@
 "use client"
 
+import { Journal } from '@/components/visit-journal'
 import { useEffect, useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -195,6 +196,7 @@ export default function SessionReviewPage() {
           </div>
         )}
 
+        <Journal vid={converseId} scenario={review.scenario}/>
         {/* View Conversation History */}
         <Link href={`/dashboard/review/${converseId}/chat`}>
           <div className="bg-white border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer mb-8">
@@ -228,7 +230,7 @@ export default function SessionReviewPage() {
                       {'"'}
                     </p>
                   </div>
-                  <p className="text-sm text-gray-700 leading-relaxed pl-1">{item.explanation}</p>
+                  <p className="text-sm text-gray-700 leading-relaxed pl-1">{item.explanation}</p>{item.mid && <Link className='underline text-sm' href={`/dashboard/review/${converseId}/chat#${item.mid}`}>Read this exchange</Link>}
                 </div>
               ))}
             </div>
@@ -252,7 +254,7 @@ export default function SessionReviewPage() {
                       {'"'}
                     </p>
                   </div>
-                  <p className="text-sm text-gray-700 leading-relaxed pl-1">{item.explanation}</p>
+                  <p className="text-sm text-gray-700 leading-relaxed pl-1">{item.explanation}</p>{item.mid && <Link className='underline text-sm' href={`/dashboard/review/${converseId}/chat#${item.mid}`}>Read this exchange</Link>}
                 </div>
               ))}
             </div>

@@ -1,5 +1,6 @@
 "use client"
 
+import { Assignments } from "@/components/visit-assignments"
 import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -120,12 +121,13 @@ export default function ScenarioSelection() {
               </Button>
             </Link>
 
-            <h1 className="text-4xl font-bold mb-2">Choose Your Conversation Partner</h1>
+            <h1 className="text-4xl font-bold mb-2">Practice</h1>
             <p className="text-lg text-muted-foreground">
-              Select a senior persona to practice meaningful conversations
+              Choose a visit with Margaret Chan.
             </p>
           </div>
 
+          <nav className="flex gap-4 mb-4"><a href="#practice">Practice</a><Link href="/dashboard">My progress</Link><a href="#assignments">Assignments</a></nav><Assignments/><div id="practice" />
           {/* Error Display */}
           {error && (
             <Alert variant="destructive" className="mb-8">
@@ -168,7 +170,7 @@ export default function ScenarioSelection() {
             </Card>
 
             {/* Scenario Selection Cards */}
-            <div className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-3">
               {scenarios.map((scenario) => {
                 const Icon = icons[scenario.design.icon]
                 return (
@@ -190,7 +192,7 @@ export default function ScenarioSelection() {
                     <CardContent className="space-y-4">
                       <div>
                         <h3 className="font-semibold mb-2 text-sm text-muted-foreground uppercase tracking-wide">
-                          How to Approach This Scenario
+                          Easy or Hard · Practice focus
                         </h3>
                         <ul className="space-y-1.5">
                           {scenario.instructions.map((instruction, index) => (
@@ -202,7 +204,7 @@ export default function ScenarioSelection() {
                         </ul>
                       </div>
 
-                      <Link href={`/chat/${scenario.id}`} className="block">
+                      <Link href={`/chat/${scenario.id}${typeof window === "undefined" ? "" : location.search}`} className="block">
                         <Button className="w-full" size="lg">
                           {scenario.design.buttonCta}
                         </Button>

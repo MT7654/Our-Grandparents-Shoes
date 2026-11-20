@@ -1,28 +1,10 @@
-import { type NextRequest } from 'next/server'
-import { updateSession } from './lib/supabase/middleware'
-import { validatePath } from './lib/auth/middleware'
-
-export async function proxy(request: NextRequest) {
-  const path_response = await validatePath(request)
-
-  // Check for redirection
-  if (path_response.status && path_response.status >= 300 && path_response.status < 400) {
-    return path_response 
-  }
-
-  // Continue
-  return await updateSession(request) 
+import { NextRequest,NextResponse } from "next/server"
+import {identity} from "@/lib/neon/auth"
+export async function proxy(req:NextRequest){
+ const user=await identity()
+ if(!user)return NextResponse.redirect(new URL("/auth",req.url))
+ const admin=req.nextUrl.pathname.startsWith("/admin")
+ if(admin !== (user.role==="admin"))return NextResponse.redirect(new URL(user.role==="admin"?"/admin":"/scenarios",req.url))
+ return NextResponse.next()
 }
-
-export const config = {
-  matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - images, svgs, etc.
-     */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
-}
+export const config={matcher:["/admin/:path*","/chat/:path*","/complete/:path*","/dashboard/:path*","/scenarios/:path*"]}

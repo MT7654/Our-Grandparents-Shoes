@@ -1,267 +1,206 @@
 "use client"
-
-import { useState } from "react"
+import { useState, type FormEvent } from "react"
+import { createAuthClient } from "@neondatabase/auth/next"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useRouter } from "next/navigation"
-import { useToast } from "@/hooks/use-toast"
-import { createClient } from '@/lib/supabase/client'
-
-export default function AuthScreen() {
-    const [loginEmail, setLoginEmail] = useState("");
-    const [loginPassword, setLoginPassword] = useState("");
-    const [registerName, setRegisterName] = useState("");
-    const [registerEmail, setRegisterEmail] = useState("");
-    const [registerPassword, setRegisterPassword] = useState("");
-    const [consentChecked, setConsentChecked] = useState(false);
-  
-    const router = useRouter();
-    const { toast } = useToast();
-
-    const onBack = () => {
-      router.push("/")
+import { Card } from "@/components/ui/card"
+const client = createAuthClient()
+export default function AuthPage() {
+  const [mode, setMode] = useState<
+    "login" | "recover" | "signup" | "verify" | "reset"
+  >("login")
+  const [email, setEmail] = useState(""),
+    [password, setPassword] = useState(""),
+    [name, setName] = useState(""),
+    [otp, setOtp] = useState(""),
+    [status, setStatus] = useState(""),
+    [busy, setBusy] = useState(false)
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    setBusy(true)
+    setStatus("")
+    try {
+      if (mode === "recover") {
+        // Initialize an unusable credential if this historical email has not yet activated.
+        const created = await client.signUp.email({
+          email,
+          password: crypto.randomUUID() + crypto.randomUUID(),
+          name: "Volunteer"
+        })
+        if (
+          created.error &&
+          ![
+            "USER_ALREADY_EXISTS",
+            "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL"
+          ].includes(created.error.code ?? "")
+        )
+          throw Error(created.error.message)
+        const sent = await client.emailOtp.requestPasswordReset({ email })
+        if (sent.error) throw Error(sent.error.message)
+        setMode("reset")
+        setStatus(
+          "Enter the password reset code from your email and choose a new password."
+        )
+        return
+      }
+      if (mode === "reset") {
+        const result = await client.emailOtp.resetPassword({
+          email,
+          otp,
+          password
+        })
+        if (result.error) throw Error(result.error.message)
+      }
+      if (mode === "signup") {
+        const result = await client.signUp.email({
+          email,
+          password,
+          name: name.trim() || "Volunteer"
+        })
+        if (
+          result.error &&
+          ![
+            "USER_ALREADY_EXISTS",
+            "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL"
+          ].includes(result.error.code ?? "")
+        )
+          throw Error(result.error.message)
+        // Send explicitly so a returning user can request a fresh verification code.
+        const sent = await client.emailOtp.sendVerificationOtp({
+          email,
+          type: "email-verification"
+        })
+        if (sent.error) throw Error(sent.error.message)
+        setMode("verify")
+        setStatus("Enter the code sent to your email.")
+        return
+      }
+      if (mode === "verify") {
+        const result = await client.emailOtp.verifyEmail({ email, otp })
+        if (result.error) throw Error(result.error.message)
+      }
+      const result = await client.signIn.email({ email, password })
+      if (result.error) throw Error(result.error.message)
+      const response = await fetch("/api/auth/session", { cache: "no-store" })
+      if (!response.ok)
+        throw Error(
+          "Your account could not be linked. Contact your coordinator."
+        )
+      const { user } = await response.json()
+      location.assign(user.role === "admin" ? "/admin" : "/scenarios")
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : "Unable to finish sign-in.")
+    } finally {
+      setBusy(false)
     }
-  
-    async function login() {
-      if (!loginEmail || !loginPassword) {
-        toast({
-          title: "Validation Error",
-          description: "Please enter both email and password",
-          variant: "destructive",
-        });
-        return;
-      }
-  
-      try {
-        const response = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: loginEmail,
-            password: loginPassword,
-          }),
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-          toast({
-            title: "Login Failed",
-            description: result.error || "Invalid email or password",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        toast({
-          title: "Login Successful",
-          description: "Welcome back!",
-        });
-
-        // Refresh the session to get the updated token with role claim
-        const supabase = await createClient()
-        await supabase.auth.refreshSession()
-
-        // Get the role from the refreshed session or database
-        const { data: { session: refreshedSession } } = await supabase.auth.getSession()
-        
-        let role: string | null = null
-        
-        // Try to get role from JWT token
-        try {
-          if (refreshedSession?.access_token) {
-            const payload = JSON.parse(atob(refreshedSession.access_token.split('.')[1]))
-            role = payload['user_role'] || null
-          }
-        } catch (e) {
-          console.error('Error parsing JWT token:', e)
-        }
-
-        // If role not in token, fetch from database
-        if (!role && refreshedSession?.user) {
-          try {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('role')
-              .eq('user_id', refreshedSession.user.id)
-              .single()
-            
-            if (profile) {
-              role = profile.role
-            }
-          } catch (e) {
-            console.error('Error fetching role from database:', e)
-          }
-        }
-
-        // Default to 'user' if role is still null
-        if (!role) {
-          role = 'user'
-        }
-
-        if (role === 'admin') {
-          router.push('/admin');
-        } else {
-          router.push("/scenarios");
-        }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred"
-
-        toast({
-          title: "Login Error",
-          description: errorMessage,
-          variant: "destructive",
-        });
-      }
-    }
-  
-    async function register() {
-      if (!registerName || !registerEmail || !registerPassword || !consentChecked) {
-        toast({
-          title: "Validation Error",
-          description: "Please fill in all fields",
-          variant: "destructive",
-        });
-        return;
-      }
-  
-      try {
-        const response = await fetch("/api/auth/signup", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: registerEmail,
-            password: registerPassword,
-            metadata: { full_name: registerName }
-          }),
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-          toast({
-            title: "Registration Failed",
-            description: result.error || "Failed to create account",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        toast({
-          title: "Registration Successful",
-          description: "Account created! Redirecting...",
-        });
-
-        router.push("/scenarios");
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred"
-        
-        toast({
-          title: "Registration Error",
-          description: errorMessage,
-          variant: "destructive",
-        });
-      }
-    }
-  
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <Button variant="ghost" onClick={onBack} className="w-fit mb-2">
-              ← Back
-            </Button>
-            <CardTitle className="text-2xl">Welcome Back</CardTitle>
-            <CardDescription>Sign in to continue your conversation training journey</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Login</TabsTrigger>
-                <TabsTrigger value="register">Register</TabsTrigger>
-              </TabsList>
-  
-              <TabsContent value="login" className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="login-email">Email</Label>
-                  <Input
-                    id="login-email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={loginEmail}
-                    onChange={e => setLoginEmail(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="login-password">Password</Label>
-                  <Input
-                    id="login-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={loginPassword}
-                    onChange={e => setLoginPassword(e.target.value)}
-                  />
-                </div>
-                <Button className="w-full" onClick={login}>Sign In</Button>
-              </TabsContent>
-  
-              <TabsContent value="register" className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="register-name">Full Name</Label>
-                  <Input
-                    id="register-name"
-                    type="text"
-                    placeholder="John Doe"
-                    value={registerName}
-                    onChange={e => setRegisterName(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="register-email">Email</Label>
-                  <Input
-                    id="register-email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={registerEmail}
-                    onChange={e => setRegisterEmail(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="register-password">Password</Label>
-                  <Input
-                    id="register-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={registerPassword}
-                    onChange={e => setRegisterPassword(e.target.value)}
-                  />
-                </div>
-
-                <div className="flex items-start space-x-2">
-                  <input
-                    id="consent"
-                    type="checkbox"
-                    checked={consentChecked}
-                    onChange={(e) => setConsentChecked(e.target.checked)}
-                    className="mt-1 rounded border-gray-300"
-                  />
-                  <Label htmlFor="consent" className="text-xs text-gray-700">
-                    I consent to ConverseBetter: Senior Care collecting and using my personal data in accordance with the app's privacy policy.
-                  </Label>
-                </div>
-
-                <Button className="w-full" onClick={register}>Register</Button>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      </div>
-    )
   }
+  return (
+    <main className="min-h-dvh grid place-items-center bg-[#faf6ec] px-4">
+      <Card className="w-full max-w-md p-7">
+        <h1 className="text-3xl font-semibold">
+          {mode === "login"
+            ? "Sign in"
+            : mode === "recover"
+              ? "Restore your practice history"
+              : mode === "signup"
+                ? "Create an account"
+                : "Verify your email"}
+        </h1>
+        {mode === "recover" && (
+          <p>
+            Use your original account email and choose a new password. Your past
+            visits will appear after verification.
+          </p>
+        )}
+        <form onSubmit={submit} className="space-y-4">
+          {mode === "signup" && (
+            <label className="block">
+              Name
+              <Input
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoComplete="name"
+              />
+            </label>
+          )}
+          <label className="block">
+            Email
+            <Input
+              type="email"
+              required
+              value={email}
+              readOnly={mode === "verify" || mode === "reset"}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+            />
+          </label>
+          {mode !== "verify" && mode !== "recover" && (
+            <label className="block">
+              {mode === "login" ? "Password" : "New password"}
+              <Input
+                type="password"
+                required
+                minLength={mode === "login" ? 1 : 8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete={
+                  mode === "login" ? "current-password" : "new-password"
+                }
+              />
+            </label>
+          )}
+          {(mode === "verify" || mode === "reset") && (
+            <label className="block">
+              Verification code
+              <Input
+                required
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+              />
+            </label>
+          )}
+          {mode === "signup" && (
+            <label className="block">
+              <input type="checkbox" required /> I consent to ConverseBetter
+              collecting and using my personal data in accordance with the app’s
+              privacy policy.
+            </label>
+          )}
+          <p role="status">{status}</p>
+          <Button disabled={busy}>
+            {mode === "login"
+              ? "Sign in"
+              : mode === "reset"
+                ? "Set password and sign in"
+                : mode === "verify"
+                  ? "Verify and sign in"
+                  : "Send verification code"}
+          </Button>
+        </form>
+        <div className="flex flex-wrap gap-4">
+          {(["login", "recover", "signup"] as const)
+            .filter((m) => m !== mode)
+            .map((m) => (
+              <button
+                key={m}
+                className="underline"
+                onClick={() => {
+                  setMode(m)
+                  setStatus("")
+                }}
+              >
+                {m === "recover"
+                  ? "Restore an existing account"
+                  : m === "login"
+                    ? "Sign in"
+                    : "Create an account"}
+              </button>
+            ))}
+        </div>
+      </Card>
+    </main>
+  )
+}

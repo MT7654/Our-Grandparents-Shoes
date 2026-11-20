@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { MessageCircle, BarChart3, Shield, LogOut } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { createClient } from '@/lib/supabase/client'
 import { useToast } from "@/hooks/use-toast"
 import LoadingOverlay from '@/components/loading-overlay'
 
@@ -24,45 +23,10 @@ export default function LandingPage() {
   }, [])
 
   const checkAuthStatus = async () => {
-    const supabase = await createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    
-    if (session) {
-      setIsLoggedIn(true)
-      
-      // Try to get role from JWT token
-      let role: string | null = null
-      try {
-        if (session.access_token) {
-          const payload = JSON.parse(atob(session.access_token.split('.')[1]))
-          role = payload['user_role'] || null
-        }
-      } catch (e) {
-        console.error('Error parsing JWT token:', e)
-      }
-
-      // If role not in token, fetch from database
-      if (!role && session.user) {
-        try {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('user_id', session.user.id)
-            .single()
-          
-          if (profile) {
-            role = profile.role
-          }
-        } catch (e) {
-          console.error('Error fetching role from database:', e)
-        }
-      }
-      
-      setUserRole(role)
-    } else {
-      setIsLoggedIn(false)
-      setUserRole(null)
-    }
+    const response=await fetch("/api/auth/session",{cache:"no-store"})
+    const user=response.ok?(await response.json()).user:null
+    setIsLoggedIn(!!user)
+    setUserRole(user?.role??null)
   }
 
   const handleLogout = async () => {
@@ -94,54 +58,9 @@ export default function LandingPage() {
 
   // For client side redirection
   const verify = async (target: string) => {
-    const supabase = await createClient()
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-
-    if (!session || sessionError) {
-      return { hasSession: false, actualRole: null, isAuthorized: false }
-    }
-
-    // Try to get role from JWT token
-    let role: string | null = null
-    try {
-      if (session.access_token) {
-        const payload = JSON.parse(atob(session.access_token.split('.')[1]))
-        role = payload['user_role'] || null
-      }
-    } catch (e) {
-      console.error('Error parsing JWT token:', e)
-    }
-
-    // If role not in token, try to fetch from database
-    if (!role && session.user) {
-      try {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .single()
-        
-        if (profile) {
-          role = profile.role
-        } else if (profileError && profileError.code === 'PGRST116') {
-          // Profile doesn't exist - this shouldn't happen due to trigger, but handle it
-          console.warn('Profile not found for user, defaulting to user role')
-          role = 'user'
-        }
-      } catch (e) {
-        console.error('Error fetching role from database:', e)
-      }
-    }
-
-    // Default to 'user' if role is still null (new users default to user role)
-    if (!role) {
-      role = 'user'
-    }
-
-    const isAuthorized = role === target
-    console.log('Role verification:', { role, target, isAuthorized })
-
-    return { hasSession: true, actualRole: role, isAuthorized }
+    const response=await fetch("/api/auth/session",{cache:"no-store"})
+    const user=response.ok?(await response.json()).user:null
+    return {hasSession:!!user,actualRole:user?.role,isAuthorized:user?.role===target}
   }
 
   const navigateWithRole = async ({
