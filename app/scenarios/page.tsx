@@ -172,7 +172,7 @@ export default function ScenarioSelection() {
                     key={scenario.id}
                     className="gap-4 border-border bg-card py-4 sm:py-5"
                   >
-                    <ChapterCover name={scenario.name}/><CardHeader className="px-4 sm:px-5">
+                    <ChapterCover name={scenario.id.replaceAll("-", " ")}/><CardHeader className="px-4 sm:px-5">
                       <div className="flex items-start gap-3">
                         <div className="shrink-0 rounded-lg bg-accent p-2.5">
                           <Icon aria-hidden="true" className="size-5 text-primary" />

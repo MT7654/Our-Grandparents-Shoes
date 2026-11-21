@@ -103,7 +103,7 @@ try {
       let endRequested = false
       const state = () => ({
         scenario: scenarios[visit.scenario], persona,
-        conversation: { vid, difficulty, turns, end_reason: completed ? reason : null, completed },
+        conversation: { vid, difficulty, turns, challenge_id: index === 0 ? "choice" : null, end_reason: completed ? reason : null, completed },
         messages, evaluation: null
       })
       await page.route("**/api/chat/*", async (route) => {
@@ -160,6 +160,19 @@ try {
       await page.getByText(visit.opening, { exact: true }).waitFor()
 
       if (easy) {
+        if (index === 0) {
+          await page.setViewportSize({ width: 1280, height: 540 })
+          const thread = page.getByLabel("Visit conversation", {exact:true})
+          const before = await thread.boundingBox()
+          await hints.click()
+          const after = await thread.boundingBox()
+          assert.ok(before.height >= 270 && Math.abs(after.height - before.height) < 2, "Hints must not compress the desktop transcript")
+          const face = await page.getByRole("img", {name:persona.name, exact:true}).boundingBox()
+          assert.ok(face.y >= 0 && face.y + face.height <= 540, "Whole portrait fits a short desktop window")
+          if (process.env.CHAT_LAYOUT_SCREENSHOT) await page.screenshot({path:process.env.CHAT_LAYOUT_SCREENSHOT})
+          await page.getByRole("button",{name:"Close reply hints"}).click()
+          await page.setViewportSize({ width: 320, height: 470 })
+        }
         const openingHint = page.getByRole("button", { name: visit.greeting.label, exact: true })
         assert.equal(await openingHint.isVisible(), false)
         await hints.click()
@@ -199,7 +212,7 @@ try {
         assert.ok(await log.evaluate((el) => el.getBoundingClientRect().height > 100))
         await hints.click()
         assert.ok(await send.evaluate((el) => el.getBoundingClientRect().bottom <= innerHeight))
-        assert.ok(await page.getByRole("region", { name: "Reply hints" }).getByRole("button").evaluateAll(
+        assert.ok(await page.getByRole("region", { name: "Reply hints" }).locator(".grid button").evaluateAll(
           (buttons) => buttons.every((button) => {
             const label = button.querySelector("span")
             return label && label.scrollWidth <= label.clientWidth && button.getBoundingClientRect().height >= 44

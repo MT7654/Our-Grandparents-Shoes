@@ -578,41 +578,10 @@ export default function ChatTraining() {
                             </Popover>
                         )}
                     </div>
-                    {difficulty && <Badge variant="secondary" className="shrink-0 text-sm">{difficulty}</Badge>}
-                </div>
-                {showTurnWarning && (
-                    <div className="mx-auto mt-1 flex max-w-5xl items-center gap-2 rounded-md bg-amber-100 px-3 py-1.5 text-sm font-medium text-amber-900">
-                        <AlertCircle aria-hidden="true" className="size-4 shrink-0" />
-                        {turnsRemain} {turnsRemain === 1 ? "turn" : "turns"} remaining
-                    </div>
-                )}
-            </header>
-
-            <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-2 px-3 py-2 md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:gap-4">
-                <section style={{backgroundImage: "url("+chapterImage(scenario_name)+")"}} aria-label="Visit details" className="flex shrink-0 items-center gap-4 overflow-hidden rounded-xl border bg-card md:block md:self-start">
-                    <img src={portrait} alt={persona.name} className="size-[clamp(4.5rem,16dvh,9rem)] shrink-0 object-cover md:aspect-square md:h-auto md:w-full" />
-                    <div className="min-w-0 space-y-1 md:p-4">
-                        <h2 className="font-semibold">{persona.name}</h2>
-                        <Badge variant="secondary" className={`capitalize ${expressionBadge()}`}>{expression}</Badge>
-                    </div>
-                </section>
-                <div ref={scrollRef} aria-label="Visit conversation" tabIndex={0} className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain rounded-xl">
-                    <div className="rounded-xl border bg-card">
-                        {scene && (
-                            <details className="border-t border-border">
-                                <summary className="min-h-11 cursor-pointer px-3 py-2.5 text-sm font-semibold text-primary">Look around the flat</summary>
-                                <div className="grid gap-2 px-3 pb-3 md:grid-cols-1">
-                                    {observations.map(([name, hint]) => (
-                                        <details key={name} className="rounded-lg bg-secondary px-3">
-                                            <summary className="min-h-11 cursor-pointer py-2.5 text-sm font-semibold">{name}</summary>
-                                            <p className="pb-3 text-sm leading-relaxed">{hint}</p>
-                                        </details>
-                                    ))}
-                                </div>
-                            </details>
-                        )}
-                        <details className="border-t border-border">
-                            <summary className="min-h-11 cursor-pointer px-3 py-2.5 text-sm font-semibold text-primary">Coaching and rapport</summary>
+                    {!!verseId && <Popover>
+                        <PopoverTrigger asChild><Button variant="ghost" size="sm" className="min-h-11">Coaching</Button></PopoverTrigger>
+                        <PopoverContent align="end" className="max-h-[65dvh] overflow-auto">
+                            <h2 className="mb-3 font-semibold">Coaching and rapport</h2>
                             <div className="space-y-3 px-3 pb-3">
                                 {scenario_name !== "Resolve a Task" && (
                                     <div className="flex items-center gap-3">
@@ -636,11 +605,47 @@ export default function ChatTraining() {
                                     </Button>
                                 )}
                             </div>
-                        </details>
+                        </PopoverContent>
+                    </Popover>}
+                    {difficulty && <Badge variant="secondary" className="shrink-0 text-sm">{difficulty}</Badge>}
+                </div>
+                {showTurnWarning && (
+                    <div className="mx-auto mt-1 flex max-w-5xl items-center gap-2 rounded-md bg-amber-100 px-3 py-1.5 text-sm font-medium text-amber-900">
+                        <AlertCircle aria-hidden="true" className="size-4 shrink-0" />
+                        {turnsRemain} {turnsRemain === 1 ? "turn" : "turns"} remaining
+                    </div>
+                )}
+            </header>
+
+            <div className="visit-workspace">
+                <section style={{backgroundImage: "url("+chapterImage(scenario_name)+")"}} aria-label="Visit details" className="flex shrink-0 items-center gap-4 overflow-hidden rounded-xl border bg-card md:block md:self-start">
+                    <img src={portrait} alt={persona.name} className="size-[clamp(4.5rem,16dvh,9rem)] shrink-0 object-cover md:aspect-square md:h-auto md:w-full" />
+                    <div className="min-w-0 space-y-1 md:p-4">
+                        <h2 className="font-semibold">{persona.name}</h2>
+                        <Badge variant="secondary" className={`capitalize ${expressionBadge()}`}>{expression}</Badge>
+                    </div>
+                </section>
+                <div className="visit-thread">
+                <div ref={scrollRef} aria-label="Visit conversation" tabIndex={0} className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain rounded-xl">
+                    <div className="empty:hidden">
+                        {scene && (
+                            <details className="border-t border-border">
+                                <summary className="min-h-11 cursor-pointer px-3 py-2.5 text-sm font-semibold text-primary">Look around the flat</summary>
+                                <div className="grid gap-2 px-3 pb-3 md:grid-cols-1">
+                                    {observations.map(([name, hint]) => (
+                                        <details key={name} className="rounded-lg bg-secondary px-3">
+                                            <summary className="min-h-11 cursor-pointer py-2.5 text-sm font-semibold">{name}</summary>
+                                            <p className="pb-3 text-sm leading-relaxed">{hint}</p>
+                                        </details>
+                                    ))}
+                                </div>
+                            </details>
+                        )}
+
                     </div>
 
-                    <section aria-label="Transcript" className="flex min-h-48 min-w-0 flex-col rounded-xl border border-border bg-card">
-                        <h2 className="border-b border-border px-3 py-2.5 text-sm font-semibold md:px-4">Transcript</h2>
+                    <section aria-label="Transcript" className="visit-messages flex min-w-0 flex-col">
+                        <h2 className="sr-only">Transcript</h2>
                         <div role="log" aria-label="Conversation messages" aria-live="polite" className="flex-1 space-y-3 px-3 py-3 md:px-4">
                             {messages.map((message) => (
                                 <div key={message.mid} className={`flex min-w-0 flex-col ${message.sender === "user" ? "items-end" : "items-start"}`}>
@@ -661,7 +666,6 @@ export default function ChatTraining() {
                         </div>
                     </section>
                 </div>
-            </div>
 
             {assessmentRetry && (
               <div className="mx-auto flex flex-wrap items-center gap-2 px-3 text-sm" aria-live="polite"><span>Your reply is saved. Coaching is delayed.</span>
@@ -772,17 +776,18 @@ export default function ChatTraining() {
                 </DialogContent>
             </Dialog>
 
-            <footer className="shrink-0 border-t border-border bg-card px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-4">
+            <footer className="visit-composer">
                 <div className="mx-auto max-w-5xl space-y-2">
-                    {challenge && !conversationEnded && <details className="focus-tab"><summary>Your focus · {challenge.title}</summary><p>{difficulty === "Easy" ? challenge.cue : challenge.title}</p></details>}
+                    <div className="visit-tools">
+                    {challenge && !conversationEnded && <Popover><PopoverTrigger asChild><Button variant="ghost" size="sm" className="visit-tool"><Target aria-hidden="true" />Your focus</Button></PopoverTrigger><PopoverContent side="top" align="start" className="max-w-[calc(100vw-2rem)]"><h2 className="font-semibold">{challenge.title}</h2>{difficulty === "Easy" && <p className="mt-1 text-sm">{challenge.cue}</p>}</PopoverContent></Popover>}
                     {!!verseId && !conversationEnded && hintOptions.length > 0 && (
-                        <details ref={hintsRef} className="rounded-lg border border-border bg-background">
-                            <summary className="min-h-11 cursor-pointer rounded-lg px-3 py-2.5 text-sm font-semibold text-primary">Show reply hints</summary>
-                            <section aria-label="Reply hints" className="px-3 pb-2">
+                        <details ref={hintsRef} className="visit-hints" onKeyDown={event => { if (event.key === "Escape" && hintsRef.current) { hintsRef.current.open = false; hintsRef.current.querySelector("summary")?.focus() } }}>
+                            <summary className="visit-tool"><Lightbulb aria-hidden="true" />Show reply hints</summary>
+                            <section aria-label="Reply hints" className="visit-hint-sheet"><button type="button" className="hint-close" aria-label="Close reply hints" onClick={()=>{if(hintsRef.current){hintsRef.current.open=false;hintsRef.current.querySelector("summary")?.focus()}}}><X size={16}/></button>
                                 <p className="mb-2 text-sm text-muted-foreground" id="reply-hint-help">
                                     {inputValue.trim() ? "Clear your draft to use a hint. Your current draft has not changed." : "Choose an example to edit in your reply. Nothing will be sent."}
                                 </p>
-                                <div className="grid max-h-[min(18dvh,11rem)] min-w-0 gap-1.5 overflow-y-auto overscroll-contain pr-1 md:grid-cols-2">
+                                <div className="grid min-w-0 gap-1.5">
                                     {hintOptions.map((hint) => (
                                         <Button key={hint} type="button" variant="outline" className="h-auto min-h-11 w-full min-w-0 justify-start whitespace-normal break-words border-input px-3 py-2 text-left text-sm leading-snug text-primary" disabled={!!inputValue.trim() || botLoading || evaluating || !!assessmentRetry} onClick={() => useHint(hint)}>
                                             <span className="min-w-0 break-words">{hint}</span>
@@ -792,6 +797,7 @@ export default function ChatTraining() {
                             </section>
                         </details>
                     )}
+                    </div>
                     {conversationEnded ? (
                         <div className="space-y-2">
                             <p className="text-sm font-medium text-foreground" role="status">{endReason ? closeCopy[endReason] : "The visit has ended."}</p>
@@ -830,6 +836,8 @@ export default function ChatTraining() {
                     )}
                 </div>
             </footer>
+                </div>
+            </div>
         </div>
     )
 }
