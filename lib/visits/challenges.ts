@@ -48,7 +48,7 @@ const catalogue = [
     "close",
     "Agree how to leave things",
     "Agree on an action, a deferral or leaving things as they are.",
-    "I have a few minutes before my daughter comes.",
+    "Can talk a bit. My girl coming over soon.",
     "Only a minute today. I need to go out soon.",
   ],
   [

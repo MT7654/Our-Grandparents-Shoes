@@ -1,6 +1,7 @@
 "use client"
 
 import {chapterImage,getChallenge} from "@/lib/visits/challenges"
+import { expressionCues } from "@/lib/chat/expressions"
 import Link from "next/link"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -44,8 +45,8 @@ export default function GuestPractice() {
         {visit && scene ? (
           <>
             <div className="sticky top-0 z-10 flex items-center gap-4 overflow-hidden rounded-xl border bg-card">
-              <img src={`/journal/margaret-${expression}.webp`} alt="Margaret Chan" className="size-[clamp(4rem,14dvh,8rem)] object-cover" />
-              <div><h2 className="font-semibold">Margaret Chan</h2><p className="capitalize text-muted-foreground">{expression}</p></div>
+              <img src={`/journal/margaret-${expression}.webp`} alt={`Margaret Chan. ${expressionCues[expression]}`} className="size-[clamp(4rem,14dvh,8rem)] object-cover" />
+              <div><h2 className="font-semibold">Margaret Chan</h2></div>
             </div>
             <details className="focus-tab"><summary>Your focus · {sample.title}</summary><p>{sample.cue}</p></details>
             <ol aria-label="Conversation" aria-live="polite" className="space-y-3">

@@ -46,7 +46,8 @@ async function replyFor(db: LiveDb, c: Conversation, turn: string, text: string,
   const user = pair.find(m => m.mid === turn && m.sender === "user")
   const persona = pair.find(m => m.mid === saved.reply_id && m.sender === "persona")
   if (!user || !persona || user.content !== text) throw new LiveChatError("This turn was already used for another reply.", 409)
-  return { ...state(c), user_message: user, persona_message: persona, pendingEvaluation: !saved.evaluated }
+  const expression = (await db.query<Evaluation>("select expression from public.evaluations where vid=$1", [c.vid])).rows[0]?.expression
+  return { ...state(c), expression, user_message: user, persona_message: persona, pendingEvaluation: !saved.evaluated }
 }
 
 export async function getLiveReplay(db: LiveDb, owner: string, vid: string, turn: string, text: string) {
@@ -58,7 +59,7 @@ export async function getLiveReplay(db: LiveDb, owner: string, vid: string, turn
 }
 
 export async function commitLiveReply(db: LiveDb, input: {
-  owner: string; vid: string; turn: string; previous: string; text: string; reply: string; requestedEnd: boolean; respectedSpace?: boolean
+  owner: string; vid: string; turn: string; previous: string; text: string; reply: string; requestedEnd: boolean; expression: Evaluation["expression"]; starting: number; respectedSpace?: boolean
 }) {
   const { owner, vid, turn, previous, text, reply, requestedEnd } = input
   const c = await owned(db, owner, vid, true)
@@ -84,13 +85,18 @@ export async function commitLiveReply(db: LiveDb, input: {
   const { n } = (await db.query<{ n: number }>(
     "select count(*)::integer as n from public.messages where vid=$1 and sender='user'", [vid],
   )).rows[0]
+  await db.query(
+    `insert into public.evaluations(vid,expression,rapport) values($1,$2,$3)
+     on conflict(vid) do update set expression=excluded.expression`,
+    [vid, input.expression, input.starting],
+  )
   const turns = c.turns - 1
   const reason = reasonAfterReply(turns, n, requestedEnd, input.respectedSpace)
   const final = (await db.query<Conversation>(
     "update public.conversations set turns=$3,completed=$4,end_reason=$5 where vid=$1 and uid=$2 returning *",
     [vid, owner, turns, reason !== null, reason],
   )).rows[0]
-  return { ...state(final), user_message: user, persona_message: persona, pendingEvaluation: true }
+  return { ...state(final), expression: input.expression, user_message: user, persona_message: persona, pendingEvaluation: true }
 }
 
 export async function getLiveAssessmentReplay(db: LiveDb, owner: string, vid: string, turn: string, reply: string) {
@@ -120,7 +126,7 @@ export async function recordLiveAssessment(db: LiveDb, input: {
     const rapport = Math.min(100, Math.max(0, (evaluation?.rapport ?? starting) + verdict.rapportChange))
     evaluation = (await db.query<Evaluation>(
       `insert into public.evaluations(vid,expression,sentiment,suggestion,rapport) values($1,$2,$3,$4,$5)
-      on conflict(vid) do update set expression=excluded.expression,sentiment=excluded.sentiment,
+      on conflict(vid) do update set sentiment=excluded.sentiment,
       suggestion=excluded.suggestion,rapport=excluded.rapport returning *`,
       [vid, verdict.expression, verdict.sentiment, verdict.suggestion, rapport],
     )).rows[0]

@@ -1,5 +1,6 @@
 "use client"
 
+import { expressionCues, isExpression } from "@/lib/chat/expressions"
 import { challenges, getChallenge, chapterImage } from "@/lib/visits/challenges"
 import { visits } from "@/lib/visits/scenes"
 import { followUpHints, houseGreeting } from "@/lib/chat/hints"
@@ -313,6 +314,7 @@ export default function ChatTraining() {
                 throw new Error(phase1.error)
             }
 
+            if (isExpression(phase1.expression)) setExpression(phase1.expression)
             const { user_message, persona_message } = phase1
 
             submission.current=null
@@ -346,7 +348,6 @@ export default function ChatTraining() {
                         const evalData = await evalResponse.json()
 
                         if (evalData.evaluation) {
-                            setExpression(evalData.evaluation.expression)
                             setSuggestion(evalData.evaluation.suggestion)
                             setRapport(evalData.evaluation.rapport)
                             setSentiment(evalData.evaluation.sentiment)
@@ -465,19 +466,6 @@ export default function ChatTraining() {
         if (rapport >= 70) return "bg-emerald-500"
         if (rapport >= 40) return "bg-amber-500"
         return "bg-rose-500"
-    }
-
-    const expressionBadge = () => {
-        switch (expression) {
-        case "happy":
-            return "bg-green-100 text-green-700"
-        case "worried":
-            return "bg-blue-100 text-blue-700"
-        case "angry":
-            return "bg-red-100 text-red-700"
-        default:
-            return "bg-gray-100 text-foreground"
-        }
     }
 
     const showTurnWarning = !!verseId && turnsRemain > 0 && turnsRemain <= 2 && !conversationEnded
@@ -619,10 +607,9 @@ export default function ChatTraining() {
 
             <div className="visit-workspace">
                 <section style={{backgroundImage: "url("+chapterImage(scenario_name)+")"}} aria-label="Visit details" className="flex shrink-0 items-center gap-4 overflow-hidden rounded-xl border bg-card md:block md:self-start">
-                    <img src={portrait} alt={persona.name} className="size-[clamp(4.5rem,16dvh,9rem)] shrink-0 object-cover md:aspect-square md:h-auto md:w-full" />
+                    <img src={portrait} alt={`${persona.name}. ${expressionCues[portraitExpression]}`} className="size-[clamp(4.5rem,16dvh,9rem)] shrink-0 object-cover md:aspect-square md:h-auto md:w-full" />
                     <div className="min-w-0 space-y-1 md:p-4">
                         <h2 className="font-semibold">{persona.name}</h2>
-                        <Badge variant="secondary" className={`capitalize ${expressionBadge()}`}>{expression}</Badge>
                     </div>
                 </section>
                 <div className="visit-thread">
@@ -676,7 +663,6 @@ export default function ChatTraining() {
                         if (!response.ok) throw new Error("The assessment is still unavailable.")
                         const data = await response.json()
                         if (data.evaluation) {
-                            setExpression(data.evaluation.expression)
                             setSuggestion(data.evaluation.suggestion)
                             setRapport(data.evaluation.rapport)
                             setSentiment(data.evaluation.sentiment)

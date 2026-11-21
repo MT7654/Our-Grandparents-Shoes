@@ -21,10 +21,10 @@ export async function withShortQuotaRetry<T>(model: string, request: () => Promi
   try {
     return await request()
   } catch (error) {
-    const delay = error instanceof Error && /try again in ([\d.]+)s\b/i.exec(error.message)
-    if (!model.startsWith("qwen/") || !delay || !("status" in error) || error.status !== 429) throw error
-    const ms = Math.ceil(Number(delay[1]) * 1000) + 300
-    if (!Number.isFinite(ms) || ms > 15000) throw error
+    const delay = error instanceof Error && /try again in ([\d.]+)(ms|s)\b/i.exec(error.message)
+    if (!delay || !("status" in error) || error.status !== 429) throw error
+    const ms = Math.ceil(Number(delay[1]) * (delay[2] === "ms" ? 1 : 1000)) + 300
+    if (!Number.isFinite(ms) || ms > (model.startsWith("qwen/") ? 15000 : 5000)) throw error
     await new Promise(resolve => setTimeout(resolve, ms))
     return request()
   }

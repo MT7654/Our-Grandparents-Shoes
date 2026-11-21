@@ -20,6 +20,32 @@ require.extensions['.ts'] = (module, filename) => {
   module._compile(compiled.outputText, filename)
 }
 
+async function playVisits() {
+  const { generateLiveReply } = require('../lib/llm/chat.ts')
+  const { Margaret } = require('../lib/personas.json')
+  const scenarios = require('../lib/scenarios.json')
+  const turns = {
+    'House Visit': ['Hello Auntie, I’m Sam from the centre. Can we talk at the door?', 'What would you like a hand with?', 'Nope.', 'Sorry, that was abrupt. Would another time suit you?', 'Okay, I’ll leave you to it. Bye Auntie.'],
+    'Emotional Listening Ear': ['Can I sit with you a while? Sounds like a rough morning.', 'What happened between you two?', 'You stupid.', 'I’m sorry I called you that. You deserved a listening ear.', 'Would you like some quiet company or some time to yourself?', 'Okay Auntie. Thank you for telling me.', 'I’m glad we could sit a while. Shall I leave you to rest now? Take care.'],
+    'Resolve a Task': ['Open HealthHub and sign in privately with Singpass. What do you see?', 'This app is stupid.', 'You stupid.', 'Sorry Auntie. I was rude. Take your time.', 'Tap the Healthier SG banner, choose your own profile and start enrolment.', 'Tap Enrol in Healthier SG, then Select preferred clinic. Choose the clinic you want.', 'Check the clinic name and tap Confirm enrolment. What does your screen say?', 'Tap Book appointment for your first Health Plan visit. Choose a time that suits you and confirm. What does it show?', 'Check the date and clinic shown. Are you happy to leave it there for today?', 'Thanks for checking with me. Take care, Auntie.'],
+  }
+  for (const [scenario, lines] of Object.entries(turns)) {
+    for (const difficulty of ['Easy', 'Hard']) {
+      const history = [{ sender: 'persona', content: scenarios[scenario].starting_messages[0] }]
+      console.log(scenario, difficulty, history[0].content)
+      for (const line of lines) {
+        await new Promise(resolve => setTimeout(resolve, 2300))
+        const reply = await generateLiveReply(scenario, difficulty, Margaret, history, line)
+        console.log(line, '→', reply.expression, reply.text)
+        if (line === 'You stupid.') assert.equal(reply.expression, 'angry')
+        if (line === 'This app is stupid.') assert.notEqual(reply.expression, 'angry')
+        history.push({ sender: 'user', content: line }, { sender: 'persona', content: reply.text })
+        if (reply.requestedEnd) break
+      }
+    }
+  }
+}
+
 async function main() {
   const { talkToPersona } = require('../lib/llm/chat.ts')
   const { evaluateResponse } = require('../lib/llm/evaluate.ts')
@@ -84,7 +110,7 @@ async function main() {
   assert.equal(report.objective_met, true, 'A consent-based agreed next step earns credit')
   console.log('PASS agreed doorstep ending with transcript evidence')
 }
-main().catch(error => {
+(process.argv.includes('--play-visits') ? playVisits() : main()).catch(error => {
   console.error('LLM smoke test failed:', error.message)
   process.exitCode = 1
 })

@@ -126,7 +126,7 @@ try {
           const user_message = message("user", text), persona_message = message("persona", content)
           messages.push(user_message, persona_message)
           turns--
-          json = { user_message, persona_message, turns, completed: false, pendingEvaluation: true }
+          json = { user_message, persona_message, expression: "worried", turns, completed: false, pendingEvaluation: true }
         }
         if (op === "evaluate") {
           if (forceAssessmentRetry && turns === 0) {
@@ -167,7 +167,7 @@ try {
           await hints.click()
           const after = await thread.boundingBox()
           assert.ok(before.height >= 270 && Math.abs(after.height - before.height) < 2, "Hints must not compress the desktop transcript")
-          const face = await page.getByRole("img", {name:persona.name, exact:true}).boundingBox()
+          const face = await page.getByRole("img", {name: new RegExp("^" + persona.name)}).boundingBox()
           assert.ok(face.y >= 0 && face.y + face.height <= 540, "Whole portrait fits a short desktop window")
           if (process.env.CHAT_LAYOUT_SCREENSHOT) await page.screenshot({path:process.env.CHAT_LAYOUT_SCREENSHOT})
           await page.getByRole("button",{name:"Close reply hints"}).click()
@@ -191,12 +191,14 @@ try {
       await input.press("Enter")
       await page.getByText(visit.greeting.reply, { exact: true }).waitFor()
 
+      await page.getByRole("img", { name: /Her brows lift and pinch together/ }).waitFor()
+      assert.equal(await page.getByText("worried", {exact:true}).count(), 0)
       if (easy) {
         await page.reload()
         await page.getByText(visit.greeting.reply, { exact: true }).waitFor()
         await page.getByText("Look around the flat", { exact: true }).click()
         await page.locator("details[open] details > summary").first().click()
-        const portrait = page.getByRole("img", { name: persona.name, exact: true })
+        const portrait = page.getByRole("img", { name: new RegExp("^" + persona.name) })
         const scrollport = page.getByLabel("Visit conversation", { exact: true })
         await scrollport.evaluate(el => { el.scrollTop = 0 })
         const top = await portrait.evaluate(el => el.getBoundingClientRect().top)

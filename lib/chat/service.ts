@@ -145,6 +145,7 @@ export async function converseReply(converseID: string, text: string, turnId: st
   const result = await generateLiveReply(conversation.scenario_name, conversation.difficulty, persona, messages, text)
   return transaction(null, db => commitLiveReply(db, {
     owner, vid: converseID, turn: turnId, previous, text,
+    expression: result.expression, starting: scenario.constraints.starting_score,
     reply: result.text, requestedEnd: result.requestedEnd,
     respectedSpace: respectedRequestForSpace(messages.at(-1)?.content ?? "", text, result.text),
   }))

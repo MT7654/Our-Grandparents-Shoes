@@ -76,6 +76,7 @@ try {
     ].entries()) {
       input = {
         owner:user,vid, turn:crypto.randomUUID(), previous, text,
+        expression: "angry", starting: 0,
         reply: `Margaret responds naturally to your reply number ${index + 1}.`,
         requestedEnd:index === 1 || wanted === "boundary" && index === 2,
       }
@@ -91,6 +92,7 @@ try {
       }
       await assert.rejects(tx(d => live.recordLiveAssessment(d, {...check,owner:other})), {status:404})
       const after = await tx(d => live.recordLiveAssessment(d, check))
+      assert.equal(after.evaluation.expression, "angry")
       assert.deepEqual(await tx(d => live.recordLiveAssessment(d, check)), after)
       if (index < 2) {
         assert.equal(last.completed, false)
