@@ -29,7 +29,10 @@ async function playVisits() {
     'Emotional Listening Ear': ['Can I sit with you a while? Sounds like a rough morning.', 'What happened between you two?', 'You stupid.', 'I’m sorry I called you that. You deserved a listening ear.', 'Would you like some quiet company or some time to yourself?', 'Okay Auntie. Thank you for telling me.', 'I’m glad we could sit a while. Shall I leave you to rest now? Take care.'],
     'Resolve a Task': ['Open HealthHub and sign in privately with Singpass. What do you see?', 'This app is stupid.', 'You stupid.', 'Sorry Auntie. I was rude. Take your time.', 'Tap the Healthier SG banner, choose your own profile and start enrolment.', 'Tap Enrol in Healthier SG, then Select preferred clinic. Choose the clinic you want.', 'Check the clinic name and tap Confirm enrolment. What does your screen say?', 'Tap Book appointment for your first Health Plan visit. Choose a time that suits you and confirm. What does it show?', 'Check the date and clinic shown. Are you happy to leave it there for today?', 'Thanks for checking with me. Take care, Auntie.'],
   }
+  const selected = process.argv[process.argv.indexOf("--play-visits") + 1]
+  if (selected) assert.ok(Object.hasOwn(turns, selected), "Unknown scenario")
   for (const [scenario, lines] of Object.entries(turns)) {
+    if (selected && scenario !== selected) continue
     for (const difficulty of ['Easy', 'Hard']) {
       const history = [{ sender: 'persona', content: scenarios[scenario].starting_messages[0] }]
       console.log(scenario, difficulty, history[0].content)

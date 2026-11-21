@@ -46,6 +46,9 @@ export async function generateLiveReply(
             : "Eh, why you say that to me? You can talk to me properly."
         return { text, expression: "angry", requestedEnd: false }
     }
+    if (scenarioName === "Resolve a Task" && /^(?:this|the) app(?: is|'s|’s) (?:so )?(?:stupid|useless)[.!?\s]*$/i.test(latestUserMessage.trim())) {
+        return { text: "Yah, quite fiddly. We take it one step at a time, can?", expression: "neutral", requestedEnd: false }
+    }
     const groq = getGroqClient()
     const history = conversationHistory.map(({ sender, content }) => ({ speaker: sender, words: content }))
     const scene = sceneFor(scenarioName, conversationHistory)
