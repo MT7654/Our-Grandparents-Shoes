@@ -19,8 +19,7 @@ export default function LandingPage() {
     try {
       const result = await fetch("/api/auth/logout", { method: "POST" })
       if (!result.ok) throw Error()
-      setRole(null)
-      setError("")
+      window.location.replace("/")
     } catch { setError("Sign-out failed. Please try again.") }
   }
 
@@ -30,7 +29,7 @@ export default function LandingPage() {
         <h1 className="text-4xl font-semibold tracking-tight sm:text-6xl">Practice conversations with Margaret Chan.</h1>
         <p className="max-w-md text-lg leading-relaxed text-muted-foreground">Practise with Margaret in a live AI conversation, or explore a guided demo with suggested responses.</p>
         <div className="flex flex-wrap items-center gap-3">
-          <Button asChild><Link href={role === "admin" ? "/admin" : role === "user" ? "/scenarios" : "/auth"}>{role === "admin" ? "Coordinator dashboard" : role === undefined ? "Open live AI practice" : role ? "Continue live AI practice" : "Sign in for live AI practice"}</Link></Button>
+          <Button asChild><a href={role === "admin" ? "/admin" : role === "user" ? "/scenarios" : "/auth"}>{role === "admin" ? "Coordinator dashboard" : role === undefined ? "Open live AI practice" : role ? "Continue live AI practice" : "Sign in for live AI practice"}</a></Button>
           <Button asChild variant="outline"><Link href={role === "user" ? "/dashboard" : "/guest"}>{role === "user" ? "My progress" : "Try guided demo"}</Link></Button>
           {role && <Button variant="ghost" onClick={signOut}>Sign out</Button>}
         </div>

@@ -5,8 +5,10 @@ import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 
 export async function POST(request: Request) {
-  const token = (await cookies()).get(betaCookie)?.value
-  if (token && !sameOrigin(request)) return NextResponse.json({ error: "Unable to sign out" }, { status: 403 })
+  const jar = await cookies()
+  const token = jar.get(betaCookie)?.value
+  const managedCookies = jar.getAll().filter(cookie => cookie.name.startsWith("__Secure-neon-auth."))
+  if (!sameOrigin(request)) return NextResponse.json({ error: "Unable to sign out" }, { status: 403 })
   if (token) {
     try {
       await revokeBetaSession(betaTx, token)
@@ -16,8 +18,7 @@ export async function POST(request: Request) {
   }
   // Always clear both realms; do not silently switch to whatever identity is left.
   try {
-    const managed = (await cookies()).getAll().some(cookie => cookie.name.startsWith("__Secure-neon-auth."))
-    if (!token || managed) {
+    if (managedCookies.some(cookie => cookie.name === "__Secure-neon-auth.session_token")) {
       const result = await auth().signOut()
       if (result.error) throw Error("Unable to end prior session")
     }
@@ -25,6 +26,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unable to sign out" }, { status: 503 })
   }
   const response = NextResponse.json({ success: true }, { headers: { "Cache-Control": "no-store" } })
-  if (token) response.cookies.set(betaCookie, "", { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: 0 })
+  for (const name of [betaCookie, ...managedCookies.map(cookie => cookie.name)]) {
+    response.cookies.set(name, "", { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: 0 })
+  }
   return response
 }

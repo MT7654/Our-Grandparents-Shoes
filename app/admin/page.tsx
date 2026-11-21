@@ -15,7 +15,6 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import Link from "next/link"
 import { Users, MessageCircle, TrendingUp, LogOut, BarChart3, Search, Trash2 } from "lucide-react"
 import { format } from "date-fns"
-import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts"
 import LoadingOverlay from "@/components/loading-overlay"
@@ -24,7 +23,6 @@ import { Filters, User } from "@/lib/types/types"
 type Volunteer = User
 
 export default function AdminPage() {
-  const router = useRouter()
   const { toast } = useToast()
   
   // Admin Dashboard Details
@@ -68,6 +66,10 @@ export default function AdminPage() {
           }),
         })
 
+        if (data.status === 401) {
+          window.location.replace("/auth")
+          return
+        }
         if (!data.ok) {
           const errorData = await data.json().catch(() => ({}))
           throw new Error(errorData.error || `Failed to load admin data (${data.status})`)
@@ -107,7 +109,7 @@ export default function AdminPage() {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.error || "Failed to logout")
       }
-      router.push("/")
+      window.location.replace("/")
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to logout"
       toast({

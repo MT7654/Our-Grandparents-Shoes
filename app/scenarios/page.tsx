@@ -11,7 +11,6 @@ import { ArrowLeft, AlertCircle, Home, Heart, CheckSquare, ArrowDown, LucideIcon
 import { Scenario, Persona } from '@/lib/types/types'
 import LoadingOverlay from '@/components/loading-overlay'
 import { useToast } from "@/hooks/use-toast"
-import { useRouter } from "next/navigation"
 import personas from '@/lib/personas.json'
 
 const icons: Record<string, LucideIcon> = {
@@ -23,7 +22,6 @@ const icons: Record<string, LucideIcon> = {
 const default_persona: Persona = personas.Margaret
 
 export default function ScenarioSelection() {
-  const router = useRouter()
   const { toast } = useToast()
 
   const [loading, setLoading] = useState(true)
@@ -38,6 +36,10 @@ export default function ScenarioSelection() {
         setError(null)
         const response = await fetch("/api/scenarios", { method: "GET" })
 
+        if (response.status === 401) {
+          window.location.replace("/auth")
+          return
+        }
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}))
           const errorMessage = errorData.error || `Failed to load scenarios (${response.status})`
@@ -90,7 +92,7 @@ export default function ScenarioSelection() {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.error || 'Failed to logout')
       }
-      router.push("/")
+      window.location.replace("/")
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to logout'
       toast({
