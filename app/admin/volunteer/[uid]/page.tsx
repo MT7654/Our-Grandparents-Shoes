@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Link from "next/link"
-import { ArrowLeft, Award, AlertCircle } from "lucide-react"
+import { ArrowLeft, Award, AlertCircle, Download } from "lucide-react"
 import type { DisplayBadge } from '@/lib/types/types'
 import LoadingOverlay from '@/components/loading-overlay'
 import { useToast } from "@/hooks/use-toast"
@@ -31,6 +31,7 @@ export default function VolunteerDetailPage() {
   const params = useParams()
   const uid = params.uid as string
 
+  const [downloading, setDownloading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastPractice,setLastPractice]=useState<string|null>(null)
@@ -82,6 +83,31 @@ export default function VolunteerDetailPage() {
 
     getData()
   }, [uid, toast])
+
+  async function downloadHistory() {
+    setDownloading(true)
+    try {
+      const response = await fetch("/api/admin/volunteer/history?uid=" + encodeURIComponent(uid), { cache: "no-store" })
+      if (response.status === 401) {
+        window.location.replace("/auth")
+        return
+      }
+      if (!response.ok) throw Error("Please try again.")
+      const url = URL.createObjectURL(await response.blob())
+      const link = document.createElement("a")
+      link.href = url
+      const name = volunteerName.replace(/[^\p{L}\p{N}]+/gu, "-").slice(0, 64)
+      link.download = (name || "volunteer") + "-conversation-history.txt"
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } catch {
+      toast({ title: "Could not download conversation history", description: "Please try again.", variant: "destructive" })
+    } finally {
+      setDownloading(false)
+    }
+  }
 
   const toLocalDate = (input: string | null) => {
     if (!input) return "Invalid Date"
@@ -212,6 +238,10 @@ export default function VolunteerDetailPage() {
             <CardHeader>
               <CardTitle>Past Sessions</CardTitle>
               <CardDescription>Conversation training history</CardDescription>
+              <Button variant="outline" className="w-fit" disabled={loading || !!error || downloading || !pastSessions.length} onClick={downloadHistory}>
+                <Download aria-hidden="true" className="size-4" />
+                {downloading ? "Downloading…" : "Download conversation history"}
+              </Button>
             </CardHeader>
             <CardContent>
               {pastSessions && pastSessions.length > 0 ? (
